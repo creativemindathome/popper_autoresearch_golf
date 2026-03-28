@@ -1,6 +1,6 @@
 {
   "schema_version": "knowledge_graph.ideator_visual_timeline.v1",
-  "generated_at": "2026-03-28T17:30:50.357506+00:00",
+  "generated_at": "2026-03-28T18:34:59.188991+00:00",
   "seed": {
     "nodes": [
       {
@@ -1129,7 +1129,7 @@
     {
       "title": "Load knowledge graph",
       "subtitle": "Seed: 103 nodes, 100 edges",
-      "duration_ms": 1700,
+      "duration_ms": 1600,
       "actions": [
         {
           "type": "highlight",
@@ -1156,9 +1156,9 @@
             "status": "KNOWN",
             "meta": {
               "idea_id": "low-rank-transformer-layers",
-              "generated_at": "2026-03-28T11:25:38.829997+00:00",
-              "source_path": "knowledge_graph/outbox/ideator/20260328T112538Z_low-rank-transformer-layers.json",
-              "novelty_summary": "This idea proposes to replace all standard `nn.Linear` layers within a Transformer model with low-rank factorized approximations to reduce parameter count and computational cost, potentially improving inference speed an…"
+              "generated_at": "2026-03-28T12:34:59.188950+00:00",
+              "source_path": "DEMO",
+              "novelty_summary": "Replace dense linear layers with low-rank factors to reduce parameter and optimizer-state footprint while retaining signal."
             }
           }
         }
@@ -1166,8 +1166,8 @@
     },
     {
       "title": "Scan: retrieve relevant concepts",
-      "subtitle": "Token-Modulated Prototypes: Input-Conditional Low-Rank Adaptation of Discretely Selected Weights",
-      "duration_ms": 1600,
+      "subtitle": "Token‑Modulated Prototypes (Discrete + Low‑Rank)",
+      "duration_ms": 1500,
       "actions": [
         {
           "type": "highlight",
@@ -1187,14 +1187,14 @@
           "type": "add_node",
           "node": {
             "id": "idea_token-modulated-prototypes",
-            "label": "Token-Modulated Prototypes: Input-Conditional Low-Rank Adaptation of Discretely Selected Weights",
+            "label": "Token‑Modulated Prototypes (Discrete + Low‑Rank)",
             "type": "Idea",
             "status": "PENDING_REVIEW",
             "meta": {
               "idea_id": "token-modulated-prototypes",
-              "source_path": "knowledge_graph/outbox/ideator/review_failures/20260328T131152Z_token-modulated-prototypes.json",
-              "generated_at": "2026-03-28T13:11:52.282552+00:00",
-              "novelty_summary": "This idea introduces a novel mechanism for adaptive computation where each token first *discretely selects* a single base prototype weight matrix from a global bank, and then *conditionally modulates* this chosen prototype with a token-specific low-rank update. Unlike traditiona…"
+              "generated_at": "2026-03-28T16:34:59.188976+00:00",
+              "source_path": "DEMO",
+              "novelty_summary": "Each token selects a prototype weight (discrete routing) and applies a tiny low‑rank modulation. Goal: MoE-like capacity without a full expert bank."
             }
           }
         },
@@ -1210,7 +1210,7 @@
     },
     {
       "title": "Review: revise",
-      "subtitle": "Novelty score: 6",
+      "subtitle": "Novelty score: 5",
       "duration_ms": 2400,
       "actions": [
         {
@@ -1228,18 +1228,26 @@
       ],
       "notes": {
         "primary_reasons": [
-          "Mechanism is somewhat novel but resembles existing low-rank adaptations.",
-          "Uses Gumbel-Softmax, which is a common technique in similar contexts.",
-          "Implementation lacks clarity on how it significantly differs from existing methods."
+          "Resembles MoE routing plus low-rank adapters; novelty unclear.",
+          "Selection mechanism needs a clearer advantage over standard gating.",
+          "Falsifiable expectations should be more specific (bbp target, memory delta)."
         ],
-        "revision_instructions": "To enhance novelty, consider introducing a new mechanism for prototype selection that does not rely on Gumbel-Softmax. Explore alternative methods for dynamic weight adaptation that are not commonly used in existing literature. Additionally, clarify how the proposed method achieves a unique balance between parameter e…"
+        "revision_instructions": "Clarify what is truly new versus existing MoE/LoRA patterns, and define one measurable win (e.g., lower compressed model size at equal or better val_bpb)."
       }
     },
     {
       "title": "Scan: retrieve relevant concepts",
-      "subtitle": "Dynamic Layer-Wise Weight Representation Switching (QLT-LRF-FP)",
-      "duration_ms": 1600,
-      "actions": []
+      "subtitle": "Adaptive Representation Strategy (QLT → LRF → FP)",
+      "duration_ms": 1500,
+      "actions": [
+        {
+          "type": "highlight",
+          "ids": [
+            "idea_token-modulated-prototypes"
+          ],
+          "style": "glow"
+        }
+      ]
     },
     {
       "title": "Ideate: propose new node",
@@ -1250,15 +1258,23 @@
           "type": "add_node",
           "node": {
             "id": "idea_adaptive-representation-strategy",
-            "label": "Dynamic Layer-Wise Weight Representation Switching (QLT-LRF-FP)",
+            "label": "Adaptive Representation Strategy (QLT → LRF → FP)",
             "type": "Idea",
             "status": "PENDING_REVIEW",
             "meta": {
               "idea_id": "adaptive-representation-strategy",
-              "source_path": "knowledge_graph/outbox/ideator/adaptive-representation-strategy.json",
-              "generated_at": "2026-03-28T15:27:57.419869+00:00",
-              "novelty_summary": "This idea introduces a novel Adaptive Representation Strategy (ARS) where each Conv1D layer in the Transformer (MLP and Attention) can dynamically switch its internal weight representation type during training. Unlike static low-rank factorizations or fixed global quantization c…"
+              "generated_at": "2026-03-28T17:34:59.188987+00:00",
+              "source_path": "DEMO",
+              "novelty_summary": "Start heavily compressed (quantized lookup table). Promote only bottleneck layers to low‑rank, then full precision if gradients stay high."
             }
+          }
+        },
+        {
+          "type": "add_edge",
+          "edge": {
+            "source": "idea_adaptive-representation-strategy",
+            "target": "idea_token-modulated-prototypes",
+            "kind": "similar_to"
           }
         },
         {
@@ -1273,7 +1289,7 @@
     },
     {
       "title": "Review: pass",
-      "subtitle": "Novelty score: 6",
+      "subtitle": "Novelty score: 7",
       "duration_ms": 2400,
       "actions": [
         {
@@ -1291,12 +1307,9 @@
       ],
       "notes": {
         "primary_reasons": [
-          "Dynamic representation switching is interesting but not entirely novel.",
-          "Similar ideas exist in low-rank factorization and quantization.",
-          "Implementation lacks clarity on specific performance metrics.",
-          "Falsifiability could be improved with clearer expected outcomes."
-        ],
-        "revision_instructions": null
+          "Clearer falsifiability: explicit promotion triggers and expected memory/val_bpb movement.",
+          "Adds an adaptive mechanism vs a fixed compression choice."
+        ]
       }
     }
   ]

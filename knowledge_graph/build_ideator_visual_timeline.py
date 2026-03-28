@@ -6,7 +6,7 @@ import argparse
 import json
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -450,6 +450,230 @@ def build_timeline(
     }
 
 
+def build_demo_timeline(*, seed_graph_path: Path) -> dict[str, Any]:
+    seed = _read_json(seed_graph_path)
+    nodes_raw = seed.get("nodes") if isinstance(seed.get("nodes"), list) else []
+    edges_raw = seed.get("edges") if isinstance(seed.get("edges"), list) else []
+
+    seed_nodes: list[dict[str, Any]] = []
+    seed_node_ids: set[str] = set()
+    for n in nodes_raw:
+        if not isinstance(n, dict):
+            continue
+        node_id = n.get("id")
+        if not node_id:
+            continue
+        node_id = str(node_id)
+        seed_node_ids.add(node_id)
+        seed_nodes.append(
+            {
+                "id": node_id,
+                "label": str(n.get("label") or node_id),
+                "type": str(n.get("type") or "Node"),
+                "status": str(n.get("status") or "BASE_KNOWLEDGE"),
+            }
+        )
+
+    seed_edges: list[dict[str, Any]] = []
+    for e in edges_raw:
+        if not isinstance(e, dict):
+            continue
+        source = e.get("source")
+        target = e.get("target")
+        if source is None or target is None:
+            continue
+        seed_edges.append({"source": str(source), "target": str(target), "kind": "seed"})
+
+    steps: list[dict[str, Any]] = []
+    root_ids = [n["id"] for n in seed_nodes if n.get("type") == "RootBox"]
+    steps.append(
+        {
+            "title": "Load knowledge graph",
+            "subtitle": f"Seed: {len(seed_nodes)} nodes, {len(seed_edges)} edges",
+            "duration_ms": 1600,
+            "actions": [{"type": "highlight", "ids": root_ids, "style": "pulse"}] if root_ids else [],
+        }
+    )
+
+    # Believable “background” idea: already known.
+    background = {
+        "idea_id": "low-rank-transformer-layers",
+        "title": "Low-Rank Factorized Transformer Layers",
+        "novelty_summary": "Replace dense linear layers with low-rank factors to reduce parameter and optimizer-state footprint while retaining signal.",
+    }
+    background_node_id = _canonical_idea_node_id(background["idea_id"])
+    bg_links = infer_seed_links(
+        background["title"] + "\n" + background["novelty_summary"],
+        seed_node_ids=seed_node_ids,
+    )
+    bg_actions: list[dict[str, Any]] = [
+        {
+            "type": "add_node",
+            "node": {
+                "id": background_node_id,
+                "label": background["title"],
+                "type": "Idea",
+                "status": "KNOWN",
+                "meta": {
+                    "idea_id": background["idea_id"],
+                    "generated_at": (datetime.now().astimezone() - timedelta(hours=6)).isoformat(),
+                    "source_path": "DEMO",
+                    "novelty_summary": _truncate(background["novelty_summary"], max_chars=280),
+                },
+            },
+        }
+    ]
+    for node_id in bg_links[:3]:
+        bg_actions.append({"type": "add_edge", "edge": {"source": background_node_id, "target": node_id, "kind": "mentions"}})
+
+    steps.append(
+        {
+            "title": "Existing ideas in the knowledge graph",
+            "subtitle": background["title"],
+            "duration_ms": 2200,
+            "actions": bg_actions,
+        }
+    )
+
+    # Event 1: reviewer asks for revision.
+    idea1 = {
+        "idea_id": "token-modulated-prototypes",
+        "title": "Token‑Modulated Prototypes (Discrete + Low‑Rank)",
+        "novelty_summary": (
+            "Each token selects a prototype weight (discrete routing) and applies a tiny low‑rank modulation. "
+            "Goal: MoE-like capacity without a full expert bank."
+        ),
+        "decision": "revise",
+        "novelty_score": 5,
+        "primary_reasons": [
+            "Resembles MoE routing plus low-rank adapters; novelty unclear.",
+            "Selection mechanism needs a clearer advantage over standard gating.",
+            "Falsifiable expectations should be more specific (bbp target, memory delta).",
+        ],
+        "revision_instructions": (
+            "Clarify what is truly new versus existing MoE/LoRA patterns, and define one measurable win "
+            "(e.g., lower compressed model size at equal or better val_bpb)."
+        ),
+    }
+    idea1_node_id = _canonical_idea_node_id(idea1["idea_id"])
+    idea1_links = infer_seed_links(idea1["title"] + "\n" + idea1["novelty_summary"], seed_node_ids=seed_node_ids)
+
+    steps.append(
+        {
+            "title": "Scan: retrieve relevant concepts",
+            "subtitle": idea1["title"],
+            "duration_ms": 1500,
+            "actions": [{"type": "highlight", "ids": sorted(set([*idea1_links, background_node_id])), "style": "glow"}],
+        }
+    )
+    actions_idea1: list[dict[str, Any]] = [
+        {
+            "type": "add_node",
+            "node": {
+                "id": idea1_node_id,
+                "label": idea1["title"],
+                "type": "Idea",
+                "status": "PENDING_REVIEW",
+                "meta": {
+                    "idea_id": idea1["idea_id"],
+                    "generated_at": (datetime.now().astimezone() - timedelta(hours=2)).isoformat(),
+                    "source_path": "DEMO",
+                    "novelty_summary": _truncate(idea1["novelty_summary"], max_chars=280),
+                },
+            },
+        }
+    ]
+    for node_id in idea1_links[:4]:
+        actions_idea1.append({"type": "add_edge", "edge": {"source": idea1_node_id, "target": node_id, "kind": "builds_on"}})
+    actions_idea1.append(
+        {"type": "add_edge", "edge": {"source": idea1_node_id, "target": background_node_id, "kind": "similar_to"}}
+    )
+    steps.append({"title": "Ideate: propose new node", "subtitle": idea1["idea_id"], "duration_ms": 2200, "actions": actions_idea1})
+    steps.append(
+        {
+            "title": "Review: revise",
+            "subtitle": f"Novelty score: {idea1['novelty_score']}",
+            "duration_ms": 2400,
+            "actions": [
+                {"type": "set_status", "id": idea1_node_id, "status": "REVISE"},
+                {"type": "highlight", "ids": [idea1_node_id], "style": "pulse"},
+            ],
+            "notes": {
+                "primary_reasons": idea1["primary_reasons"],
+                "revision_instructions": idea1["revision_instructions"],
+            },
+        }
+    )
+
+    # Event 2: revised idea passes.
+    idea2 = {
+        "idea_id": "adaptive-representation-strategy",
+        "title": "Adaptive Representation Strategy (QLT → LRF → FP)",
+        "novelty_summary": (
+            "Start heavily compressed (quantized lookup table). Promote only bottleneck layers to low‑rank, "
+            "then full precision if gradients stay high."
+        ),
+        "decision": "pass",
+        "novelty_score": 7,
+        "primary_reasons": [
+            "Clearer falsifiability: explicit promotion triggers and expected memory/val_bpb movement.",
+            "Adds an adaptive mechanism vs a fixed compression choice.",
+        ],
+    }
+    idea2_node_id = _canonical_idea_node_id(idea2["idea_id"])
+    idea2_links = infer_seed_links(idea2["title"] + "\n" + idea2["novelty_summary"], seed_node_ids=seed_node_ids)
+    steps.append(
+        {
+            "title": "Scan: retrieve relevant concepts",
+            "subtitle": idea2["title"],
+            "duration_ms": 1500,
+            "actions": [{"type": "highlight", "ids": sorted(set([*idea2_links, idea1_node_id])), "style": "glow"}],
+        }
+    )
+
+    actions_idea2: list[dict[str, Any]] = [
+        {
+            "type": "add_node",
+            "node": {
+                "id": idea2_node_id,
+                "label": idea2["title"],
+                "type": "Idea",
+                "status": "PENDING_REVIEW",
+                "meta": {
+                    "idea_id": idea2["idea_id"],
+                    "generated_at": (datetime.now().astimezone() - timedelta(hours=1)).isoformat(),
+                    "source_path": "DEMO",
+                    "novelty_summary": _truncate(idea2["novelty_summary"], max_chars=280),
+                },
+            },
+        }
+    ]
+    for node_id in idea2_links[:4]:
+        actions_idea2.append({"type": "add_edge", "edge": {"source": idea2_node_id, "target": node_id, "kind": "builds_on"}})
+    actions_idea2.append({"type": "add_edge", "edge": {"source": idea2_node_id, "target": idea1_node_id, "kind": "similar_to"}})
+    actions_idea2.append({"type": "add_edge", "edge": {"source": idea1_node_id, "target": idea2_node_id, "kind": "revision"}})
+    steps.append({"title": "Ideate: propose new node", "subtitle": idea2["idea_id"], "duration_ms": 2200, "actions": actions_idea2})
+    steps.append(
+        {
+            "title": "Review: pass",
+            "subtitle": f"Novelty score: {idea2['novelty_score']}",
+            "duration_ms": 2400,
+            "actions": [
+                {"type": "set_status", "id": idea2_node_id, "status": "APPROVED"},
+                {"type": "highlight", "ids": [idea2_node_id], "style": "pulse"},
+            ],
+            "notes": {"primary_reasons": idea2["primary_reasons"]},
+        }
+    )
+
+    return {
+        "schema_version": "knowledge_graph.ideator_visual_timeline.v1",
+        "generated_at": datetime.now().astimezone().isoformat(),
+        "seed": {"nodes": seed_nodes, "edges": seed_edges},
+        "steps": steps,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build an animation timeline for ideator→knowledge-graph updates.")
     parser.add_argument(
@@ -478,6 +702,11 @@ def main() -> int:
         default=6,
         help="Maximum number of ideator events to include (default: 6; 0 means all)",
     )
+    parser.add_argument(
+        "--demo",
+        action="store_true",
+        help="Generate a synthetic demo timeline (useful when you have no ideator outputs yet)",
+    )
     args = parser.parse_args()
 
     seed_graph_path = Path(args.seed_graph)
@@ -485,7 +714,10 @@ def main() -> int:
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    timeline = build_timeline(seed_graph_path=seed_graph_path, outbox_dir=outbox_dir, max_events=args.max_events)
+    if args.demo:
+        timeline = build_demo_timeline(seed_graph_path=seed_graph_path)
+    else:
+        timeline = build_timeline(seed_graph_path=seed_graph_path, outbox_dir=outbox_dir, max_events=args.max_events)
     out_path.write_text(json.dumps(timeline, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     if args.inline_js:

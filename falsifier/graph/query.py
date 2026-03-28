@@ -37,19 +37,32 @@ def load_graph(graph_path: Path) -> KnowledgeGraph:
     nodes: dict[str, dict[str, Any]] = {}
     edges: list[dict[str, Any]] = []
 
+    def _node_key(node: Any, idx: int) -> str:
+        if isinstance(node, dict):
+            raw = node.get("node_id") or node.get("id")
+            if raw:
+                return str(raw)
+        return str(idx)
+
     # Handle both flat and nested JSON structures
     if isinstance(data, dict):
         if "nodes" in data:
-            nodes = {n.get("node_id", str(i)): n for i, n in enumerate(data["nodes"])}
+            raw_nodes = data["nodes"]
+            if isinstance(raw_nodes, dict):
+                nodes = {str(k): v for k, v in raw_nodes.items() if isinstance(v, dict)}
+            elif isinstance(raw_nodes, list):
+                nodes = {_node_key(n, i): n for i, n in enumerate(raw_nodes) if isinstance(n, dict)}
         else:
             # Assume flat structure where keys are node_ids
-            nodes = data
+            nodes = {str(k): v for k, v in data.items() if isinstance(v, dict)}
 
         if "edges" in data:
-            edges = data["edges"]
+            raw_edges = data["edges"]
+            if isinstance(raw_edges, list):
+                edges = raw_edges
     elif isinstance(data, list):
         # Assume list of nodes
-        nodes = {n.get("node_id", str(i)): n for i, n in enumerate(data)}
+        nodes = {_node_key(n, i): n for i, n in enumerate(data) if isinstance(n, dict)}
 
     return KnowledgeGraph(graph_path=graph_path, nodes=nodes, edges=edges)
 

@@ -38,13 +38,16 @@ def update_graph_after_verdict(
     """
     # Load or create graph
     if graph_path.exists():
-        with open(graph_path, "r") as f:
+        with open(graph_path, "r", encoding="utf-8") as f:
             graph = json.load(f)
+        if not isinstance(graph, dict):
+            graph = {"nodes": [], "edges": []}
     else:
-        graph = {"nodes": {}, "edges": []}
+        graph = {"nodes": [], "edges": []}
 
     # Build node ID
-    node_id = inp.theory_id or f"theory_{uuid.uuid4().hex[:8]}"
+    theory_id = getattr(inp, "theory_id", None) or output.theory_id
+    node_id = theory_id or f"theory_{uuid.uuid4().hex[:8]}"
 
     # Extract measured metrics from results
     measured_metrics: dict[str, Any] = {}
@@ -85,13 +88,14 @@ def update_graph_after_verdict(
     ]
 
     # Build parent references
+    parents = getattr(inp, "parents", []) or []
     parents_data = [
         {
             "node_id": parent.node_id,
             "relationship": parent.relationship,
             "what_changed": parent.what_changed,
         }
-        for parent in inp.parents
+        for parent in parents
     ]
 
     # Build change types from tags
@@ -103,17 +107,17 @@ def update_graph_after_verdict(
     # Create node
     node = {
         "node_id": node_id,
-        "theory_id": inp.theory_id,
-        "theory_type": inp.theory_type,
+        "theory_id": theory_id,
+        "theory_type": getattr(inp, "theory_type", "architectural"),
         "status": output.verdict,
-        "config_delta": inp.config_delta or {},
+        "config_delta": getattr(inp, "config_delta", None) or {},
         "new_components": [
             {
                 "name": c.name,
                 "injection_point": c.injection_point,
                 "init_gate": c.init_gate,
             }
-            for c in (inp.new_components or [])
+            for c in (getattr(inp, "new_components", None) or [])
         ],
         "measured_metrics": measured_metrics,
         "measured_bpb": measured_metrics.get("loss_at_100", 0.0) * 1.4427 if measured_metrics.get("loss_at_100") else None,
@@ -122,25 +126,49 @@ def update_graph_after_verdict(
         "parents": parents_data,
         "tags": tags_data,
         "change_types": list(change_types),
-        "what_and_why": inp.what_and_why,
+        "what_and_why": getattr(inp, "what_and_why", ""),
         "total_wall_seconds": output.total_wall_seconds,
         "total_gpu_seconds": output.total_gpu_seconds,
     }
 
-    # Add node to graph
-    graph["nodes"][node_id] = node
+    nodes_obj = graph.get("nodes")
+    if isinstance(nodes_obj, dict):
+        nodes_obj[node_id] = node
+    else:
+        if not isinstance(nodes_obj, list):
+            nodes_obj = []
+            graph["nodes"] = nodes_obj
+
+        # Use the existing ideator-style node id if present; otherwise canonicalize.
+        list_node_id = node_id if str(node_id).startswith("idea_") else f"idea_{node_id}"
+
+        existing: dict[str, Any] | None = None
+        for n in nodes_obj:
+            if isinstance(n, dict) and (n.get("id") == list_node_id or n.get("node_id") == list_node_id):
+                existing = n
+                break
+        if existing is None:
+            existing = {"id": list_node_id, "type": "Idea", "label": node_id}
+            nodes_obj.append(existing)
+
+        # Merge falsifier fields onto the ideator-style node.
+        existing.update(node)
+        existing.setdefault("id", list_node_id)
 
     # Create edges from parents
-    for parent in inp.parents:
+    for parent in parents:
         edge = {
             "source": parent.node_id,
-            "target": node_id,
+            "target": node_id if isinstance(graph.get("nodes"), dict) else (node_id if str(node_id).startswith("idea_") else f"idea_{node_id}"),
             "relationship": parent.relationship,
             "what_changed": parent.what_changed,
         }
-        graph["edges"].append(edge)
+        if isinstance(graph.get("edges"), list):
+            graph["edges"].append(edge)
+        else:
+            graph["edges"] = [edge]
 
     # Save graph
     graph_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(graph_path, "w") as f:
+    with open(graph_path, "w", encoding="utf-8") as f:
         json.dump(graph, f, indent=2, default=str)

@@ -59,6 +59,15 @@ python3 knowledge_graph/build_ideator_visual_timeline.py \
   --inline-js knowledge_graph/visuals/ideator_kg_update/timeline.inline.js
 ```
 
+If you don't have any ideator outputs yet, generate a synthetic demo timeline:
+
+```bash
+python3 knowledge_graph/build_ideator_visual_timeline.py \
+  --demo \
+  --out knowledge_graph/visuals/ideator_kg_update/timeline.json \
+  --inline-js knowledge_graph/visuals/ideator_kg_update/timeline.inline.js
+```
+
 Open the viewer:
 
 - Directly (uses `timeline.inline.js`): `knowledge_graph/visuals/ideator_kg_update/index.html`

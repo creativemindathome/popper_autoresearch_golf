@@ -31,10 +31,191 @@
     btnPause: document.getElementById("btnPause"),
     btnPrev: document.getElementById("btnPrev"),
     btnNext: document.getElementById("btnNext"),
+    btnDemo: document.getElementById("btnDemo"),
     btnLoad: document.getElementById("btnLoad"),
     fileInput: document.getElementById("fileInput"),
     speed: document.getElementById("speed"),
     speedVal: document.getElementById("speedVal"),
+  };
+
+  const BUILTIN_DEMO_TIMELINE = {
+    schema_version: "knowledge_graph.ideator_visual_timeline.v1",
+    generated_at: new Date().toISOString(),
+    seed: {
+      nodes: [
+        { id: "node_root_data_pipeline", label: "Data Pipeline", type: "RootBox", status: "BASE_KNOWLEDGE" },
+        { id: "node_root_neural_network", label: "Neural Network", type: "RootBox", status: "BASE_KNOWLEDGE" },
+        { id: "node_root_training_eval", label: "Training & Evaluation", type: "RootBox", status: "BASE_KNOWLEDGE" },
+
+        { id: "node_data_sources", label: "Data Sources", type: "Branch", status: "BASE_KNOWLEDGE" },
+        { id: "node_data_source_web_text", label: "Web Text", type: "Leaf", status: "BASE_KNOWLEDGE" },
+        { id: "node_data_source_code", label: "Code", type: "Leaf", status: "BASE_KNOWLEDGE" },
+
+        { id: "node_mlp_variant", label: "MLP Variant", type: "Branch", status: "BASE_KNOWLEDGE" },
+        { id: "node_mlp_low_rank", label: "Low-rank / Factorized MLP", type: "Leaf", status: "BASE_KNOWLEDGE" },
+        { id: "node_mlp_moe", label: "Mixture-of-Experts (Sparse)", type: "Leaf", status: "BASE_KNOWLEDGE" },
+        { id: "node_embed_factorized", label: "Factorized Embeddings", type: "Leaf", status: "BASE_KNOWLEDGE" },
+        { id: "node_head_adaptive_softmax", label: "Adaptive / Factorized Softmax", type: "Leaf", status: "BASE_KNOWLEDGE" },
+
+        { id: "node_optimizer_state_strategy", label: "Optimizer State Strategy", type: "Branch", status: "BASE_KNOWLEDGE" },
+        { id: "node_opt_adamw_8bit_state", label: "AdamW (8-bit moments)", type: "Leaf", status: "BASE_KNOWLEDGE" },
+        { id: "node_opt_adafactor", label: "Adafactor (Factorized)", type: "Leaf", status: "BASE_KNOWLEDGE" },
+        { id: "node_kv_cache_int8", label: "INT8 KV Cache", type: "Leaf", status: "BASE_KNOWLEDGE" },
+      ],
+      edges: [
+        { source: "node_root_data_pipeline", target: "node_data_sources", kind: "seed" },
+        { source: "node_data_sources", target: "node_data_source_web_text", kind: "seed" },
+        { source: "node_data_sources", target: "node_data_source_code", kind: "seed" },
+
+        { source: "node_root_neural_network", target: "node_mlp_variant", kind: "seed" },
+        { source: "node_mlp_variant", target: "node_mlp_low_rank", kind: "seed" },
+        { source: "node_mlp_variant", target: "node_mlp_moe", kind: "seed" },
+        { source: "node_root_neural_network", target: "node_embed_factorized", kind: "seed" },
+        { source: "node_root_neural_network", target: "node_head_adaptive_softmax", kind: "seed" },
+
+        { source: "node_root_training_eval", target: "node_optimizer_state_strategy", kind: "seed" },
+        { source: "node_optimizer_state_strategy", target: "node_opt_adamw_8bit_state", kind: "seed" },
+        { source: "node_optimizer_state_strategy", target: "node_opt_adafactor", kind: "seed" },
+        { source: "node_root_training_eval", target: "node_kv_cache_int8", kind: "seed" },
+      ],
+    },
+    steps: [
+      {
+        title: "Load knowledge graph",
+        subtitle: "Seed: 15 nodes, 12 edges",
+        duration_ms: 1500,
+        actions: [
+          {
+            type: "highlight",
+            ids: ["node_root_data_pipeline", "node_root_neural_network", "node_root_training_eval"],
+            style: "pulse",
+          },
+        ],
+      },
+      {
+        title: "Existing ideas in the knowledge graph",
+        subtitle: "Low-Rank Factorized Transformer Layers",
+        duration_ms: 2100,
+        actions: [
+          {
+            type: "add_node",
+            node: {
+              id: "idea_low-rank-transformer-layers",
+              label: "Low-Rank Factorized Transformer Layers",
+              type: "Idea",
+              status: "KNOWN",
+              meta: {
+                idea_id: "low-rank-transformer-layers",
+                source_path: "DEMO",
+                novelty_summary: "Factorize dense layers into low-rank factors to save params and optimizer state.",
+              },
+            },
+          },
+          { type: "add_edge", edge: { source: "idea_low-rank-transformer-layers", target: "node_mlp_low_rank", kind: "mentions" } },
+          { type: "add_edge", edge: { source: "idea_low-rank-transformer-layers", target: "node_embed_factorized", kind: "mentions" } },
+          { type: "highlight", ids: ["node_mlp_low_rank", "node_embed_factorized"], style: "glow" },
+        ],
+      },
+      {
+        title: "Scan: retrieve relevant concepts",
+        subtitle: "Token‑Modulated Prototypes (Discrete + Low‑Rank)",
+        duration_ms: 1400,
+        actions: [
+          { type: "highlight", ids: ["node_mlp_moe", "node_mlp_low_rank", "idea_low-rank-transformer-layers"], style: "glow" },
+        ],
+      },
+      {
+        title: "Ideate: propose new node",
+        subtitle: "token-modulated-prototypes",
+        duration_ms: 2200,
+        actions: [
+          {
+            type: "add_node",
+            node: {
+              id: "idea_token-modulated-prototypes",
+              label: "Token‑Modulated Prototypes (Discrete + Low‑Rank)",
+              type: "Idea",
+              status: "PENDING_REVIEW",
+              meta: {
+                idea_id: "token-modulated-prototypes",
+                source_path: "DEMO",
+                novelty_summary: "Each token selects a prototype weight (discrete routing) and applies a tiny low‑rank modulation.",
+              },
+            },
+          },
+          { type: "add_edge", edge: { source: "idea_token-modulated-prototypes", target: "node_mlp_moe", kind: "builds_on" } },
+          { type: "add_edge", edge: { source: "idea_token-modulated-prototypes", target: "node_mlp_low_rank", kind: "builds_on" } },
+          { type: "add_edge", edge: { source: "idea_token-modulated-prototypes", target: "idea_low-rank-transformer-layers", kind: "similar_to" } },
+        ],
+      },
+      {
+        title: "Review: revise",
+        subtitle: "Novelty score: 5",
+        duration_ms: 2400,
+        actions: [
+          { type: "set_status", id: "idea_token-modulated-prototypes", status: "REVISE" },
+          { type: "highlight", ids: ["idea_token-modulated-prototypes"], style: "pulse" },
+        ],
+        notes: {
+          primary_reasons: [
+            "Resembles MoE routing plus low-rank adapters; novelty unclear.",
+            "Selection mechanism needs a clearer advantage over standard gating.",
+            "Make the falsifiable win concrete (bbp target, memory delta).",
+          ],
+          revision_instructions:
+            "Clarify what is genuinely new vs existing MoE/LoRA patterns, and define one measurable win (compressed size vs val_bpb).",
+        },
+      },
+      {
+        title: "Scan: retrieve relevant concepts",
+        subtitle: "Adaptive Representation Strategy (QLT → LRF → FP)",
+        duration_ms: 1400,
+        actions: [
+          { type: "highlight", ids: ["node_kv_cache_int8", "node_mlp_low_rank", "idea_token-modulated-prototypes"], style: "glow" },
+        ],
+      },
+      {
+        title: "Ideate: propose new node",
+        subtitle: "adaptive-representation-strategy",
+        duration_ms: 2200,
+        actions: [
+          {
+            type: "add_node",
+            node: {
+              id: "idea_adaptive-representation-strategy",
+              label: "Adaptive Representation Strategy (QLT → LRF → FP)",
+              type: "Idea",
+              status: "PENDING_REVIEW",
+              meta: {
+                idea_id: "adaptive-representation-strategy",
+                source_path: "DEMO",
+                novelty_summary:
+                  "Start heavily compressed, then promote only bottleneck layers to low‑rank and full precision based on gradient signals.",
+              },
+            },
+          },
+          { type: "add_edge", edge: { source: "idea_adaptive-representation-strategy", target: "node_kv_cache_int8", kind: "builds_on" } },
+          { type: "add_edge", edge: { source: "idea_adaptive-representation-strategy", target: "node_mlp_low_rank", kind: "builds_on" } },
+          { type: "add_edge", edge: { source: "idea_adaptive-representation-strategy", target: "idea_token-modulated-prototypes", kind: "similar_to" } },
+          { type: "add_edge", edge: { source: "idea_token-modulated-prototypes", target: "idea_adaptive-representation-strategy", kind: "revision" } },
+        ],
+      },
+      {
+        title: "Review: pass",
+        subtitle: "Novelty score: 7",
+        duration_ms: 2400,
+        actions: [
+          { type: "set_status", id: "idea_adaptive-representation-strategy", status: "APPROVED" },
+          { type: "highlight", ids: ["idea_adaptive-representation-strategy"], style: "pulse" },
+        ],
+        notes: {
+          primary_reasons: [
+            "Clearer falsifiability: explicit promotion triggers and expected memory/val_bpb movement.",
+            "Adds an adaptive mechanism vs a fixed compression choice.",
+          ],
+        },
+      },
+    ],
   };
 
   function easeOutCubic(t) {
@@ -77,6 +258,29 @@
 
   function safeArray(v) {
     return Array.isArray(v) ? v : [];
+  }
+
+  function isTimelineObject(obj) {
+    if (!obj || typeof obj !== "object") return false;
+    const sv = obj.schema_version;
+    if (typeof sv !== "string") return false;
+    if (!sv.startsWith("knowledge_graph.ideator_visual_timeline.")) return false;
+    const seed = obj.seed;
+    if (!seed || typeof seed !== "object") return false;
+    if (!Array.isArray(seed.nodes) || !Array.isArray(seed.edges)) return false;
+    if (!Array.isArray(obj.steps)) return false;
+    return true;
+  }
+
+  function readFileAsText(file) {
+    if (!file) return Promise.reject(new Error("No file selected"));
+    if (typeof file.text === "function") return file.text();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(reader.error || new Error("FileReader error"));
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.readAsText(file);
+    });
   }
 
   function isSeedType(t) {
@@ -572,6 +776,24 @@
       }
       ctx.restore();
 
+      // Empty state: no timeline loaded yet.
+      if (!timeline || nodesById.size === 0) {
+        ctx.save();
+        const w = UI.canvas.width;
+        const h = UI.canvas.height;
+        ctx.fillStyle = "rgba(255,255,255,0.86)";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = `${22 * dpr}px ui-sans-serif, system-ui, -apple-system`;
+        ctx.fillText("No timeline loaded", w / 2, h / 2 - 18 * dpr);
+        ctx.fillStyle = "rgba(255,255,255,0.62)";
+        ctx.font = `${13 * dpr}px ui-sans-serif, system-ui, -apple-system`;
+        ctx.fillText("Click “Load timeline.json…” or regenerate one from the repo root.", w / 2, h / 2 + 10 * dpr);
+        ctx.restore();
+        requestAnimationFrame(draw);
+        return;
+      }
+
       // Lane divider between seed KG and idea lane.
       if (seedLayout && Number.isFinite(seedLayout.leftW)) {
         const x = seedLayout.leftW * dpr;
@@ -686,28 +908,50 @@
     UI.btnPause.addEventListener("click", () => pause());
     UI.speed.addEventListener("input", () => setSpeed(Number(UI.speed.value || 1)));
 
-    UI.btnLoad.addEventListener("click", () => UI.fileInput.click());
+    UI.btnDemo.addEventListener("click", () => load(BUILTIN_DEMO_TIMELINE));
+
+    UI.btnLoad.addEventListener("click", () => {
+      UI.fileInput.value = "";
+      UI.fileInput.click();
+    });
     UI.fileInput.addEventListener("change", async () => {
       const file = UI.fileInput.files && UI.fileInput.files[0];
       if (!file) return;
-      const text = await file.text();
+      UI.stepNotes.textContent = `Loading ${file.name}…`;
       try {
+        const text = await readFileAsText(file);
         const obj = JSON.parse(text);
+        if (!isTimelineObject(obj)) {
+          const sv = obj && typeof obj === "object" ? obj.schema_version : null;
+          UI.stepNotes.textContent =
+            `That JSON doesn't look like a timeline.\n\n` +
+            `Expected schema_version like:\n` +
+            `  knowledge_graph.ideator_visual_timeline.v1\n\n` +
+            `Got:\n` +
+            `  ${sv ? String(sv) : "(missing schema_version)"}`;
+          return;
+        }
         load(obj);
+        UI.stepNotes.textContent =
+          `Loaded ${file.name}.\n` +
+          `seed_nodes=${obj.seed.nodes.length}, seed_edges=${obj.seed.edges.length}, steps=${obj.steps.length}`;
       } catch (e) {
-        UI.stepNotes.textContent = `Failed to parse JSON: ${String(e)}`;
+        UI.stepNotes.textContent = `Failed to load JSON: ${String(e)}`;
       }
     });
 
     // Initial speed label.
     UI.speedVal.textContent = `${speed.toFixed(1)}×`;
 
+    // Always show something immediately (avoids "blank" / file-loading issues).
+    load(BUILTIN_DEMO_TIMELINE);
+
     requestAnimationFrame(draw);
 
     return {
       load,
       tryLoadDefault: async function () {
-        if (window.__IDEATOR_TIMELINE__) {
+        if (window.__IDEATOR_TIMELINE__ && isTimelineObject(window.__IDEATOR_TIMELINE__)) {
           load(window.__IDEATOR_TIMELINE__);
           return;
         }
@@ -715,13 +959,14 @@
           const res = await fetch("./timeline.json", { cache: "no-store" });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const obj = await res.json();
+          if (!isTimelineObject(obj)) throw new Error("timeline.json is not a valid timeline object");
           load(obj);
         } catch (_e) {
+          // Last resort: always show something so you can test the visualizer.
+          load(BUILTIN_DEMO_TIMELINE);
           UI.stepNotes.textContent =
-            "Tip: click “Load timeline.json…” and select `timeline.json`.\n\n" +
-            "Or serve this folder with:\n" +
-            "  python3 -m http.server 8000\n" +
-            "…then open http://localhost:8000/";
+            "Loaded built-in demo timeline.\n\n" +
+            "To use real data, regenerate `timeline.json` and/or `timeline.inline.js` and reload.";
         }
       },
     };
