@@ -22,6 +22,13 @@ from pathlib import Path
 from typing import List, Dict, Any, Set
 import os
 
+from hypothesis_sources import (
+    load_enriched_hypotheses_single_run,
+    load_hypotheses_chronological_by_run,
+    load_hypotheses_from_run,
+    load_merged_hypotheses,
+)
+
 
 def _html_escape(text: str) -> str:
     """Escape HTML special characters."""
@@ -126,54 +133,6 @@ def load_seed_graph(path: Path) -> tuple[list, list]:
     with open(path) as f:
         data = json.load(f)
     return data.get("nodes", []), data.get("edges", [])
-
-
-def load_hypotheses_from_run(experiment_dir: Path) -> List[Dict]:
-    """Load hypotheses from a specific experiment run."""
-    viz_data_path = experiment_dir / "visualization" / "visualization_data.json"
-    if not viz_data_path.exists():
-        return []
-
-    with open(viz_data_path) as f:
-        data = json.load(f)
-
-    # Build timeline of hypotheses
-    hypotheses = []
-    timeline = data.get("timeline", [])
-
-    # Group by hypothesis number
-    hyp_events = {}
-    for event in timeline:
-        hyp_num = event.get("hypothesis", 0)
-        if hyp_num not in hyp_events:
-            hyp_events[hyp_num] = {"events": []}
-        hyp_events[hyp_num]["events"].append(event)
-
-    for hyp_num, data in hyp_events.items():
-        # Find start and complete events
-        start_event = None
-        complete_event = None
-        for e in data["events"]:
-            if e.get("event") == "start":
-                start_event = e
-            elif e.get("event") == "complete":
-                complete_event = e
-
-        if complete_event:
-            # Get theory_id from start event (it's not in complete event)
-            theory_id = start_event.get("theory_id") if start_event else None
-            if not theory_id:
-                theory_id = f"hyp_{hyp_num}"
-
-            hypotheses.append({
-                "id": theory_id,
-                "hypothesis_num": hyp_num,
-                "verdict": complete_event.get("verdict", "UNKNOWN"),
-                "time": complete_event.get("time", 0),
-                "killed_by": complete_event.get("stage1_verdict") if complete_event.get("verdict") == "REFUTED" else None,
-            })
-
-    return sorted(hypotheses, key=lambda x: x["time"])
 
 
 def _direct_parent_of(target_id: str, edges: list) -> str | None:
@@ -606,7 +565,7 @@ def render_frame(dot_text: str, output_path: Path, dpi: int = 150) -> bool:
         return False
 
 
-def create_mp4_from_frames(frame_dir: Path, output_path: Path, fps: int = 1) -> bool:
+def create_mp4_from_frames(frame_dir: Path, output_path: Path, fps: float = 1) -> bool:
     """Combine frames into MP4 using ffmpeg."""
     try:
         frame_pattern = str(frame_dir / "frame_%04d.png")
@@ -619,6 +578,7 @@ def create_mp4_from_frames(frame_dir: Path, output_path: Path, fps: int = 1) -> 
             "ffmpeg",
             "-y",
             "-framerate", str(fps),
+            "-start_number", "0",
             "-i", frame_pattern,
             "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",  # Ensure dimensions divisible by 2
             "-c:v", "libx264",
@@ -643,28 +603,80 @@ def create_mp4_from_frames(frame_dir: Path, output_path: Path, fps: int = 1) -> 
         return False
 
 
+def _evolution_frame_title(
+    *,
+    phase: str,
+    segments: list[tuple[str, int, int]] | None,
+    hyp_index: int | None,
+    total_h: int,
+    frame_num: int,
+    total_frames: int,
+) -> str:
+    prog = f"Frame {frame_num}/{total_frames}"
+    if segments is None:
+        if phase == "baseline":
+            return f"Baseline Knowledge Graph ({prog})"
+        if phase == "add" and hyp_index is not None:
+            return f"Hypothesis {hyp_index + 1}/{total_h} ({prog})"
+        if phase == "final":
+            return f"Complete — {total_h} hypotheses ({prog})"
+        return prog
+
+    if phase == "baseline":
+        return f"All efforts — seed ontology ({prog})"
+    if phase == "add" and hyp_index is not None:
+        i = hyp_index
+        for name, a, b in segments:
+            if a <= i < b:
+                short = name.replace("live_run_", "").replace("live_experiment_", "exp_")[:36]
+                return f"{short} · +{i - a + 1}/{b - a} · total {i + 1}/{total_h} ({prog})"
+        return f"Hypothesis {i + 1}/{total_h} ({prog})"
+    if phase == "final":
+        return f"All efforts — complete ({total_h} hypotheses) ({prog})"
+    return prog
+
+
 def generate_movie(
     seed_path: Path,
-    experiment_dir: Path,
     output_path: Path,
-    fps: int = 1,
+    fps: float = 1.0,
     dpi: int = 150,
+    *,
+    experiment_dir: Path | None = None,
+    hypotheses: List[Dict] | None = None,
+    segments: list[tuple[str, int, int]] | None = None,
 ) -> bool:
-    """Generate the full evolution movie."""
+    """Generate the full evolution movie (baseline → add hypotheses one by one → final)."""
 
     print(f"Loading seed graph from {seed_path}...")
     nodes, edges = load_seed_graph(seed_path)
 
     print(f"Found {len(nodes)} nodes, {len(edges)} edges in baseline graph")
 
-    print(f"Loading hypotheses from {experiment_dir}...")
-    hypotheses = load_hypotheses_from_run(experiment_dir)
+    if hypotheses is None:
+        if experiment_dir is None:
+            print("Either experiment_dir or hypotheses= is required")
+            return False
+        print(f"Loading hypotheses from {experiment_dir}...")
+        hypotheses = load_enriched_hypotheses_single_run(experiment_dir)
+        if not hypotheses:
+            hypotheses = load_hypotheses_from_run(experiment_dir)
+            hypotheses = [
+                {
+                    "idea_id": str(h["id"]),
+                    "routing_id": str(h["id"]).lower(),
+                    "display_id": str(h["id"])[:48],
+                    "verdict": str(h.get("verdict") or "UNKNOWN").upper(),
+                    "killed_by": str(h.get("killed_by") or ""),
+                }
+                for h in hypotheses
+            ]
 
     if not hypotheses:
-        print("No hypotheses found in experiment data")
+        print("No hypotheses found")
         return False
 
-    print(f"Found {len(hypotheses)} hypotheses")
+    print(f"Found {len(hypotheses)} hypotheses (fps={fps})")
 
     with tempfile.TemporaryDirectory() as tmpdir:
         frame_dir = Path(tmpdir)
@@ -673,28 +685,51 @@ def generate_movie(
 
         # Frame 0: Baseline only (FULL graph)
         print("Generating frame 0: Baseline knowledge graph...")
-        dot = build_evolution_dot(nodes, edges, hypotheses, 0, total_frames, 0,
-                                  "Baseline Knowledge Graph")
+        t0 = _evolution_frame_title(
+            phase="baseline",
+            segments=segments,
+            hyp_index=None,
+            total_h=len(hypotheses),
+            frame_num=0,
+            total_frames=total_frames,
+        )
+        dot = build_evolution_dot(nodes, edges, hypotheses, 0, total_frames, 0, t0)
         render_frame(dot, frame_dir / "frame_0000.png", dpi)
 
         # Frames 1..n: Add hypotheses one by one
         for i in range(len(hypotheses)):
             frame_num = i + 1
             hyp = hypotheses[i]
-            print(f"Generating frame {frame_num}: Adding hypothesis {i+1}/{len(hypotheses)}: {hyp['id'][:40]}...")
+            _lab = hyp.get("display_id") or hyp.get("idea_id") or hyp.get("id") or "?"
+            print(f"Generating frame {frame_num}: Adding hypothesis {i+1}/{len(hypotheses)}: {_lab[:40]}...")
 
-            dot = build_evolution_dot(nodes, edges, hypotheses, frame_num, total_frames, i + 1,
-                                      f"Hypothesis {i+1}")
+            tstep = _evolution_frame_title(
+                phase="add",
+                segments=segments,
+                hyp_index=i,
+                total_h=len(hypotheses),
+                frame_num=frame_num,
+                total_frames=total_frames,
+            )
+            dot = build_evolution_dot(nodes, edges, hypotheses, frame_num, total_frames, i + 1, tstep)
             render_frame(dot, frame_dir / f"frame_{frame_num:04d}.png", dpi)
 
         # Final frame: All hypotheses
         print(f"Generating frame {total_frames-1}: Final state with all hypotheses...")
+        tf = _evolution_frame_title(
+            phase="final",
+            segments=segments,
+            hyp_index=None,
+            total_h=len(hypotheses),
+            frame_num=total_frames - 1,
+            total_frames=total_frames,
+        )
         dot = build_evolution_dot(nodes, edges, hypotheses, total_frames - 1, total_frames,
-                                  len(hypotheses), f"Complete - {len(hypotheses)} Hypotheses Tested")
+                                  len(hypotheses), tf)
         render_frame(dot, frame_dir / f"frame_{total_frames-1:04d}.png", dpi)
 
         # Create MP4
-        print(f"Creating MP4 at {fps} fps...")
+        print(f"Creating MP4 at {fps} fps (~{len(hypotheses) + 2} frames)...")
         if create_mp4_from_frames(frame_dir, output_path, fps):
             print(f"✓ Generated evolution movie: {output_path}")
             return True
@@ -704,35 +739,114 @@ def generate_movie(
 
 
 def main():
+    repo = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description="Generate knowledge graph evolution movie v2")
-    parser.add_argument("--seed", default="knowledge_graph/seed_parameter_golf_kg.json",
+    parser.add_argument("--seed", default=str(repo / "knowledge_graph/seed_parameter_golf_kg.json"),
                         help="Path to seed knowledge graph")
-    parser.add_argument("--experiment-dir",
-                        default="experiments/ten_hypothesis_run/live_run_20260328_170317",
-                        help="Path to experiment run directory")
-    parser.add_argument("--output", default="knowledge_graph/visuals/evolution_movie_v2.mp4",
+    parser.add_argument(
+        "--experiment-dir",
+        default=None,
+        help="Single live run directory (ignored if --merged)",
+    )
+    parser.add_argument("--merged", action="store_true",
+                        help="Use all ideas from merged viz + snapshots under --snapshots-root")
+    parser.add_argument(
+        "--all-efforts",
+        action="store_true",
+        help="Chronological order by experiment folder; on-screen titles show which run each idea came from",
+    )
+    parser.add_argument("--snapshots-root", type=Path,
+                        default=repo / "experiments" / "ten_hypothesis_run",
+                        help="Root folder for --merged / --all-efforts")
+    parser.add_argument("--output", default=str(repo / "knowledge_graph/visuals/evolution_movie_v2.mp4"),
                         help="Output MP4 path")
-    parser.add_argument("--fps", type=int, default=1,
-                        help="Frames per second in output video")
-    parser.add_argument("--dpi", type=int, default=150,
-                        help="Resolution of frames")
+    parser.add_argument("--fps", type=float, default=None,
+                        help="Frames per second (overrides --duration-seconds if both set)")
+    parser.add_argument("--duration-seconds", type=float, default=None,
+                        help="Target clip length in seconds (e.g. 10); sets fps from frame count")
+    parser.add_argument("--dpi", type=int, default=120,
+                        help="Resolution of frames (lower = faster render)")
     args = parser.parse_args()
 
-    seed_path = Path(args.seed)
-    experiment_dir = Path(args.experiment_dir)
-    output_path = Path(args.output)
+    seed_path = Path(args.seed).resolve()
+    output_path = Path(args.output).resolve()
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    success = generate_movie(seed_path, experiment_dir, output_path, args.fps, args.dpi)
+    hypotheses = None
+    experiment_dir = Path(args.experiment_dir).resolve() if args.experiment_dir else None
+
+    segments: list[tuple[str, int, int]] | None = None
+
+    if args.all_efforts:
+        hypotheses, segments = load_hypotheses_chronological_by_run(
+            args.snapshots_root.resolve(), seed_path
+        )
+        if not hypotheses:
+            print("No hypotheses found under", args.snapshots_root)
+            return 1
+        print("Effort segments (folder → index range):")
+        for name, a, b in segments:
+            print(f"  {name}: [{a}, {b}) → {b - a} ideas")
+    elif args.merged:
+        hypotheses = load_merged_hypotheses(args.snapshots_root.resolve(), seed_path)
+        if not hypotheses:
+            print("No merged hypotheses found under", args.snapshots_root)
+            return 1
+    elif experiment_dir is None:
+        print("Provide --experiment-dir, --merged, or --all-efforts")
+        return 1
+    else:
+        hypotheses = None
+
+    if hypotheses is not None:
+        n_frames = len(hypotheses) + 2
+    else:
+        hy = load_enriched_hypotheses_single_run(experiment_dir)  # type: ignore
+        if not hy:
+            hy = load_hypotheses_from_run(experiment_dir)  # type: ignore
+        n_frames = len(hy) + 2
+
+    fps: float
+    if args.fps is not None:
+        fps = float(args.fps)
+    elif args.duration_seconds is not None and n_frames > 0:
+        fps = max(0.25, n_frames / float(args.duration_seconds))
+    else:
+        fps = 1.0
+
+    success = generate_movie(
+        seed_path,
+        output_path,
+        fps=fps,
+        dpi=args.dpi,
+        experiment_dir=experiment_dir,
+        hypotheses=hypotheses,
+        segments=segments,
+    )
 
     if success:
         print("\nGenerating high-quality summary frame...")
         nodes, edges = load_seed_graph(seed_path)
-        hypotheses = load_hypotheses_from_run(experiment_dir)
+        if hypotheses is None and experiment_dir is not None:
+            hy_final = load_enriched_hypotheses_single_run(experiment_dir)
+            if not hy_final:
+                hy_final = load_hypotheses_from_run(experiment_dir)
+                hy_final = [
+                    {
+                        "idea_id": str(h["id"]),
+                        "routing_id": str(h["id"]).lower(),
+                        "display_id": str(h["id"])[:48],
+                        "verdict": str(h.get("verdict") or "UNKNOWN").upper(),
+                        "killed_by": str(h.get("killed_by") or ""),
+                    }
+                    for h in hy_final
+                ]
+        else:
+            hy_final = hypotheses
 
-        dot = build_evolution_dot(nodes, edges, hypotheses, 0, 1, len(hypotheses),
-                                  f"Final State - {len(hypotheses)} Hypotheses")
+        dot = build_evolution_dot(nodes, edges, hy_final, 0, 1, len(hy_final),
+                                  f"Final State - {len(hy_final)} Hypotheses")
         summary_path = output_path.parent / "evolution_summary_v2.png"
         render_frame(dot, summary_path, dpi=300)
         print(f"✓ Summary frame: {summary_path}")
