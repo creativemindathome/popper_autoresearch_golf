@@ -2,6 +2,10 @@
 
 Evolve calibration-lite into checkpoint-safe mechanism probes that can support later T6-style falsification without destabilizing the deterministic core.
 
+## Status
+
+- done
+
 ## Context
 
 Mechanism probes should only arrive after the deterministic core and threshold schema are stable. They must be read-only, checkpoint-safe, and cheap relative to training.

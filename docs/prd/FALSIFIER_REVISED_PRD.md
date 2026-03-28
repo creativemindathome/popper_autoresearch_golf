@@ -29,7 +29,6 @@ The initial implemented falsifier package must provide:
 The initial deterministic core includes only:
 
 - validation preflight
-- simplified `T1` novelty and precedent checking
 - `T2` parameter, artifact, and time budget estimation
 - `T3` import and forward/backward smoke diagnostics
 
@@ -87,7 +86,6 @@ The original PRD’s tests are too integration-heavy for the first landing. Add 
 - hyperparameter extraction unit tests
 - budget estimator unit tests
 - deterministic falsifier CLI smoke test
-- known-trivial change must fail T0
 - known-budget overflow must fail T2
 - known-safe baseline-like submission must pass the reduced Stage 1 core
 
@@ -95,9 +93,9 @@ The original PRD’s tests are too integration-heavy for the first landing. Add 
 
 1. `uv` packaging and repo-local test runner
 2. falsifier typed contracts
-3. deterministic Stage 1 core (`T0`, `T2`)
+3. deterministic Stage 1 core (`T2`, `T3`, bounded micro-train)
 4. handoff graph and Linear buildout queue
-5. T3/T6a helpers
+5. calibration-lite and `T4`/`T5` helpers
 6. calibration versioning
 7. GPU-bound Stage 1 extensions
 8. only then Stage 2 adversarial agent

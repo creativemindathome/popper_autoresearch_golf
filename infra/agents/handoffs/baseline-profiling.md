@@ -2,6 +2,10 @@
 
 Produce the first versioned baseline profile artifact for the current repo so later theory and falsification issues have a stable input surface.
 
+## Status
+
+- done
+
 ## Context
 
 The baseline profiler is currently a stub writer. This issue is the first execution lane for turning the repo scaffold into a falsifier-first workflow.

@@ -4,7 +4,7 @@ Implement the deterministic `T3` candidate smoke gate for import, model construc
 
 ## Status
 
-- in_progress
+- done
 
 ## Context
 

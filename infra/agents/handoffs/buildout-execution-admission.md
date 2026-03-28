@@ -2,6 +2,10 @@
 
 Add the local admission gate that blocks execution-project theory work until a valid falsifier promote artifact exists.
 
+## Status
+
+- done
+
 ## Context
 
 The buildout/execution project split is documented, but the repo still needs an enforceable local rule for execution promotion.

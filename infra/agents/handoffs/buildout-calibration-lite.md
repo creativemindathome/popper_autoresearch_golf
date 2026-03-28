@@ -2,6 +2,10 @@
 
 Define and implement the minimum calibration artifacts needed for deterministic falsifier gating.
 
+## Status
+
+- done
+
 ## Context
 
 The original PRD calibrates too much too early. Build only the minimum baseline profile and 100-step comparison surface first.

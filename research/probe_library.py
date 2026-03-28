@@ -164,6 +164,8 @@ def architecture_profile(
             "num_kv_heads": args.num_kv_heads,
             "mlp_mult": args.mlp_mult,
             "tie_embeddings": args.tie_embeddings,
+            "iterations": args.iterations,
+            "train_batch_tokens": args.train_batch_tokens,
             "train_seq_len": args.train_seq_len,
         },
         "param_count_total": total_params,

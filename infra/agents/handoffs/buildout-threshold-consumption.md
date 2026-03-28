@@ -2,6 +2,10 @@
 
 Consume calibration-lite thresholds inside the deterministic falsifier instead of relying on hard-coded gate values.
 
+## Status
+
+- done
+
 ## Context
 
 The profile generator exists, but the falsifier core still needs a schema-checked threshold loading path before `T4` can be trusted.

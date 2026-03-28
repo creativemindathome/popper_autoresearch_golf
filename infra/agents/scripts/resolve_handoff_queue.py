@@ -77,7 +77,8 @@ def main() -> int:
             backlog.append(issue_name)
             continue
         filtered = [dependency for dependency in dependencies if dependency in issue_names]
-        if filtered:
+        blocked = [dependency for dependency in filtered if status_map.get(dependency) != "done"]
+        if blocked:
             backlog.append(issue_name)
         else:
             todo.append(issue_name)

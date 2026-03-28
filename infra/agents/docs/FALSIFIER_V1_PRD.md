@@ -25,17 +25,17 @@ V1 must ship `falsifier-core` first.
 
 ### 2. Reduce Stage 1 to the reliable gate set
 
-V1 Stage 1 consists of:
+V1 Stage 1 currently consists of:
 
 - validation preflight
-- `T1` novelty + precedent filter
 - `T2` static budget and artifact-size gate
 - `T3` import / instantiate / forward-backward smoke test
-- `T4` random-init signal diagnostics
-- `T5` 100-step micro-train
+- bounded micro-train gate (`T4` in code labels)
 
 Deferred from the original PRD:
 
+- random-init signal diagnostics
+- 100-step micro-train
 - citation hard-fails
 - graph interpolation
 - compound-tag and correlated-tag kill logic
@@ -139,10 +139,8 @@ Required test tiers:
 The live code currently implements:
 
 - validation preflight
-- simplified `T1` via lexical novelty against supplied reference theories
 - `T2` static budget gate
 - `T3` deterministic smoke diagnostics
+- `T4` bounded micro-train gate versus calibration-lite
 
-`T4+` remain separate implementation slices and must not be implied by the current verdict artifact.
-
-Those are Phase 2+ features once the deterministic core is stable.
+Further gates (random-init diagnostics, citation checks, mechanism probes as hard gates) remain separate implementation slices.

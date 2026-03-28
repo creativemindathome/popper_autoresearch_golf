@@ -31,6 +31,7 @@ Execution research should move to the separate execution Linear project only aft
 - Training-oriented issues must name the falsifier verdict artifact they depend on.
 - Every issue must declare a concrete validation plan and a TDD/regression requirement.
 - Local handoff files are authoritative for scope, dependencies, and completion; Linear must not drift from them.
+- `buildout_issue_map.json` is the authoritative buildout handoff-to-Linear identifier map for status reconciliation.
 - Agents must not close, advance, split, or unblock a Linear issue unless the corresponding local handoff file and local artifacts justify the change.
 - If an agent detects disagreement between a Linear issue and its local handoff file, it must stop, reconcile, and only then continue execution.
 - The active handoff directory is for buildout unless a future document explicitly marks an execution graph takeover.

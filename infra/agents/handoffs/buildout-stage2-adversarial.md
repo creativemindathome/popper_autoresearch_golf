@@ -2,6 +2,10 @@
 
 Design the bounded adversarial Stage 2 on top of the deterministic core without undermining deterministic admission.
 
+## Status
+
+- backlog
+
 ## Context
 
 Stage 2 must stay artifact-driven, budget-bounded, and subordinate to Stage 1. It should only run after deterministic promotion and stable calibration artifacts exist.

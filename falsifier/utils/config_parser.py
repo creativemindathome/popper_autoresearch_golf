@@ -16,8 +16,15 @@ def extract_hyperparameters(source: str) -> dict[str, Any]:
     for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef) and node.name == "Hyperparameters":
             for stmt in node.body:
+                # Handle regular assignments (x = ...)
                 if isinstance(stmt, ast.Assign) and len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name):
                     name = stmt.targets[0].id
+                    literal = _literal_from_env_assign(stmt.value)
+                    if literal is not None:
+                        values[name] = literal
+                # Handle annotated assignments (x: int = ...)
+                elif isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
+                    name = stmt.target.id
                     literal = _literal_from_env_assign(stmt.value)
                     if literal is not None:
                         values[name] = literal
@@ -92,6 +99,53 @@ def estimate_flops(config: dict[str, Any]) -> float:
     batch_tokens = int(config["train_batch_tokens"])
     mlp_mult = int(config["mlp_mult"])
     return batch_tokens * layers * (4 * d * d + 2 * seq_len * d + 2 * d * d * mlp_mult)
+
+
+def estimate_flops_per_component(config: dict[str, Any]) -> dict[str, float]:
+    """Estimate per-component FLOPs for architectural balance analysis.
+
+    Returns dict with:
+        - attention: Attention mechanism FLOPs
+        - mlp: MLP block FLOPs
+        - embedding: Embedding layer FLOPs
+        - total: Total FLOPs
+        - attn_ratio: attention / total
+        - mlp_ratio: mlp / total
+        - embed_ratio: embedding / total
+    """
+    d = int(config["model_dim"])
+    layers = int(config["num_layers"])
+    seq_len = int(config["train_seq_len"])
+    batch_tokens = int(config["train_batch_tokens"])
+    mlp_mult = int(config["mlp_mult"])
+    v = int(config.get("vocab_size", 1024))
+
+    # Per-token forward pass FLOPs per layer
+    # Attention: 4*d^2 (Q,K,V,O projections) + 2*seq_len*d (attention computation)
+    attn_per_layer = 4 * d * d + 2 * seq_len * d
+
+    # MLP: 2*d*d*mlp_mult (up and down projections)
+    mlp_per_layer = 2 * d * d * mlp_mult
+
+    # Embedding lookups (vocab_size * model_dim per token)
+    embed_forward = v * d
+
+    # Multiply by batch tokens and layers
+    total_attn = batch_tokens * layers * attn_per_layer
+    total_mlp = batch_tokens * layers * mlp_per_layer
+    total_embed = batch_tokens * embed_forward
+
+    total = total_attn + total_mlp + total_embed
+
+    return {
+        "attention": float(total_attn),
+        "mlp": float(total_mlp),
+        "embedding": float(total_embed),
+        "total": float(total),
+        "attn_ratio": total_attn / total if total > 0 else 0.0,
+        "mlp_ratio": total_mlp / total if total > 0 else 0.0,
+        "embed_ratio": total_embed / total if total > 0 else 0.0,
+    }
 
 
 def estimate_artifact_bytes(

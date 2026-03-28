@@ -2,6 +2,10 @@
 
 Implement the deterministic `T4` 100-step micro-train gate as the first learning-based falsifier admission test.
 
+## Status
+
+- done
+
 ## Context
 
 Once the candidate smoke gate exists, the next safe step is a bounded micro-train check that determines whether a candidate learns enough to justify later execution work.
