@@ -1,0 +1,323 @@
+{
+  "nodes": [
+    {
+      "id": "idea_adaptive-representation-strategy",
+      "label": "Dynamic Layer-Wise Weight Representation Switching (QLT-LRF-FP)",
+      "type": "Idea",
+      "status": "APPROVED",
+      "mechanism_description": "This idea introduces a novel Adaptive Representation Strategy (ARS) where each Conv1D layer in the Transformer (MLP and Attention) can dynamically switch its internal weight representation type during training. Unlike static low-rank factorizations or fixed global quantization codebooks (as in prior attempts), ARS allows layers to operate in one of three distinct modes: Quantized Lookup Table (QLT) with a *per-layer* codebook, Low-Rank Factorization (LRF), or Full Precision (FP). The critical novelty is the dynamic, gradient-driven promotion between these modes: a layer's representation is upgraded (e.g., QLT -> LRF or LRF -> FP) if its active weights exhibit consistently high gradient norms, indicating a capacity bottleneck. This adaptive mechanism optimizes parameter efficiency by providing layers with more expressive power only when needed, avoiding a one-size-fits-all approach and leveraging different compression techniques in an active, per-layer, performance-aware manner, aiming for optimal BBP within a strict parameter budget by only using higher capacity representations for bottleneck layers, and compressing the rest aggressively.",
+      "idea_id": "adaptive-representation-strategy",
+      "schema_version": "ideator.idea.v2",
+      "expected_metric_change": "A significant reduction in the 'compressed model size' is expected, especially if many layers remain in QLT or LRF modes, replacing dense FP16 weights with much smaller representations (e.g., codebook + uint8 indices, or low-rank factors). For 'val_bpb', improvements are hypothesized due to the model's ability to dynamically allocate capacity only to layers that need it most (indicated by high gradient norms), thereby optimizing its expressivity within the parameter budget. This adaptive approach is expected to outperform static compression methods of similar overall parameter counts by making smarter allocation choices, leading to lower BBP and better generalization on unseen data.",
+      "approved_at": "2026-03-28T18:04:56.739176+00:00",
+      "symlink_path": "knowledge_graph/inbox/approved/adaptive-representation-strategy.json",
+      "parent_repo": "https://github.com/openai/parameter-golf",
+      "parent_file": "train_gpt.py",
+      "run_id": "20260328T152757Z_adaptive-representation-strategy"
+    },
+    {
+      "id": "idea_shared-parameter-synthesis",
+      "label": "Shared Parameter Synthesis for Transformer MLP Layers",
+      "type": "Idea",
+      "status": "IN_FALSIFICATION",
+      "mechanism_description": "This idea introduces a novel architecture where the weights and biases of all Transformer MLP layers are dynamically *generated* by a single, compact `ParameterSynthesizer` network, rather than being stored directly as unique `nn.Parameter`s. Each MLP layer queries this synthesizer using a unique, learned 'layer embedding'. This significantly reduces the total parameter count by factorizing the parameter space across layers and eliminates redundant weight storage, offering a distinct approach from low-rank approximations, quantization, or token-adaptive methods based on Gumbel-Softmax seen in prior ideas.",
+      "idea_id": "shared-parameter-synthesis",
+      "schema_version": "ideator.idea.v2",
+      "expected_metric_change": "A substantial reduction in the 'compressed model size' is expected, potentially by an order of magnitude, as the numerous MLP `Conv1D` weights are replaced by a single, small `ParameterSynthesizer` network and a few small layer embeddings. For 'val_bpb', the change is less certain; it might slightly degrade due to the inductive bias of parameter generation, or it could potentially improve if the shared, compact representation acts as a form of regularization. We expect `val_bpb` to remain competitive with the baseline while achieving significant parameter reduction.",
+      "approved_at": "2026-03-28T18:04:56.739417+00:00",
+      "symlink_path": "knowledge_graph/inbox/approved/shared-parameter-synthesis.json",
+      "parent_repo": "https://github.com/openai/parameter-golf",
+      "parent_file": "train_gpt.py",
+      "run_id": "20260328T180456Z_shared-parameter-synthesis",
+      "status_history": [
+        {
+          "status": "IN_FALSIFICATION",
+          "timestamp": 1774722221.579345,
+          "actor": "smoke",
+          "metadata": {
+            "reason": "graph schema test"
+          }
+        }
+      ]
+    },
+    {
+      "id": "idea_layer-wise-gated-shared-mlp",
+      "label": "Layer-wise Gated Shared MLP for Transformer Blocks",
+      "type": "Idea",
+      "status": "REFUTED",
+      "mechanism_description": "This idea introduces a novel parameter efficiency mechanism by globally sharing a single MLP instance across all Transformer blocks, but augmenting *each* block with its own unique, learnable 'gating' module. This `LayerGating` module applies a layer-specific affine transformation (element-wise scale and shift) to the input activations before they enter the globally shared MLP. Unlike standard weight tying, which offers no per-layer customization, or full hypernetworks, this approach allows the shared MLP's behavior to be dynamically specialized for each layer based on learned, distinct gating parameters, thereby capturing layer-specific nuances while maintaining significant parameter reduction. This addresses the reviewer's feedback for a new mechanism beyond common weight sharing, incorporating layer-specific adaptation.",
+      "idea_id": "layer-wise-gated-shared-mlp",
+      "schema_version": "ideator.idea.v2",
+      "expected_metric_change": "A substantial reduction in the 'compressed model size' is expected, as the majority of MLP parameters are globally shared. While each layer adds a small number of parameters for its gating module (`2 * n_embd`), this is far less than an entire MLP layer. This parameter reduction should lead to a much smaller artifact, directly improving the Parameter Golf metric. For 'val_bpb', the layer-specific gating provides additional expressive capacity and adaptability compared to purely tied weights. This balance is hypothesized to mitigate the performance loss typically associated with simple weight tying, potentially leading to a competitive or even improved BBP compared to a naive smaller model.",
+      "approved_at": "2026-03-28T18:26:04.002741+00:00",
+      "symlink_path": "knowledge_graph/inbox/approved/layer-wise-gated-shared-mlp.json",
+      "parent_repo": "https://github.com/openai/parameter-golf",
+      "parent_file": "train_gpt.py",
+      "run_id": "20260328T182603Z_layer-wise-gated-shared-mlp",
+      "status_history": [
+        {
+          "status": "IN_FALSIFICATION",
+          "timestamp": 1774722365.158476,
+          "actor": "falsifier",
+          "metadata": {
+            "started_at": 1774722365.157824,
+            "pid": 13696
+          }
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": 1774722365.1914618,
+          "actor": "falsifier",
+          "metadata": {
+            "killed_by": "T2",
+            "total_wall_seconds": 0.030120849609375
+          }
+        }
+      ],
+      "measured_metrics": {
+        "estimated_params": 17046016,
+        "budget_utilization": 0.6125602722167969,
+        "flops_ratio": 1.0
+      },
+      "measured_bpb": null,
+      "tags": [],
+      "change_types": [],
+      "falsification": {
+        "outcome": "REFUTED",
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "test_results": {
+          "t2_budget": {
+            "status": "FAIL_FATAL",
+            "test_id": "T2",
+            "estimated_params": 17046016,
+            "estimated_artifact_bytes": 10277056,
+            "budget_remaining_bytes": 6500160,
+            "budget_utilization": 0.6125602722167969,
+            "flops_ratio": 1.0,
+            "estimated_training_seconds": 14843.406974976,
+            "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+            "tags": [],
+            "wall_seconds": 0.030091332970187068,
+            "attn_flops_ratio": 0.6545454545454545,
+            "mlp_flops_ratio": 0.32727272727272727,
+            "embed_flops_ratio": 0.01818181818181818,
+            "architectural_balance_score": 0.0
+          },
+          "t3_compilation": null,
+          "t4_signal": null,
+          "t5_init": null,
+          "t7_microtrain": null
+        },
+        "metrics": {
+          "measured_bpb": null,
+          "tokens_per_second": null,
+          "loss_at_100": null,
+          "learning_ratio": null
+        },
+        "timing": {
+          "total_wall_seconds": 0.030120849609375,
+          "total_gpu_seconds": 0.0
+        },
+        "failure_analysis": {
+          "root_cause": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+          "failure_pattern": "T2",
+          "lessons": [],
+          "suggested_alternatives": []
+        },
+        "lessons": [],
+        "suggested_alternatives": []
+      },
+      "total_wall_seconds": 0.030120849609375,
+      "total_gpu_seconds": 0.0
+    },
+    {
+      "id": "idea_conditional-low-rank-tied-mlp",
+      "label": "Conditional Low-Rank Perturbation for Transposed MLP Weights",
+      "type": "Idea",
+      "status": "REFUTED",
+      "mechanism_description": "This idea extends the concept of transposed weight tying in Transformer MLP projection layers by introducing a *conditional low-rank perturbation* to the base tied weight. Instead of a static `W_proj = W_fc.T`, the effective projection weight becomes `W_proj_eff = W_fc.T + Delta_k`, where `Delta_k` is a low-rank matrix selected dynamically from a small, fixed pool. The selection of `Delta_k` for each batch element is governed by a lightweight 'router' network that analyzes the MLP's mean-pooled input activations. This combines the parameter efficiency of weight tying with input-adaptive expressivity, differing from simple weight tying (static), low-rank factorization (static or not conditionally selected), and general Mixture-of-Experts (which typically involves full expert selection rather than low-rank delta modulation). This mechanism provides dynamic adaptation without the high compute cost of token-level hypernetworks, addressing the reviewer's call for dynamic adjustment based on input features.",
+      "idea_id": "conditional-low-rank-tied-mlp",
+      "schema_version": "ideator.idea.v2",
+      "expected_metric_change": "A significant reduction in the 'compressed model size' is expected due to the combination of transposed weight tying for the base projection and the small, low-rank perturbation pool. For 'val_bpb', an improvement is hypothesized over simple static weight tying due to the increased expressivity and adaptability provided by input-conditional delta selection. The dynamic adaptation should allow the model to better fit the data, potentially leading to lower BBP compared to a static approach, while maintaining a competitive parameter count.",
+      "approved_at": "2026-03-28T18:35:21.275160+00:00",
+      "symlink_path": "knowledge_graph/inbox/approved/conditional-low-rank-tied-mlp.json",
+      "parent_repo": "https://github.com/openai/parameter-golf",
+      "parent_file": "train_gpt.py",
+      "run_id": "20260328T183521Z_conditional-low-rank-tied-mlp",
+      "status_history": [
+        {
+          "status": "IN_FALSIFICATION",
+          "timestamp": 1774722922.3467252,
+          "actor": "falsifier",
+          "metadata": {
+            "started_at": 1774722922.3460128,
+            "pid": 21290
+          }
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": 1774722922.369479,
+          "actor": "falsifier",
+          "metadata": {
+            "killed_by": "T2",
+            "total_wall_seconds": 0.02085089683532715
+          }
+        }
+      ],
+      "measured_metrics": {
+        "estimated_params": 17046016,
+        "budget_utilization": 0.6124553084373474,
+        "flops_ratio": 1.0
+      },
+      "measured_bpb": null,
+      "tags": [],
+      "change_types": [],
+      "falsification": {
+        "outcome": "REFUTED",
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "test_results": {
+          "t2_budget": {
+            "status": "FAIL_FATAL",
+            "test_id": "T2",
+            "estimated_params": 17046016,
+            "estimated_artifact_bytes": 10275295,
+            "budget_remaining_bytes": 6501921,
+            "budget_utilization": 0.6124553084373474,
+            "flops_ratio": 1.0,
+            "estimated_training_seconds": 14843.406974976,
+            "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+            "tags": [],
+            "wall_seconds": 0.020823082886636257,
+            "attn_flops_ratio": 0.6545454545454545,
+            "mlp_flops_ratio": 0.32727272727272727,
+            "embed_flops_ratio": 0.01818181818181818,
+            "architectural_balance_score": 0.0
+          },
+          "t3_compilation": null,
+          "t4_signal": null,
+          "t5_init": null,
+          "t7_microtrain": null
+        },
+        "metrics": {
+          "measured_bpb": null,
+          "tokens_per_second": null,
+          "loss_at_100": null,
+          "learning_ratio": null
+        },
+        "timing": {
+          "total_wall_seconds": 0.02085089683532715,
+          "total_gpu_seconds": 0.0
+        },
+        "failure_analysis": {
+          "root_cause": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+          "failure_pattern": "T2",
+          "lessons": [],
+          "suggested_alternatives": []
+        },
+        "lessons": [],
+        "suggested_alternatives": []
+      },
+      "total_wall_seconds": 0.02085089683532715,
+      "total_gpu_seconds": 0.0
+    },
+    {
+      "id": "idea_skew-symmetric-mlp-kernel",
+      "label": "MLP Weight Generation via Skew-Symmetric Matrix Exponentials",
+      "type": "Idea",
+      "status": "REFUTED",
+      "mechanism_description": "This idea introduces a novel parameterization for Transformer MLP layer weights (specifically for `c_fc` and `c_proj`). Instead of directly storing or factorizing weights, each layer's effective weight matrix (e.g., W, shape N_in x N_out) is dynamically constructed at runtime. The core mechanism involves a compact, learned base matrix (S_base) of size KxK (where K is a new hyperparameter), which is used to generate a skew-symmetric matrix S_core (S_core = S_base - S_base.T). The key novelty lies in computing the matrix exponential of this S_core, `Q = torch.matrix_exp(S_core)`, which by mathematical property is an orthogonal matrix. This orthogonal matrix `Q` then acts as an 'orthogonal kernel' and is linearly expanded by learned, compact projection matrices (P_in, P_out) to form the full effective weight: `W = P_in @ Q @ P_out`. This approach offers a differentiable and inherently regularized way to achieve parameter efficiency by building orthogonality directly into the weight generation process, differing from standard low-rank factorizations, fixed orthogonal initializations, or simple weight tying.",
+      "idea_id": "skew-symmetric-mlp-kernel",
+      "schema_version": "ideator.idea.v2",
+      "expected_metric_change": "We expect a significant reduction in the total parameter count, particularly for the MLP layers, leading to a smaller compressed model artifact size. Initial validation BPB might be slightly higher or similar due to the compressed representation, but we anticipate that for a given model budget, this structured orthogonal parameterization could achieve better generalization or comparable performance, especially given the inherent regularization properties of orthogonal matrices. The computational overhead of `torch.matrix_exp` for a small `K x K` matrix should be acceptable within the time budget, potentially leading to faster training steps by reducing the overall parameter count.",
+      "approved_at": "2026-03-28T18:42:47.837877+00:00",
+      "symlink_path": "knowledge_graph/inbox/approved/skew-symmetric-mlp-kernel.json",
+      "parent_repo": "https://github.com/openai/parameter-golf",
+      "parent_file": "train_gpt.py",
+      "run_id": "20260328T184247Z_skew-symmetric-mlp-kernel",
+      "status_history": [
+        {
+          "status": "IN_FALSIFICATION",
+          "timestamp": 1774723369.084824,
+          "actor": "falsifier",
+          "metadata": {
+            "started_at": 1774723369.0843341,
+            "pid": 24838
+          }
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": 1774723369.106147,
+          "actor": "falsifier",
+          "metadata": {
+            "killed_by": "T2",
+            "total_wall_seconds": 0.01928997039794922
+          }
+        }
+      ],
+      "measured_metrics": {
+        "estimated_params": 17046016,
+        "budget_utilization": 0.6124553084373474,
+        "flops_ratio": 1.0
+      },
+      "measured_bpb": null,
+      "tags": [],
+      "change_types": [],
+      "falsification": {
+        "outcome": "REFUTED",
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "test_results": {
+          "t2_budget": {
+            "status": "FAIL_FATAL",
+            "test_id": "T2",
+            "estimated_params": 17046016,
+            "estimated_artifact_bytes": 10275295,
+            "budget_remaining_bytes": 6501921,
+            "budget_utilization": 0.6124553084373474,
+            "flops_ratio": 1.0,
+            "estimated_training_seconds": 14843.406974976,
+            "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+            "tags": [],
+            "wall_seconds": 0.019258999964222312,
+            "attn_flops_ratio": 0.6545454545454545,
+            "mlp_flops_ratio": 0.32727272727272727,
+            "embed_flops_ratio": 0.01818181818181818,
+            "architectural_balance_score": 0.0
+          },
+          "t3_compilation": null,
+          "t4_signal": null,
+          "t5_init": null,
+          "t7_microtrain": null
+        },
+        "metrics": {
+          "measured_bpb": null,
+          "tokens_per_second": null,
+          "loss_at_100": null,
+          "learning_ratio": null
+        },
+        "timing": {
+          "total_wall_seconds": 0.01928997039794922,
+          "total_gpu_seconds": 0.0
+        },
+        "failure_analysis": {
+          "root_cause": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+          "failure_pattern": "T2",
+          "lessons": [],
+          "suggested_alternatives": []
+        },
+        "lessons": [],
+        "suggested_alternatives": []
+      },
+      "total_wall_seconds": 0.01928997039794922,
+      "total_gpu_seconds": 0.0
+    }
+  ],
+  "edges": [],
+  "metadata": {
+    "last_modified": 1774723369.1064498,
+    "last_modified_by": 24838,
+    "node_count": 5
+  }
+}

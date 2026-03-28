@@ -1,0 +1,163 @@
+--- a/train_gpt.py
++++ b/train_gpt.py
+@@ -59,6 +59,8 @@
+     max_wallclock_seconds = float(os.environ.get("MAX_WALLCLOCK_SECONDS", 600.0))
+     qk_gain_init = float(os.environ.get("QK_GAIN_INIT", 1.5))
+ 
++    synth_embed_dim = int(os.environ.get("SYNTH_EMBED_DIM", "64"))
++    synth_hidden_dim = int(os.environ.get("SYNTH_HIDDEN_DIM", "256"))
+     # Model shape.
+     vocab_size = int(os.environ.get("VOCAB_SIZE", 1024))
+     num_layers = int(os.environ.get("NUM_LAYERS", 9))
+@@ -513,6 +515,28 @@
+         return F.linear(x, self.weight.to(x.dtype), bias)
+ 
+ 
++class ParameterSynthesizer(nn.Module):
++    def __init__(self, input_dim, output_w_dim, output_b_dim, hidden_dim):
++        super().__init__()
++        self.output_w_dim = output_w_dim
++        self.output_b_dim = output_b_dim
++        self.linear1 = nn.Linear(input_dim, hidden_dim)
++        self.gelu = nn.GELU()
++        self.linear2 = nn.Linear(hidden_dim, output_w_dim + output_b_dim) 
++        nn.init.kaiming_normal_(self.linear1.weight, mode='fan_in', nonlinearity='relu')
++        nn.init.constant_(self.linear1.bias, 0)
++        nn.init.kaiming_normal_(self.linear2.weight, mode='fan_in', nonlinearity='relu')
++        nn.init.constant_(self.linear2.bias, 0)
++
++    def forward(self, layer_embedding):
++        x = self.linear1(layer_embedding)
++        x = self.gelu(x)
++        generated_params = self.linear2(x)
++        generated_w = generated_params[..., :self.output_w_dim]
++        generated_b = generated_params[..., self.output_w_dim:]
++        return generated_w, generated_b
++
++
+ def restore_low_dim_params_to_fp32(module: nn.Module) -> None:
+     # Keep small/control parameters in fp32 even when the model body runs in bf16.
+     with torch.no_grad():
+@@ -605,16 +629,43 @@
+ 
+ class MLP(nn.Module):
+     # relu^2 MLP from the original modded-nanogpt setup
+-    def __init__(self, dim: int, mlp_mult: int):
++    def __init__(
++        self,
++        dim: int,
++        mlp_mult: int,
++        block_idx: int,
++        parameter_synthesizer: ParameterSynthesizer,
++        mlp_layer_embeddings: Tensor,
++    ):
+         super().__init__()
+-        hidden = mlp_mult * dim
+-        self.fc = CastedLinear(dim, hidden, bias=False)
+-        self.proj = CastedLinear(hidden, dim, bias=False)
+-        self.proj._zero_init = True
++        self.dim = dim
++        self.mlp_mult = mlp_mult
++        self.block_idx = block_idx
++        self.parameter_synthesizer = parameter_synthesizer
++        self.mlp_layer_embeddings = mlp_layer_embeddings
+ 
+     def forward(self, x: Tensor) -> Tensor:
+-        x = torch.relu(self.fc(x))
+-        return self.proj(x.square())
++        hidden_dim = self.mlp_mult * self.dim
++
++        # Generate parameters for the first linear layer (fc)
++        fc_embedding = self.mlp_layer_embeddings[self.block_idx, 0]
++        w_fc_flat, b_fc = self.parameter_synthesizer(fc_embedding)
++        
++        w_fc = w_fc_flat[:self.dim * hidden_dim].view(self.dim, hidden_dim)
++        b_fc = b_fc[:hidden_dim]
++
++        x = F.linear(x, w_fc.to(x.dtype), b_fc.to(x.dtype))
++        x = torch.relu(x) # Original activation
++
++        # Generate parameters for the second linear layer (proj)
++        proj_embedding = self.mlp_layer_embeddings[self.block_idx, 1]
++        w_proj_flat, b_proj = self.parameter_synthesizer(proj_embedding)
++        
++        w_proj = w_proj_flat[:hidden_dim * self.dim].view(hidden_dim, self.dim)
++        b_proj = b_proj[:self.dim]
++
++        x = F.linear(x, w_proj.to(x.dtype), b_proj.to(x.dtype))
++        return x.square() # Original activation
+ 
+ 
+ class Block(nn.Module):
+@@ -626,12 +677,15 @@
+         mlp_mult: int,
+         rope_base: float,
+         qk_gain_init: float,
++        block_idx: int,
++        parameter_synthesizer: ParameterSynthesizer,
++        mlp_layer_embeddings: Tensor,
+     ):
+         super().__init__()
+         self.attn_norm = RMSNorm()
+         self.mlp_norm = RMSNorm()
+         self.attn = CausalSelfAttention(dim, num_heads, num_kv_heads, rope_base, qk_gain_init)
+-        self.mlp = MLP(dim, mlp_mult)
++        self.mlp = MLP(dim, mlp_mult, block_idx, parameter_synthesizer, mlp_layer_embeddings)
+         self.attn_scale = nn.Parameter(torch.ones(dim, dtype=torch.float32))
+         self.mlp_scale = nn.Parameter(torch.ones(dim, dtype=torch.float32))
+         self.resid_mix = nn.Parameter(torch.stack((torch.ones(dim), torch.zeros(dim))).float())
+@@ -659,6 +713,8 @@
+         logit_softcap: float,
+         rope_base: float,
+         qk_gain_init: float,
++        synth_embed_dim: int,
++        synth_hidden_dim: int,
+     ):
+         super().__init__()
+         if logit_softcap <= 0.0:
+@@ -669,17 +725,30 @@
+         self.tok_emb = nn.Embedding(vocab_size, model_dim)
+         self.num_encoder_layers = num_layers // 2
+         self.num_decoder_layers = num_layers - self.num_encoder_layers
++
++        # Parameter Synthesizer for MLPs
++        max_mlp_hidden_dim = mlp_mult * model_dim
++        # Max weight dim: (dim * hidden_dim) or (hidden_dim * dim)
++        max_mlp_w_dim = max(model_dim * max_mlp_hidden_dim, max_mlp_hidden_dim * model_dim)
++        # Max bias dim: hidden_dim or dim
++        max_mlp_b_dim = max(max_mlp_hidden_dim, model_dim)
++
++        self.parameter_synthesizer = ParameterSynthesizer(
++            input_dim=synth_embed_dim,
++            output_w_dim=max_mlp_w_dim,
++            output_b_dim=max_mlp_b_dim,
++            hidden_dim=synth_hidden_dim
++        )
++        self.mlp_layer_embeddings = nn.Parameter(torch.randn(num_layers, 2, synth_embed_dim))
++        nn.init.normal_(self.mlp_layer_embeddings, std=0.01)
++
+         self.num_skip_weights = min(self.num_encoder_layers, self.num_decoder_layers)
+         self.skip_weights = nn.Parameter(torch.ones(self.num_skip_weights, model_dim, dtype=torch.float32))
+         self.blocks = nn.ModuleList(
+             [
+                 Block(
+-                    model_dim,
+-                    num_heads,
+-                    num_kv_heads,
+-                    mlp_mult,
+-                    rope_base,
+-                    qk_gain_init,
++                    model_dim, num_heads, num_kv_heads, mlp_mult, rope_base, qk_gain_init,
++                    i, self.parameter_synthesizer, self.mlp_layer_embeddings,
+                 )
+                 for i in range(num_layers)
+             ]
+@@ -835,6 +904,8 @@
+         logit_softcap=args.logit_softcap,
+         rope_base=args.rope_base,
+         qk_gain_init=args.qk_gain_init,
++        synth_embed_dim=args.synth_embed_dim,
++        synth_hidden_dim=args.synth_hidden_dim,
+     ).to(device).bfloat16()
+     for module in base_model.modules():
+         if isinstance(module, CastedLinear):

@@ -237,7 +237,18 @@
   }
 
   function byLabel(labelById) {
-    return (a, b) => (labelById.get(a) || a).localeCompare(labelById.get(b) || b);
+    function idOf(x) {
+      if (x && typeof x === "object" && Object.prototype.hasOwnProperty.call(x, "id")) return String(x.id);
+      return String(x);
+    }
+
+    return (a, b) => {
+      const ida = idOf(a);
+      const idb = idOf(b);
+      const la = labelById.has(ida) ? String(labelById.get(ida)) : ida;
+      const lb = labelById.has(idb) ? String(labelById.get(idb)) : idb;
+      return la.localeCompare(lb);
+    };
   }
 
   function setTooltipVisible(visible) {

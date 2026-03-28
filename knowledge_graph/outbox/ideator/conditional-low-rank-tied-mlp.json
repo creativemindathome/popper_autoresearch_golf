@@ -1,0 +1,131 @@
+{
+  "schema_version": "ideator.idea.v2",
+  "idea_id": "conditional-low-rank-tied-mlp",
+  "title": "Conditional Low-Rank Perturbation for Transposed MLP Weights",
+  "novelty_summary": "This idea extends the concept of transposed weight tying in Transformer MLP projection layers by introducing a *conditional low-rank perturbation* to the base tied weight. Instead of a static `W_proj = W_fc.T`, the effective projection weight becomes `W_proj_eff = W_fc.T + Delta_k`, where `Delta_k` is a low-rank matrix selected dynamically from a small, fixed pool. The selection of `Delta_k` for each batch element is governed by a lightweight 'router' network that analyzes the MLP's mean-pooled input activations. This combines the parameter efficiency of weight tying with input-adaptive expressivity, differing from simple weight tying (static), low-rank factorization (static or not conditionally selected), and general Mixture-of-Experts (which typically involves full expert selection rather than low-rank delta modulation). This mechanism provides dynamic adaptation without the high compute cost of token-level hypernetworks, addressing the reviewer's call for dynamic adjustment based on input features.",
+  "parent_implementation": {
+    "repo_url": "https://github.com/openai/parameter-golf",
+    "git_ref": "main",
+    "primary_file": "train_gpt.py",
+    "run_command": "NUM_PERTURBATIONS=4 RANK_DELTA=2 RUN_ID=conditional_tied_mlp DATA_PATH=./data/datasets/fineweb10B_sp1024/ TOKENIZER_PATH=./data/tokenizers/fineweb_1024_bpe.model VOCAB_SIZE=1024 torchrun --standalone --nproc_per_node=1 train_gpt.py",
+    "code_search_hints": [
+      "class GPT(nn.Module):",
+      "class Block(nn.Module):",
+      "class MLP(nn.Module):",
+      "self.c_fc = Conv1D(",
+      "self.c_proj = Conv1D(",
+      "class Conv1D(nn.Module):",
+      "self.weight = nn.Parameter(w)"
+    ]
+  },
+  "implementation_steps": [
+    {
+      "step_id": "define-conditional-tied-proj-module",
+      "file": "train_gpt.py",
+      "locate": "class Conv1D(nn.Module):",
+      "change": "import torch.nn.functional as F\n\nclass ConditionalTiedProjConv1D(nn.Module):\n    def __init__(self, output_features, fc_conv1d_module, num_perturbations, rank_delta, n_embd_for_router):\n        super().__init__()\n        self.output_features = output_features\n        self.fc_module = fc_conv1d_module # Reference to the c_fc Conv1D module\n        self.num_perturbations = num_perturbations\n        self.rank_delta = rank_delta\n        self.n_embd_for_router = n_embd_for_router # Expected input features for router (4*n_embd from gelu(c_fc))\n\n        assert isinstance(fc_conv1d_module, Conv1D), \"fc_conv1d_module must be a Conv1D instance\"\n        input_features_proj = fc_conv1d_module.weight.shape[1] # Output size of c_fc, input size of c_proj (4*n_embd)\n        output_features_proj = fc_conv1d_module.weight.shape[0] # Input size of c_fc, output size of c_proj (n_embd)\n\n        # Pool of low-rank factors for Delta = U @ V.T\n        self.U_pool = nn.Parameter(torch.empty(num_perturbations, input_features_proj, rank_delta))\n        self.V_pool = nn.Parameter(torch.empty(num_perturbations, rank_delta, output_features_proj))\n        nn.init.xavier_uniform_(self.U_pool)\n        nn.init.xavier_uniform_(self.V_pool)\n\n        # Router network to select Delta from the pool, takes mean-pooled hidden_act (shape (B, 4*n_embd))\n        self.router = nn.Linear(input_features_proj, num_perturbations)\n\n        # c_proj usually has its own bias, unrelated to c_fc's input; use original Conv1D's bias init approach\n        self.bias = nn.Parameter(torch.zeros(output_features)) if fc_conv1d_module.bias is not None else None\n\n    def forward(self, x):\n        # x is (B, T, 4*n_embd) from gelu(c_fc(x_input))\n        original_shape = x.size()\n        x_flat = x.view(-1, self.n_embd_for_router) # (B*T, 4*n_embd)\n        \n        # 1. Static part: X @ W_fc.T\n        base_output_flat = F.linear(x_flat, self.fc_module.weight.T, None)\n\n        # 2. Dynamic perturbation part: select and apply a low-rank Delta\n        # Mean-pool over sequence dimension for router input\n        mean_pooled_x = x.mean(dim=1) # (B, 4*n_embd)\n        routing_logits = self.router(mean_pooled_x)\n        # Use hard=True for straight-through estimation during training; behaves as argmax during inference\n        selection_mask = F.gumbel_softmax(routing_logits, tau=1.0, hard=True, dim=-1) # (B, num_perturbations)\n        selected_indices = selection_mask.argmax(dim=-1) # (B,)\n\n        # Select and compute batch of Delta matrices: (B, input_features_proj, output_features_proj)\n        batch_U = self.U_pool[selected_indices] # (B, 4*n_embd, rank_delta)\n        batch_V = self.V_pool[selected_indices] # (B, rank_delta, n_embd)\n        batch_deltas = torch.bmm(batch_U, batch_V) # (B, 4*n_embd, n_embd)\n        \n        # Apply batch of deltas: (B, T, 4*n_embd) @ (B, 4*n_embd, n_embd) -> (B, T, n_embd)\n        batch_output_delta = torch.bmm(x.float(), batch_deltas.float()) # Ensure float for bmm\n\n        # 3. Combine static and dynamic outputs\n        output = base_output_flat.view(original_shape[:-1] + (self.output_features,)) + batch_output_delta\n\n        if self.bias is not None:\n            output = output + self.bias\n        \n        return output\n\nclass Conv1D(nn.Module):",
+      "done_when": "The `ConditionalTiedProjConv1D` class is defined above `Conv1D`, handling dynamic low-rank perturbation selection and application via `F.linear` for the static part and `torch.bmm` for the dynamic delta. It includes `U_pool`, `V_pool`, `router`, and `gumbel_softmax`."
+    },
+    {
+      "step_id": "update-gpt-config",
+      "file": "train_gpt.py",
+      "locate": "self.transformer = nn.ModuleDict(dict(",
+      "change": "        self.num_perturbations = config.num_perturbations if hasattr(config, 'num_perturbations') else 4\n        self.rank_delta = config.rank_delta if hasattr(config, 'rank_delta') else 2\n        logger.info(f\"Using {self.num_perturbations} delta perturbations with rank {self.rank_delta}.\")\n        config.num_perturbations = self.num_perturbations\n        config.rank_delta = self.rank_delta\n        config.n_embd_for_router = 4 * config.n_embd # Input features to router (MLP's `hidden_act` size)\n        self.transformer = nn.ModuleDict(dict(",
+      "done_when": "GPT's constructor initializes `self.num_perturbations`, `self.rank_delta`, and `config.n_embd_for_router`, and passes these into the `config` object for downstream modules."
+    },
+    {
+      "step_id": "modify-mlp-c_proj",
+      "file": "train_gpt.py",
+      "locate": "class MLP(nn.Module):\n    def __init__(self, config):\n        super().__init__()\n        self.c_fc    = Conv1D(4 * config.n_embd, config.n_embd)\n        self.gelu    = nn.GELU()\n        self.c_proj  = Conv1D(config.n_embd, 4 * config.n_embd)",
+      "change": "        self.c_fc    = Conv1D(4 * config.n_embd, config.n_embd)\n        self.gelu    = nn.GELU()\n        # Replace Conv1D with ConditionalTiedProjConv1D for c_proj, using c_fc for weight tying and dynamic perturbation\n        self.c_proj  = ConditionalTiedProjConv1D(\n            config.n_embd, # output_features for c_proj\n            self.c_fc,     # reference to c_fc module\n            config.num_perturbations,\n            config.rank_delta,\n            config.n_embd_for_router\n        )",
+      "done_when": "The `MLP` class's `__init__` method successfully instantiates `self.c_proj` as `ConditionalTiedProjConv1D`, passing `self.c_fc` reference, output features, and the perturbation/rank configs."
+    },
+    {
+      "step_id": "verify-artifact-size",
+      "file": "N/A",
+      "locate": "N/A",
+      "change": "No code change, this is a verification step.",
+      "done_when": "The artifact size (compressed model bytes + code bytes) reported by the training script must be significantly smaller than the baseline, confirming the parameter reduction. Specifically, it should be smaller than a model with full-rank untied c_proj weights, and comparable to (or slightly larger than, due to router/perturbation pool) the 'MLP Transposed Weight Tying' base idea."
+    }
+  ],
+  "falsifier_smoke_tests": [
+    "Execute the proposed `run_command` (`NUM_PERTURBATIONS=4 RANK_DELTA=2`). The training run completes without Python or PyTorch errors.",
+    "Verify the model initialization output contains the 'Using X delta perturbations with rank Y.' line, where X and Y match the specified `NUM_PERTURBATIONS` and `RANK_DELTA`.",
+    "Observe the reported 'number of parameters' in the logger output. It should be significantly lower (due to shared weight and low-rank deltas) than the baseline model with untied MLP weights.",
+    "Confirm the final output reports 'val_bpb' and 'compressed model size', indicating a complete training and evaluation run."
+  ],
+  "expected_metric_change": "A significant reduction in the 'compressed model size' is expected due to the combination of transposed weight tying for the base projection and the small, low-rank perturbation pool. For 'val_bpb', an improvement is hypothesized over simple static weight tying due to the increased expressivity and adaptability provided by input-conditional delta selection. The dynamic adaptation should allow the model to better fit the data, potentially leading to lower BBP compared to a static approach, while maintaining a competitive parameter count.",
+  "run_id": "20260328T183521Z_conditional-low-rank-tied-mlp",
+  "parents": [
+    {
+      "kind": "local",
+      "repo_url": "https://github.com/openai/parameter-golf",
+      "git_ref": "main",
+      "file_path": "train_gpt.py",
+      "run_id": null,
+      "sha256": "c6cae5e767aa0464e8767620f3bbdb08048c99f4b7ae0f0e146dd9b17e68e673"
+    }
+  ],
+  "artifacts": {
+    "run_dir": "knowledge_graph/outbox/ideator/runs/20260328T183521Z_conditional-low-rank-tied-mlp",
+    "idea_json": "knowledge_graph/outbox/ideator/runs/20260328T183521Z_conditional-low-rank-tied-mlp/idea.json",
+    "train_gpt_py": {
+      "path": "knowledge_graph/outbox/ideator/runs/20260328T183521Z_conditional-low-rank-tied-mlp/train_gpt.py",
+      "sha256": "c6cae5e767aa0464e8767620f3bbdb08048c99f4b7ae0f0e146dd9b17e68e673",
+      "bytes": 47686
+    },
+    "train_gpt_patch": {
+      "path": "knowledge_graph/outbox/ideator/runs/20260328T183521Z_conditional-low-rank-tied-mlp/train_gpt.patch",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "parent_train_gpt_py": {
+      "path": "knowledge_graph/outbox/ideator/runs/20260328T183521Z_conditional-low-rank-tied-mlp/parent_train_gpt.py",
+      "sha256": "c6cae5e767aa0464e8767620f3bbdb08048c99f4b7ae0f0e146dd9b17e68e673",
+      "bytes": 47686
+    },
+    "review_json": "knowledge_graph/outbox/ideator/runs/20260328T183521Z_conditional-low-rank-tied-mlp/review.json",
+    "approved_idea_json": "knowledge_graph/outbox/ideator/conditional-low-rank-tied-mlp.json",
+    "approved_review_json": "knowledge_graph/outbox/ideator/conditional-low-rank-tied-mlp_review.json",
+    "approved_train_gpt_py": {
+      "path": "knowledge_graph/outbox/ideator/conditional-low-rank-tied-mlp_train_gpt.py",
+      "sha256": "c6cae5e767aa0464e8767620f3bbdb08048c99f4b7ae0f0e146dd9b17e68e673",
+      "bytes": 47686
+    },
+    "approved_train_gpt_patch": {
+      "path": "knowledge_graph/outbox/ideator/conditional-low-rank-tied-mlp_train_gpt.patch",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "approved_parent_train_gpt_py": {
+      "path": "knowledge_graph/outbox/ideator/conditional-low-rank-tied-mlp_parent_train_gpt.py",
+      "sha256": "c6cae5e767aa0464e8767620f3bbdb08048c99f4b7ae0f0e146dd9b17e68e673",
+      "bytes": 47686
+    }
+  },
+  "falsifier_instructions": {
+    "assumed_repo_dir": "parameter-golf",
+    "steps": [
+      "cp knowledge_graph/outbox/ideator/conditional-low-rank-tied-mlp_train_gpt.py parameter-golf/train_gpt.py",
+      "cd parameter-golf",
+      "NUM_PERTURBATIONS=4 RANK_DELTA=2 RUN_ID=conditional_tied_mlp DATA_PATH=./data/datasets/fineweb10B_sp1024/ TOKENIZER_PATH=./data/tokenizers/fineweb_1024_bpe.model VOCAB_SIZE=1024 torchrun --standalone --nproc_per_node=1 train_gpt.py"
+    ]
+  },
+  "meta": {
+    "generated_at": "2026-03-28T18:35:21.192795+00:00",
+    "model": "gemini-2.5-flash",
+    "reviewer": {
+      "model": "gpt-4o-mini",
+      "decision": "pass",
+      "novelty_score": 6,
+      "primary_reasons": [
+        "Mechanism is a variant of existing weight tying techniques.",
+        "Dynamic selection of low-rank perturbations is not sufficiently novel.",
+        "Implementation lacks clarity on how it significantly differs from prior ideas."
+      ]
+    },
+    "patch_applied": false,
+    "patch_model": "gemini-2.5-flash",
+    "patch_generation_error": "Model did not return valid JSON. Raw text:\n{\"train_gpt_patch\": \"--- a/train_gpt.py\\n+++ b/train_gpt.py\\n@@ -58,6 +58,8 @@\\n     rope_base = float(os.environ.get(\\\"ROPE_BASE\\\", 10000.0))\\n     logit_softcap = float(os.environ.get(\\\"LOGIT_SOFTCAP\\\", 30.0))\\n \\n+    num_perturbations = int(os.environ.get(\\\"NUM_PERTURBATIONS\\\", 4))\\n+    rank_delta = int(os.environ.get(\\\"RANK_DELTA\\\", 2))\\n     # Optimizer hyperparameters.\\n     embed_lr = float(os.environ.get(\\\"EMBED_LR\\\", 0.6))\\n     head_lr = float(os.environ.get(\\\"HEAD_LR\\\", 0.008))\\n@@ -321,6 +323,82 @@\\n         return F.rms_norm(x, (x.size(-1),), eps=self.eps)\\n \\n \\n+class ConditionalTiedProjLinear(nn.Module):\\n+    def __init__(self, output_features: int, fc_linear_module: CastedLinear, num_perturbations: int, rank_delta: int, n_embd_for_router: int):\\n+        super().__init__()\\n+        self.output_features = output_features\\n+        self.fc_module = fc_linear_module # Reference to the fc CastedLinear module\\n+\\n+        self.num_perturbations = num_perturbations\\n+        self.rank_delta = rank_delta\\n+        self.n_embd_for_router = n_embd_for_router # Expected input features for router (mlp_mult * model_dim)\\n+\\n+        assert isinstance(fc_linear_module, CastedLinear), \\\"fc_linear_module must be a CastedLinear instance\\\"\\n+        input_features_proj = fc_linear_module.out_features # Output size of fc, input size of proj (mlp_mult * model_dim)\\n+        output_features_proj = fc_linear_module.in_features # Input size of fc, output size of proj (model_dim)\\n+\\n+        # Pool of low-rank factors for Delta = U @ V.T\\n+        self.U_pool = nn.Parameter(torch.empty(num_perturbations, input_features_proj, rank_delta))\\n+        self.V_pool = nn.Parameter(torch.empty(num_perturbations, rank_delta, output_features_proj))\\n+        nn.init.xavier_uniform_(self.U_pool)\\n+        nn.init.xavier_uniform_(self.V"
+  }
+}
