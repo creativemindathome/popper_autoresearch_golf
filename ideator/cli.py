@@ -24,8 +24,10 @@ from .parent_code import (
 from .prompts import (
     build_ideator_prompts,
     build_ideator_revision_prompts,
+    build_patch_prompts,
     build_reviewer_prompts,
     ideator_response_schema,
+    patch_response_schema,
     reviewer_response_schema,
 )
 
@@ -246,7 +248,6 @@ def cmd_idea(
     system_prompt, user_prompt = build_ideator_prompts(
         knowledge_context=knowledge_context,
         parent_code_ref=parent_code_ref,
-        parent_train_gpt_py=parent.content,
     )
 
     request_debug = {
@@ -282,8 +283,6 @@ def cmd_idea(
 
     accepted_idea_raw: Optional[Dict[str, Any]] = None
     accepted_review: Optional[Dict[str, Any]] = None
-    accepted_train_gpt_text: Optional[str] = None
-    accepted_patch_text: Optional[str] = None
 
     prev_thin_idea: Optional[Dict[str, Any]] = None
     prev_review: Optional[Dict[str, Any]] = None
@@ -300,7 +299,6 @@ def cmd_idea(
             ideator_system, ideator_user = build_ideator_revision_prompts(
                 knowledge_context=knowledge_context,
                 parent_code_ref=parent_code_ref,
-                parent_train_gpt_py=parent.content,
                 previous_idea=prev_thin_idea,
                 reviewer_feedback=prev_review,
             )
@@ -331,76 +329,15 @@ def cmd_idea(
                 novelty_score=0,
                 reasons=["Model returned non-object JSON; cannot accept."],
                 revision_instructions="Return a single JSON object matching the ideator schema.",
-                must_fix_fields=["schema_version", "parent_implementation", "implementation_steps", "train_gpt_patch"],
+                must_fix_fields=["schema_version", "parent_implementation", "implementation_steps"],
             )
             sys.stderr.write(f"review round {round_idx + 1}/{rounds}: revise (non-object JSON)\n")
             continue
 
-        train_gpt_text_round: Optional[str] = None
-        patch_text_round: Optional[str] = None
-
-        train_gpt_patch = idea_raw.get("train_gpt_patch")
-        train_gpt_lines = idea_raw.get("train_gpt_py_lines")
-
-        # Backwards compatibility: accept the full file (train_gpt_py_lines) if present.
-        if isinstance(train_gpt_lines, list) and all(isinstance(x, str) for x in train_gpt_lines):
-            train_gpt_text_round = _join_lines(train_gpt_lines)
-            patch_text_round = _unified_diff_text(parent.content, train_gpt_text_round)
-        elif isinstance(train_gpt_patch, str) and train_gpt_patch.strip():
-            try:
-                train_gpt_text_round = _apply_unified_diff(parent.content, train_gpt_patch)
-            except PatchApplyError as e:
-                if not reviewer_enabled:
-                    sys.stderr.write(str(e).rstrip() + "\n")
-                    return 2
-                prev_thin_idea = _thin_idea_for_review(idea_raw, parent_sha256=parent.sha256)
-                prev_review = _synthetic_review(
-                    decision="revise",
-                    novelty_score=0,
-                    reasons=["train_gpt_patch did not apply cleanly to the provided parent train_gpt.py."],
-                    revision_instructions=(
-                        "Regenerate train_gpt_patch as a valid unified diff against the provided Parent train_gpt.py. "
-                        "Include correct file headers (---/+++), hunk headers (@@ -l,s +l,s @@), and enough context "
-                        "so the patch applies exactly. Keep the patch minimal and focused."
-                    ),
-                    must_fix_fields=["train_gpt_patch"],
-                )
-                sys.stderr.write(f"review round {round_idx + 1}/{rounds}: revise (invalid train_gpt_patch)\n")
-                continue
-            patch_text_round = _unified_diff_text(parent.content, train_gpt_text_round)
-        else:
-            if not reviewer_enabled:
-                sys.stderr.write("Model output missing train_gpt_patch (expected unified diff string).\n")
-                return 2
-            prev_thin_idea = _thin_idea_for_review(idea_raw, parent_sha256=parent.sha256)
-            prev_review = _synthetic_review(
-                decision="revise",
-                novelty_score=0,
-                reasons=["Missing train_gpt_patch (unified diff required)."],
-                revision_instructions=(
-                    "Return train_gpt_patch as a unified diff from the provided Parent train_gpt.py "
-                    "to your updated train_gpt.py, encoded as a single JSON string with \\n escapes."
-                ),
-                must_fix_fields=["train_gpt_patch"],
-            )
-            sys.stderr.write(f"review round {round_idx + 1}/{rounds}: revise (missing train_gpt_patch)\n")
-            continue
-
-        if train_gpt_text_round is None or patch_text_round is None:
-            sys.stderr.write("Internal error: missing train_gpt output.\n")
-            return 2
-
-        thin_candidate = _thin_idea_for_review(
-            idea_raw,
-            parent_sha256=parent.sha256,
-            train_gpt_text=train_gpt_text_round,
-            patch_text=patch_text_round,
-        )
+        thin_candidate = _thin_idea_for_review(idea_raw, parent_sha256=parent.sha256)
 
         if not reviewer_enabled:
             accepted_idea_raw = idea_raw
-            accepted_train_gpt_text = train_gpt_text_round
-            accepted_patch_text = patch_text_round
             break
 
         reviewer_context = _knowledge_context_for_reviewer(knowledge_context)
@@ -440,14 +377,12 @@ def cmd_idea(
         if decision == "pass":
             accepted_idea_raw = idea_raw
             accepted_review = review
-            accepted_train_gpt_text = train_gpt_text_round
-            accepted_patch_text = patch_text_round
             break
 
         prev_thin_idea = thin_candidate
         prev_review = review
 
-    if accepted_idea_raw is None or accepted_train_gpt_text is None:
+    if accepted_idea_raw is None:
         sys.stderr.write(
             f"Reviewer did not approve an idea after {rounds} round(s); refusing to emit an unreviewed idea.\n"
         )
@@ -456,15 +391,62 @@ def cmd_idea(
         return 3
 
     idea = dict(accepted_idea_raw)
-    idea.pop("train_gpt_py_lines", None)
-    idea.pop("train_gpt_patch", None)
+
+    # After an idea is accepted, generate a minimal patch separately (more reliable than bundling with ideation JSON).
+    train_gpt_text: Optional[str] = None
+    last_patch_err: Optional[str] = None
+    patch_attempts = 3
+    sys.stderr.write("patch: generating train_gpt_patch...\n")
+    for attempt_idx in range(patch_attempts):
+        if attempt_idx:
+            sys.stderr.write(f"patch: retry {attempt_idx + 1}/{patch_attempts}\n")
+        patch_system, patch_user = build_patch_prompts(
+            parent_train_gpt_py=parent.content,
+            accepted_idea=idea,
+        )
+        if last_patch_err:
+            patch_user += (
+                "\n\nPrevious patch attempt failed to apply:\n"
+                f"{last_patch_err}\n\n"
+                "Regenerate a correct minimal unified diff that applies cleanly to the provided Parent train_gpt.py."
+            )
+        try:
+            patch_obj = ideator_client.generate_json(
+                model=model,
+                system_prompt=patch_system,
+                user_prompt=patch_user,
+                response_schema=patch_response_schema(),
+                temperature=0.2,
+                top_p=1.0,
+                max_output_tokens=int(max_output_tokens),
+                seed=seed,
+            )
+        except GeminiError as e:
+            sys.stderr.write(str(e).rstrip() + "\n")
+            return 2
+
+        patch_str = patch_obj.get("train_gpt_patch") if isinstance(patch_obj, dict) else None
+        if not isinstance(patch_str, str) or not patch_str.strip():
+            last_patch_err = "Patch generator returned missing/empty train_gpt_patch."
+            continue
+        try:
+            train_gpt_text = _apply_unified_diff(parent.content, patch_str)
+            break
+        except PatchApplyError as e:
+            last_patch_err = str(e)
+            continue
+
+    if train_gpt_text is None:
+        sys.stderr.write("Failed to generate an applicable train_gpt_patch.\n")
+        if last_patch_err:
+            sys.stderr.write(last_patch_err.rstrip() + "\n")
+        return 2
 
     idea_id = _sanitize_slug(str(idea.get("idea_id") or "idea"))
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_id = f"{ts}_{idea_id}"
 
-    train_gpt_text = accepted_train_gpt_text
-    patch_text = accepted_patch_text or _unified_diff_text(parent.content, train_gpt_text)
+    patch_text = _unified_diff_text(parent.content, train_gpt_text)
 
     idea_final = _finalize_idea_v2(
         idea=idea,
@@ -917,6 +899,7 @@ def _finalize_idea_v2(
     idea_out = dict(idea)
     idea_out["schema_version"] = "ideator.idea.v2"
     idea_out["run_id"] = run_id
+    idea_id = _sanitize_slug(str(idea_out.get("idea_id") or "idea"))
 
     parent_impl = idea_out.get("parent_implementation")
     if not isinstance(parent_impl, dict):
@@ -964,13 +947,40 @@ def _finalize_idea_v2(
     }
     if reviewer_feedback is not None:
         idea_out["artifacts"]["review_json"] = f"{rel_run_dir}/review.json"
+
+        approved_train = save_root / f"{idea_id}_train_gpt.py"
+        approved_patch = save_root / f"{idea_id}_train_gpt.patch"
+        approved_parent = save_root / f"{idea_id}_parent_train_gpt.py"
+        approved_idea = save_root / f"{idea_id}.json"
+        approved_review = save_root / f"{idea_id}_review.json"
+
+        idea_out["artifacts"]["approved_idea_json"] = _relpath_for_display(approved_idea)
+        idea_out["artifacts"]["approved_review_json"] = _relpath_for_display(approved_review)
+        idea_out["artifacts"]["approved_train_gpt_py"] = {
+            "path": _relpath_for_display(approved_train),
+            "sha256": _sha256_bytes(train_bytes),
+            "bytes": len(train_bytes),
+        }
+        idea_out["artifacts"]["approved_train_gpt_patch"] = {
+            "path": _relpath_for_display(approved_patch),
+            "sha256": _sha256_bytes(patch_bytes),
+            "bytes": len(patch_bytes),
+        }
+        idea_out["artifacts"]["approved_parent_train_gpt_py"] = {
+            "path": _relpath_for_display(approved_parent),
+            "sha256": parent.sha256,
+            "bytes": len(parent.content.encode("utf-8")),
+        }
     run_command = ""
     if isinstance(parent_impl.get("run_command"), str):
         run_command = parent_impl["run_command"].strip()
+    copy_source = f"{rel_run_dir}/train_gpt.py"
+    if reviewer_feedback is not None:
+        copy_source = _relpath_for_display(save_root / f"{idea_id}_train_gpt.py")
     idea_out["falsifier_instructions"] = {
         "assumed_repo_dir": "parameter-golf",
         "steps": [
-            f"cp {rel_run_dir}/train_gpt.py parameter-golf/train_gpt.py",
+            f"cp {copy_source} parameter-golf/train_gpt.py",
             "cd parameter-golf",
             run_command or "torchrun --standalone --nproc_per_node=1 train_gpt.py",
         ],
@@ -1042,4 +1052,19 @@ def _save_run_bundle(
     saved.extend([idea_path, train_path, patch_path, parent_path, latest_json, latest_train, latest_patch])
     if reviewer_feedback is not None:
         saved.extend([review_path, latest_review])
+
+        idea_id = _sanitize_slug(str(idea.get("idea_id") or run_id))
+        named_idea = save_root / f"{idea_id}.json"
+        named_train = save_root / f"{idea_id}_train_gpt.py"
+        named_patch = save_root / f"{idea_id}_train_gpt.patch"
+        named_parent = save_root / f"{idea_id}_parent_train_gpt.py"
+        named_review = save_root / f"{idea_id}_review.json"
+
+        _write_json(named_idea, idea)
+        named_train.write_text(train_gpt_text, encoding="utf-8")
+        named_patch.write_text(patch_text, encoding="utf-8")
+        named_parent.write_text(parent_train_gpt_text, encoding="utf-8")
+        _write_json(named_review, reviewer_feedback)
+
+        saved.extend([named_idea, named_train, named_patch, named_parent, named_review])
     return saved

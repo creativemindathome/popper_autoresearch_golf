@@ -58,6 +58,14 @@ It also saves the generated candidate implementation files:
 - `knowledge_graph/outbox/ideator/latest_train_gpt.patch`
 - `knowledge_graph/outbox/ideator/latest_review.json`
 
+For reviewer-approved ideas, it also writes per-idea convenience copies (for falsifier runs):
+
+- `knowledge_graph/outbox/ideator/<idea_id>_train_gpt.py`
+- `knowledge_graph/outbox/ideator/<idea_id>_parent_train_gpt.py`
+- `knowledge_graph/outbox/ideator/<idea_id>_train_gpt.patch`
+- `knowledge_graph/outbox/ideator/<idea_id>_review.json`
+- `knowledge_graph/outbox/ideator/<idea_id>.json`
+
 And a run bundle under:
 
 - `knowledge_graph/outbox/ideator/runs/<run_id>/`

@@ -59,3 +59,11 @@ Generated ideas and candidate implementations are saved to `knowledge_graph/outb
 - `runs/<run_id>/train_gpt.patch` (per-run diff vs parent)
 - `runs/<run_id>/parent_train_gpt.py` (archived parent used for diff)
 - `runs/<run_id>/review.json` (per-run novelty review, if enabled)
+
+For reviewer-approved ideas, the ideator also writes per-idea convenience copies:
+
+- `<idea_id>_train_gpt.py`
+- `<idea_id>_parent_train_gpt.py`
+- `<idea_id>_train_gpt.patch`
+- `<idea_id>_review.json`
+- `<idea_id>.json`

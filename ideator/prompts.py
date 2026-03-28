@@ -83,7 +83,6 @@ def build_ideator_prompts(
     *,
     knowledge_context: str,
     parent_code_ref: Dict[str, Any],
-    parent_train_gpt_py: str,
 ) -> Tuple[str, str]:
     system = IDEATOR_SYSTEM.strip()
     parent_ref_json = json.dumps(parent_code_ref, ensure_ascii=False)
@@ -95,11 +94,6 @@ Knowledge graph context (may be empty):
 
 Parent code reference (the code you must minimally modify):
 {parent_ref_json}
-
-Parent train_gpt.py (verbatim; keep everything not explicitly changed identical):
-<BEGIN_TRAIN_GPT_PY>
-{parent_train_gpt_py.rstrip()}
-<END_TRAIN_GPT_PY>
 
 Task:
 Generate exactly ONE new research idea to improve Parameter Golf. The idea should not be a trivial hyperparameter tweak.
@@ -121,17 +115,15 @@ Return a JSON object with:
   - locate: how to find the insertion/edit point (anchor strings to search for)
   - change: explicit pseudocode or a small diff-like snippet
   - done_when: measurable acceptance criterion (e.g., script runs; prints val_bpb; artifact size stays under cap)
-	- falsifier_smoke_tests: 2–5 quick tests with pass/fail criteria (should run in minutes)
-	- expected_metric_change: expected direction/range on val_bpb and why
-	- train_gpt_patch: a unified diff (patch) from the parent train_gpt.py to your updated train_gpt.py, encoded as a SINGLE JSON string with "\\n" escapes (no literal newlines in the JSON string).
+- falsifier_smoke_tests: 2–5 quick tests with pass/fail criteria (should run in minutes)
+- expected_metric_change: expected direction/range on val_bpb and why
 
-	IMPORTANT:
-	- Do NOT mention CIFAR/ImageNet/other datasets. Only refer to Parameter Golf (FineWeb, train_gpt.py, val_bpb).
-	- Make the implementation instructions unambiguous: anchors + what to insert/replace.
-	- The patch must apply cleanly to the provided Parent train_gpt.py and produce an updated train_gpt.py that runs end-to-end, prints val_bpb, and preserves the existing CLI args/options unless your change requires adding a minimal new flag.
-	- Keep train_gpt_patch minimal: do NOT include the full file; only include hunks for lines that change.
-	- Keep code additions minimal (code bytes count toward the 16MB artifact budget).
-	- Do not output absolute user paths (e.g. "/Users/..."). Use relative paths and/or env vars in run_command.
+IMPORTANT:
+- Do NOT mention CIFAR/ImageNet/other datasets. Only refer to Parameter Golf (FineWeb, train_gpt.py, val_bpb).
+- Make the implementation instructions unambiguous: anchors + what to insert/replace.
+- Focus on ideas that are implementable with a small, targeted patch to train_gpt.py.
+- Keep code additions minimal (code bytes count toward the 16MB artifact budget).
+- Do not output absolute user paths (e.g. "/Users/..."). Use relative paths and/or env vars in run_command.
 
 Output JSON only.
 """.strip()
@@ -142,7 +134,6 @@ def build_ideator_revision_prompts(
     *,
     knowledge_context: str,
     parent_code_ref: Dict[str, Any],
-    parent_train_gpt_py: str,
     previous_idea: Dict[str, Any],
     reviewer_feedback: Dict[str, Any],
 ) -> Tuple[str, str]:
@@ -158,11 +149,6 @@ Knowledge graph context (may be empty):
 
 Parent code reference (the code you must minimally modify):
 {parent_ref_json}
-
-Parent train_gpt.py (verbatim; keep everything not explicitly changed identical):
-<BEGIN_TRAIN_GPT_PY>
-{parent_train_gpt_py.rstrip()}
-<END_TRAIN_GPT_PY>
 
 Previous idea JSON (rejected or needs revision; may be incomplete):
 {prev_json}
@@ -184,15 +170,11 @@ Return a JSON object with the same fields and constraints as the original Ideato
   - primary_file: must be "train_gpt.py"
   - run_command: a single command (or env-var + command string) the falsifier can run to test
   - code_search_hints: 3–8 ripgrep-style search strings to locate the relevant section(s) in train_gpt.py
-	- implementation_steps: 3–7 concrete steps (anchors + explicit changes)
-	- falsifier_smoke_tests: 2–5
-	- expected_metric_change
-	- train_gpt_patch: a unified diff (patch) from the parent train_gpt.py to your updated train_gpt.py, encoded as a SINGLE JSON string with "\\n" escapes
+- implementation_steps: 3–7 concrete steps (anchors + explicit changes)
+- falsifier_smoke_tests: 2–5
+- expected_metric_change
 
-	IMPORTANT:
-	- Keep train_gpt_patch minimal: do NOT include the full file; only include hunks for lines that change.
-
-	Output JSON only.
+Output JSON only.
 """.strip()
     return system, user
 
@@ -268,7 +250,6 @@ def ideator_response_schema() -> Dict[str, Any]:
                 "maxItems": 5,
             },
             "expected_metric_change": {"type": "string"},
-	            "train_gpt_patch": {"type": "string"},
         },
         "required": [
             "schema_version",
@@ -279,8 +260,50 @@ def ideator_response_schema() -> Dict[str, Any]:
             "implementation_steps",
             "falsifier_smoke_tests",
             "expected_metric_change",
-	            "train_gpt_patch",
         ],
+        "additionalProperties": False,
+    }
+
+
+PATCH_GENERATOR_SYSTEM = """\
+You are the Patch Generator agent in a multi-agent AutoResearch loop.
+
+Given a parent `train_gpt.py` and an accepted idea JSON, produce a minimal unified diff (patch) that implements the idea.
+
+Rules:
+- Output a single JSON object only (no markdown, no extra commentary).
+- The JSON must contain exactly one field: train_gpt_patch.
+- train_gpt_patch must be a unified diff from the provided Parent train_gpt.py to the updated train_gpt.py.
+- Encode the patch as a SINGLE JSON string using "\\n" escapes (no literal newline characters inside the JSON string).
+- Keep the patch minimal: only include hunks for lines that change; do NOT include the full file.
+- Ensure the patch applies cleanly to the provided Parent train_gpt.py.
+""".strip()
+
+
+def build_patch_prompts(*, parent_train_gpt_py: str, accepted_idea: Dict[str, Any]) -> Tuple[str, str]:
+    system = PATCH_GENERATOR_SYSTEM
+    idea_json = json.dumps(accepted_idea, ensure_ascii=False)
+    user = f"""\
+Parent train_gpt.py (verbatim):
+<BEGIN_TRAIN_GPT_PY>
+{parent_train_gpt_py.rstrip()}
+<END_TRAIN_GPT_PY>
+
+Accepted idea JSON:
+{idea_json}
+
+Task:
+Return a JSON object with exactly:
+- train_gpt_patch: unified diff string (use "\\n" escapes)
+""".strip()
+    return system, user
+
+
+def patch_response_schema() -> Dict[str, Any]:
+    return {
+        "type": "object",
+        "properties": {"train_gpt_patch": {"type": "string"}},
+        "required": ["train_gpt_patch"],
         "additionalProperties": False,
     }
 
