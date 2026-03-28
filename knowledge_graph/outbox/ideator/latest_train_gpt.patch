@@ -1,0 +1,30 @@
+--- a/train_gpt.py
++++ b/train_gpt.py
+@@ -60,6 +60,13 @@
+     muon_momentum_warmup_steps = int(os.environ.get("MUON_MOMENTUM_WARMUP_STEPS", 500))
+     beta1 = float(os.environ.get("BETA1", 0.9))
+     beta2 = float(os.environ.get("BETA2", 0.95))
++    # ARS hyperparameters
++    ARS_INITIAL_REP_MODE = os.environ.get("ARS_INITIAL_REP_MODE", "QLT")
++    ARS_LRF_RANK = int(os.environ.get("ARS_LRF_RANK", "8"))
++    ARS_QLT_CODEBOOK_SIZE = int(os.environ.get("ARS_QLT_CODEBOOK_SIZE", "256"))
++    ARS_CHECK_INTERVAL = int(os.environ.get("ARS_CHECK_INTERVAL", "2000"))
++    ARS_QLT_TO_LRF_THRESHOLD = float(os.environ.get("ARS_QLT_TO_LRF_THRESHOLD", "0.1"))
++    ARS_LRF_TO_FP_THRESHOLD = float(os.environ.get("ARS_LRF_TO_FP_THRESHOLD", "0.5"))
+     adam_eps = float(os.environ.get("ADAM_EPS", 1e-8))
+     grad_clip_norm = float(os.environ.get("GRAD_CLIP_NORM", 0.0))
+ 
+@@ -325,6 +332,126 @@
+ # ----------------------------- 
+ 
+ def load_data_shard(file: Path) -> Tensor:
++    header_bytes = 256 * np.dtype("<i4").itemsize
++    token_bytes = np.dtype("<u2").itemsize
++    header = np.fromfile(file, dtype="<i4", count=256)
++    # SHARD HEADER INTS & SHARD_MAGIC
++    if header.size != 256 or int(header[0]) != 20240520 or int(header[1]) != 1:
++        raise ValueError(f"Unexpected shard header for {file}")
++    num_tokens = int(header[2])
++    expected_size = header_bytes + num_tokens * token_bytes
++    if file.stat().st_size != expected_size:
++
