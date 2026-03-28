@@ -943,6 +943,9 @@
     // Initial speed label.
     UI.speedVal.textContent = `${speed.toFixed(1)}×`;
 
+    // Always show something immediately (avoids "blank" / file-loading issues).
+    load(BUILTIN_DEMO_TIMELINE);
+
     requestAnimationFrame(draw);
 
     return {
