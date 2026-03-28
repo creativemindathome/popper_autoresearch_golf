@@ -216,16 +216,17 @@ def adapt_ideator_to_falsifier(
     parent_implementation = idea.get("parent_implementation", {})
     parents = _build_parents(parent_implementation, idea_id)
 
-    # Get train_gpt_path from parent_implementation
-    train_gpt_path = parent_implementation.get("primary_file", "")
-
-    # Load proposed_train_gpt from generated file
+    # Prefer the ideator-generated train_gpt file when present, otherwise fall back
+    # to the parent_implementation.primary_file path.
     knowledge_dir = Path(knowledge_dir)
     train_gpt_file = knowledge_dir / "outbox" / "ideator" / f"{idea_id}_train_gpt.py"
 
     proposed_train_gpt = ""
     if train_gpt_file.exists():
         proposed_train_gpt = train_gpt_file.read_text(encoding="utf-8")
+        train_gpt_path: str | Path = train_gpt_file
+    else:
+        train_gpt_path = parent_implementation.get("primary_file", "")
 
     # Determine theory_type (default to architectural)
     theory_type = "architectural"  # ideator.idea.v1 doesn't specify, use default

@@ -6,10 +6,10 @@ When you say "Cursor for the falsifier", here's what that actually means:
 
 | Component | What It Is | Needs API Key? |
 |-----------|------------|----------------|
-| **Ideator** | LLM service (Anthropic Claude) | ✅ Yes - `ANTHROPIC_API_KEY` |
+| **Ideator** | LLM service (Gemini) | ✅ Yes - `GEMINI_API_KEY` |
 | **Falsifier** | Your local Python code running in Cursor | ❌ No - just runs on your CPU |
 | **Falsifier Stage 2** | Optional LLM for kill hypotheses | ✅ Optional - `ANTHROPIC_API_KEY` |
-| **Reviewer** | LLM that approves ideas | ✅ Yes - `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` |
+| **Reviewer** | LLM that approves ideas | ✅ Yes - `OPENAI_API_KEY` |
 
 **Key Point**: Cursor is just your IDE (like VS Code). The falsifier runs Python code locally on your machine. It doesn't need a "Cursor API key" - it just needs regular API keys for the LLM services it calls.
 
@@ -20,17 +20,14 @@ When you say "Cursor for the falsifier", here's what that actually means:
 Set these in your terminal before running:
 
 ```bash
-# For Ideator (using Anthropic instead of Gemini)
-export ANTHROPIC_API_KEY="sk-ant-api03-your-key-here"
+# Required: Ideator (Gemini)
+export GEMINI_API_KEY="your-gemini-key-here"
 
-# For Falsifier Stage 2 (optional - fallback works without)
-export ANTHROPIC_API_KEY="sk-ant-api03-your-key-here"  # Same key, reused
-
-# Alternative: Use OpenAI for reviewer
+# Required: Reviewer (OpenAI)
 export OPENAI_API_KEY="sk-your-openai-key-here"
 
-# Original Gemini (if you want to compare)
-export GEMINI_API_KEY="your-gemini-key-here"
+# Optional: Falsifier Stage 2 LLM (Claude) — fallback works without
+export ANTHROPIC_API_KEY="sk-ant-your-key-here"
 ```
 
 ### Option 2: Cursor Settings
@@ -44,7 +41,7 @@ In Cursor, you can set environment variables that persist:
 ```json
 {
   "env": {
-    "ANTHROPIC_API_KEY": "sk-ant-api03-your-key-here",
+    "GEMINI_API_KEY": "your-gemini-key-here",
     "OPENAI_API_KEY": "sk-your-openai-key-here"
   }
 }
@@ -56,9 +53,9 @@ Create `.env` in project root:
 
 ```bash
 # .env
-ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
-OPENAI_API_KEY=sk-your-openai-key-here
 GEMINI_API_KEY=your-gemini-key-here
+OPENAI_API_KEY=sk-your-openai-key-here
+ANTHROPIC_API_KEY=sk-ant-your-key-here
 ```
 
 Then load it:
@@ -72,8 +69,11 @@ Add to `~/.zshrc` or `~/.bashrc`:
 
 ```bash
 # AutoResearch Loop API Keys
-export ANTHROPIC_API_KEY="sk-ant-api03-your-key-here"
+export GEMINI_API_KEY="your-gemini-key-here"
 export OPENAI_API_KEY="sk-your-openai-key-here"
+
+# Optional: Stage 2 LLM (Claude)
+export ANTHROPIC_API_KEY="sk-ant-your-key-here"
 ```
 
 Then reload:
@@ -86,14 +86,14 @@ source ~/.zshrc  # or ~/.bashrc
 Test the keys are working:
 
 ```bash
-# Test Anthropic
+# Test Gemini
 python3 -c "
 import os
-key = os.environ.get('ANTHROPIC_API_KEY')
+key = os.environ.get('GEMINI_API_KEY')
 if key:
-    print(f'✓ ANTHROPIC_API_KEY set: {key[:20]}...')
+    print('✓ GEMINI_API_KEY set')
 else:
-    print('✗ ANTHROPIC_API_KEY not set')
+    print('✗ GEMINI_API_KEY not set')
 "
 
 # Test OpenAI
@@ -109,51 +109,40 @@ else:
 
 ## Usage Examples
 
-### 1. Anthropic for Ideator + Reviewer
+### 1. Gemini for Ideator + OpenAI for Reviewer (Recommended)
 
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-api03-..."
-
-# Run ideator with Anthropic
-python3 -m ideator idea \
-    --parent-train-gpt parameter-golf/train_gpt.py \
-    --api-key $ANTHROPIC_API_KEY \
-    --model claude-sonnet-4-20250514
-```
-
-### 2. Anthropic for Ideator, OpenAI for Reviewer
-
-```bash
-export ANTHROPIC_API_KEY="sk-ant-api03-..."
+export GEMINI_API_KEY="..."
 export OPENAI_API_KEY="sk-..."
 
 python3 -m ideator idea \
     --parent-train-gpt parameter-golf/train_gpt.py \
-    --api-key $ANTHROPIC_API_KEY \
-    --reviewer-api-key $OPENAI_API_KEY
+    --knowledge-dir knowledge_graph
 ```
 
-### 3. Full Loop with Anthropic
+### 2. Falsifier Stage 2 with Anthropic (Optional)
 
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-api03-..."
+export ANTHROPIC_API_KEY="sk-ant-..."
 
-# Generate idea
-python3 -m ideator idea \
-    --parent-train-gpt parameter-golf/train_gpt.py \
-    --api-key $ANTHROPIC_API_KEY
+# Stage 2 will try Claude if the key is set; otherwise it uses a local fallback.
+python3 -m falsifier.main --idea-id <idea_id> --knowledge-dir knowledge_graph
+```
 
-# Falsifier will use ANTHROPIC_API_KEY for Stage 2 if available
+### 3. Falsifier Only (No APIs Needed)
+
+```bash
 python3 -m falsifier.main \
-    --idea-id $(ls knowledge_graph/inbox/approved/*.json | head -1 | xargs basename -s .json)
+    --candidate-json /path/to/candidate.json \
+    --output-json result.json
 ```
 
 ## Where Each Key is Used
 
 | Component | Environment Variable | Purpose | Required? |
 |-----------|---------------------|---------|-----------|
-| **Ideator** | `ANTHROPIC_API_KEY` | Generate architecture ideas | ✅ Required |
-| **Reviewer** | `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` | Evaluate idea novelty | ✅ Required |
+| **Ideator** | `GEMINI_API_KEY` | Generate architecture ideas | ✅ Required |
+| **Reviewer** | `OPENAI_API_KEY` | Evaluate idea novelty | ✅ Required |
 | **Falsifier Stage 1** | None | Runs locally in Cursor | ❌ No key needed |
 | **Falsifier Stage 2** | `ANTHROPIC_API_KEY` | Generate kill hypotheses | ⚠️ Optional (has fallback) |
 | **Cursor IDE** | None | Just your development environment | ❌ No key needed |
@@ -182,7 +171,7 @@ When the falsifier runs "in Cursor", it means:
 3. Go to API Keys
 4. Create new key starting with `sk-`
 
-### Gemini (optional)
+### Gemini (required for ideator)
 1. Go to https://ai.google.dev/
 2. Get API key
 3. Set as `GEMINI_API_KEY`
@@ -192,16 +181,18 @@ When the falsifier runs "in Cursor", it means:
 ### Key Not Recognized
 ```bash
 # Check if key is set
-echo $ANTHROPIC_API_KEY
+echo $GEMINI_API_KEY
+echo $OPENAI_API_KEY
 
 # If empty, you need to export it
-export ANTHROPIC_API_KEY="your-key"
+export GEMINI_API_KEY="your-key"
+export OPENAI_API_KEY="sk-your-key"
 ```
 
 ### Key Expired
 ```bash
-# Test connectivity
-python3 ideator/anthropic_client.py
+# Gemini: verify your key + model access
+python3 -m ideator list-models
 ```
 
 ### Cursor Agent Can't See Keys
@@ -231,9 +222,9 @@ In Cursor, environment variables need to be set in the terminal panel:
 ```
 
 **What you actually need:**
-1. `ANTHROPIC_API_KEY` - for ideator generating ideas
-2. `ANTHROPIC_API_KEY` (same key) - for Stage 2 kill hypotheses (optional)
-3. `OPENAI_API_KEY` - alternative for reviewer (optional)
+1. `GEMINI_API_KEY` - for ideator generating ideas
+2. `OPENAI_API_KEY` - for novelty reviewer
+3. `ANTHROPIC_API_KEY` - for Stage 2 kill hypotheses (optional)
 
 **What you DON'T need:**
 - ❌ Cursor API key (doesn't exist)

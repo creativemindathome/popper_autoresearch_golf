@@ -25,18 +25,19 @@ def main():
     print()
     print("NOTE: There is NO 'Cursor API key'")
     print("Cursor is just your IDE. The falsifier runs locally on your machine.")
-    print("You only need API keys for the LLM services (Anthropic/OpenAI).")
+    print("You only need API keys for the LLM services it calls (Gemini/OpenAI; Anthropic optional for Stage 2).")
     print()
     print("-" * 60)
 
     # Test each key
     keys_to_test = [
-        ("ANTHROPIC_API_KEY", "sk-ant-api03", "Ideator + Stage 2 Falsifier"),
-        ("OPENAI_API_KEY", "sk-", "Reviewer (alternative to Anthropic)"),
-        ("GEMINI_API_KEY", None, "Ideator (if using Gemini instead)"),
+        ("GEMINI_API_KEY", None, "Ideator (Gemini)"),
+        ("OPENAI_API_KEY", "sk-", "Reviewer (OpenAI)"),
+        ("ANTHROPIC_API_KEY", "sk-ant-", "Optional: Falsifier Stage 2 kill hypotheses (Claude)"),
     ]
 
-    all_good = True
+    required = {"GEMINI_API_KEY", "OPENAI_API_KEY"}
+    all_required_good = True
 
     for key_name, prefix, purpose in keys_to_test:
         print(f"\n{key_name}")
@@ -49,20 +50,21 @@ def main():
             print(f"  Value: {message}")
         else:
             print(f"  Status: ✗ {message}")
-            all_good = False
+            if key_name in required:
+                all_required_good = False
 
     print()
     print("=" * 60)
 
-    if all_good:
-        print("✓ All API keys configured!")
+    if all_required_good:
+        print("✓ Required API keys configured!")
         print()
         print("Architecture Overview:")
         print("""
     ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
     │   IDEATOR       │────▶│   REVIEWER       │────▶│   FALSIFIER     │
-    │   (Anthropic)   │     │   (Anthropic/    │     │   (Runs in      │
-    │   Needs API key │     │    OpenAI)       │     │    Cursor IDE)  │
+    │   (Gemini)      │     │   (OpenAI)       │     │   (Runs local)  │
+    │   Needs API key │     │   Needs API key  │     │   No API key    │
     └─────────────────┘     └──────────────────┘     └────────┬────────┘
                                                               │
                     ┌──────────────────────────────────────────┘
@@ -73,19 +75,19 @@ def main():
         ├────────────────────────┤
         │ • Stage 1 (T2-T7): MLX │◄── Runs on YOUR machine
         │ • Stage 2 (Kill hyp):  │    (NO "Cursor key" needed!)
-        │   Optional Anthropic   │
+        │   Optional Anthropic   │◄── ANTHROPIC_API_KEY (optional)
         └────────────────────────┘
         """)
         print()
         print("You can now run:")
-        print("  python3 -m ideator.idea --parent-train-gpt parameter-golf/train_gpt.py")
+        print("  python3 -m ideator idea --parent-train-gpt parameter-golf/train_gpt.py")
         print()
         return 0
     else:
-        print("✗ Some API keys are missing")
+        print("✗ Some required API keys are missing")
         print()
         print("To set them:")
-        print("  export ANTHROPIC_API_KEY='sk-ant-api03-your-key'")
+        print("  export GEMINI_API_KEY='your-key'")
         print("  export OPENAI_API_KEY='sk-your-key'")
         print()
         print("Or create a .env file and run: set -a && source .env && set +a")
