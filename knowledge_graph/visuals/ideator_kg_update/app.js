@@ -572,6 +572,24 @@
       }
       ctx.restore();
 
+      // Empty state: no timeline loaded yet.
+      if (!timeline || nodesById.size === 0) {
+        ctx.save();
+        const w = UI.canvas.width;
+        const h = UI.canvas.height;
+        ctx.fillStyle = "rgba(255,255,255,0.86)";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = `${22 * dpr}px ui-sans-serif, system-ui, -apple-system`;
+        ctx.fillText("No timeline loaded", w / 2, h / 2 - 18 * dpr);
+        ctx.fillStyle = "rgba(255,255,255,0.62)";
+        ctx.font = `${13 * dpr}px ui-sans-serif, system-ui, -apple-system`;
+        ctx.fillText("Click “Load timeline.json…” or regenerate one from the repo root.", w / 2, h / 2 + 10 * dpr);
+        ctx.restore();
+        requestAnimationFrame(draw);
+        return;
+      }
+
       // Lane divider between seed KG and idea lane.
       if (seedLayout && Number.isFinite(seedLayout.leftW)) {
         const x = seedLayout.leftW * dpr;
