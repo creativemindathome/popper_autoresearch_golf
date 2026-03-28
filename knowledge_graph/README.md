@@ -10,6 +10,24 @@ MVP supported inputs:
 
 The Ideator will include a compact summary when it can parse JSON; otherwise it will pass raw snippets into the prompt.
 
+## Visuals
+
+Render the seed knowledge graph JSON to PNG/SVG (requires Graphviz: `dot`, `sfdp`, etc. on PATH):
+
+```bash
+python3 knowledge_graph/render_seed_kg_graphviz.py
+```
+
+Outputs to `knowledge_graph/visuals/`:
+
+- Overview: `seed_parameter_golf_kg.{png,svg}`
+- Per-root breakdown: `seed_parameter_golf_kg_{data_pipeline,neural_network,training_evaluation}.{png,svg}`
+
+Options:
+
+- `--engine dot|sfdp|neato|twopi` (layout engine)
+- `--mode overview|split-roots|both`
+
 ## Outbox
 
 Generated ideas and candidate implementations are saved to `knowledge_graph/outbox/ideator/`:

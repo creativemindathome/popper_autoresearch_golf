@@ -1,0 +1,54 @@
+digraph KnowledgeGraph {
+  graph [rankdir=LR, bgcolor="#ffffff", fontname="Helvetica", fontsize=10, labelloc="t", labeljust="l", nodesep="0.15", ranksep="0.25", splines="ortho", overlap="false", pad="0.1"];
+  node [fontname="Helvetica", fontsize=10, margin="0.10,0.07"];
+  edge [color="#adb5bd", arrowsize="0.6", penwidth="1"];
+
+  label="Training &amp; Evaluation";
+
+  "node_root_training_eval" [shape="box", style="rounded,filled,bold", fillcolor="#fff9db", color="#e67700", fontcolor="#212529", penwidth="2", label=<<B>Training &amp; Evaluation</B>>, tooltip="Specifies how the model is optimized and scored, including loss design, optimizer state, precision, and benchmark harness constraints. These choices strongly affect peak memory and convergence at small scale."];
+  "node_train_loss" [shape="box", style="rounded,filled", fillcolor="#e7f5ff", color="#1971c2", fontcolor="#212529", penwidth="1.4", label=<<B>Loss Function</B>>, tooltip="Defines the training objective that shapes gradients. Loss modifications can change calibration and stability without adding parameters to the model."];
+  "node_loss_cross_entropy" [shape="box", style="rounded,filled", fillcolor="#f8f9fa", color="#495057", fontcolor="#212529", penwidth="1", label=<<B>Cross-Entropy</B><BR/><FONT POINT-SIZE="9">Mem:0.2MB</FONT>>, tooltip="Maximizes the likelihood of the next token under the model distribution. It is the standard objective for language modeling and typically parameter-free."];
+  "node_loss_label_smoothing" [shape="box", style="rounded,filled", fillcolor="#f8f9fa", color="#495057", fontcolor="#212529", penwidth="1", label=<<B>Label Smoothing</B><BR/><FONT POINT-SIZE="9">Mem:0.2MB</FONT>>, tooltip="Blends the one-hot target with a uniform distribution to reduce overconfidence. This can improve generalization and calibration in small models."];
+  "node_loss_z_loss" [shape="box", style="rounded,filled", fillcolor="#f8f9fa", color="#495057", fontcolor="#212529", penwidth="1", label=<<B>Z-loss / Logit Penalty</B><BR/><FONT POINT-SIZE="9">Mem:0.2MB</FONT>>, tooltip="Adds a penalty to stabilize logits and improve numerical behavior, often helpful with low precision. It can improve training stability without changing model size."];
+  "node_train_optimizer" [shape="box", style="rounded,filled", fillcolor="#e7f5ff", color="#1971c2", fontcolor="#212529", penwidth="1.4", label=<<B>Optimizer &amp; State</B>>, tooltip="Controls parameter updates and determines additional optimizer-state memory. Optimizer choice is a major contributor to peak training memory at fixed parameter counts."];
+  "node_optimizer_state_strategy" [shape="box", style="rounded,filled", fillcolor="#e7f5ff", color="#1971c2", fontcolor="#212529", penwidth="1.4", label=<<B>Optimizer State Strategy</B>>, tooltip="Represents the extra state stored per parameter (e.g., moments) and its precision. Under tight memory budgets, quantized or factorized states can free memory for larger batches or models."];
+  "node_opt_adamw_fp32_state" [shape="box", style="rounded,filled", fillcolor="#f8f9fa", color="#495057", fontcolor="#212529", penwidth="1", label=<<B>AdamW (FP32 moments)</B><BR/><FONT POINT-SIZE="9">Mem:120MB</FONT>>, tooltip="Stores first and second moment estimates for each parameter, typically in FP32 for stability. This is effective but can dominate training memory for tiny models."];
+  "node_opt_adamw_8bit_state" [shape="box", style="rounded,filled", fillcolor="#f8f9fa", color="#495057", fontcolor="#212529", penwidth="1", label=<<B>AdamW (8-bit moments)</B><BR/><FONT POINT-SIZE="9">Mem:60MB</FONT>>, tooltip="Quantizes optimizer moments to reduce memory while approximating Adam updates. This can significantly lower peak memory with modest accuracy impact when tuned."];
+  "node_opt_adafactor" [shape="box", style="rounded,filled", fillcolor="#f8f9fa", color="#495057", fontcolor="#212529", penwidth="1", label=<<B>Adafactor (Factorized)</B><BR/><FONT POINT-SIZE="9">Mem:40MB</FONT>>, tooltip="Approximates second-moment statistics with factored representations to reduce memory. It is often used when optimizer-state memory is the main bottleneck."];
+  "node_opt_sgd_momentum" [shape="box", style="rounded,filled", fillcolor="#f8f9fa", color="#495057", fontcolor="#212529", penwidth="1", label=<<B>SGD + Momentum</B><BR/><FONT POINT-SIZE="9">Mem:30MB</FONT>>, tooltip="Uses momentum buffers but avoids second-moment estimates, reducing state memory. It can be harder to tune for transformers but is memory-light."];
+  "node_train_precision" [shape="box", style="rounded,filled", fillcolor="#e7f5ff", color="#1971c2", fontcolor="#212529", penwidth="1.4", label=<<B>Numerical Precision</B>>, tooltip="Chooses numeric formats for weights, activations, and gradients. Lower precision reduces memory and bandwidth but can require stabilization tricks to train reliably."];
+  "node_precision_fp32" [shape="box", style="rounded,filled", fillcolor="#f8f9fa", color="#495057", fontcolor="#212529", penwidth="1", label=<<B>FP32 Training</B><BR/><FONT POINT-SIZE="9">Mem:180MB</FONT>>, tooltip="Uses 32-bit floats for most tensors, offering stability at high memory cost. This often violates Parameter Golf memory constraints for longer contexts."];
+  "node_precision_fp16_bf16" [shape="box", style="rounded,filled", fillcolor="#f8f9fa", color="#495057", fontcolor="#212529", penwidth="1", label=<<B>FP16/BF16 Mixed Precision</B><BR/><FONT POINT-SIZE="9">Mem:120MB</FONT>>, tooltip="Uses half precision for activations/weights with selective FP32 accumulations. It is a standard approach to fit larger models/batches under memory limits."];
+  "node_precision_fp8" [shape="box", style="rounded,filled", fillcolor="#f8f9fa", color="#495057", fontcolor="#212529", penwidth="1", label=<<B>FP8 Activations (Advanced)</B><BR/><FONT POINT-SIZE="9">Mem:90MB</FONT>>, tooltip="Uses 8-bit floats for some tensors to further reduce memory and bandwidth. It can provide large savings but often needs careful scaling and kernel support."];
+  "node_train_activation_storage" [shape="box", style="rounded,filled", fillcolor="#e7f5ff", color="#1971c2", fontcolor="#212529", penwidth="1.4", label=<<B>Activation Storage Strategy</B>>, tooltip="Controls how intermediate activations are stored for backpropagation. Checkpointing can reduce peak memory by recomputing activations at the cost of extra compute."];
+  "node_activations_store_all" [shape="box", style="rounded,filled", fillcolor="#f8f9fa", color="#495057", fontcolor="#212529", penwidth="1", label=<<B>Store All Activations</B><BR/><FONT POINT-SIZE="9">Mem:120MB</FONT>>, tooltip="Keeps forward activations for backpropagation, minimizing recomputation. This is compute-efficient but often hits memory ceilings first."];
+  "node_activations_checkpoint" [shape="box", style="rounded,filled", fillcolor="#f8f9fa", color="#495057", fontcolor="#212529", penwidth="1", label=<<B>Gradient Checkpointing</B><BR/><FONT POINT-SIZE="9">Mem:60MB</FONT>>, tooltip="Recomputes some forward passes during backpropagation instead of storing all activations. This reduces peak memory and can unlock larger batch sizes in Parameter Golf."];
+  "node_train_evaluation" [shape="box", style="rounded,filled", fillcolor="#e7f5ff", color="#1971c2", fontcolor="#212529", penwidth="1.4", label=<<B>Evaluation Harness</B>>, tooltip="Defines how the model is scored and constrained, including exact benchmark implementation. A stable harness is required to compare innovations under the same Parameter Golf rules."];
+  "node_eval_param_golf" [shape="box", style="rounded,filled", fillcolor="#f8f9fa", color="#495057", fontcolor="#212529", penwidth="1", label=<<B>OpenAI Parameter Golf Benchmark</B>>, tooltip="Scores models under strict parameter and memory constraints, preventing trivial scaling. The benchmark incentivizes architectural and optimization innovations that fit tight budgets."];
+  "node_train_budget_accounting" [shape="box", style="rounded,filled", fillcolor="#e7f5ff", color="#1971c2", fontcolor="#212529", penwidth="1.4", label=<<B>Budget Accounting</B>>, tooltip="Tracks parameter count and memory usage to enforce constraints and guide component swaps. Accurate accounting enables deliberate tradeoffs rather than accidental OOM failures."];
+  "node_budget_parameters" [shape="box", style="rounded,filled", fillcolor="#f8f9fa", color="#495057", fontcolor="#212529", penwidth="1", label=<<B>Parameter Counter</B><BR/><FONT POINT-SIZE="9">Mem:0.2MB</FONT>>, tooltip="Computes model parameter count, optionally by component, to ensure compliance with size limits. It enables targeted parameter reallocation toward novel modules."];
+  "node_budget_memory" [shape="box", style="rounded,filled", fillcolor="#f8f9fa", color="#495057", fontcolor="#212529", penwidth="1", label=<<B>Peak Memory Estimator</B><BR/><FONT POINT-SIZE="9">Mem:0.2MB</FONT>>, tooltip="Estimates peak memory from activations, optimizer state, and KV cache to prevent exceeding constraints. It supports 'swap out' reasoning for memory-heavy components like attention."];
+
+  "node_root_training_eval" -> "node_train_loss" [];
+  "node_train_loss" -> "node_loss_cross_entropy" [];
+  "node_train_loss" -> "node_loss_label_smoothing" [];
+  "node_train_loss" -> "node_loss_z_loss" [];
+  "node_root_training_eval" -> "node_train_optimizer" [];
+  "node_train_optimizer" -> "node_optimizer_state_strategy" [];
+  "node_optimizer_state_strategy" -> "node_opt_adamw_fp32_state" [];
+  "node_optimizer_state_strategy" -> "node_opt_adamw_8bit_state" [];
+  "node_optimizer_state_strategy" -> "node_opt_adafactor" [];
+  "node_optimizer_state_strategy" -> "node_opt_sgd_momentum" [];
+  "node_root_training_eval" -> "node_train_precision" [];
+  "node_train_precision" -> "node_precision_fp32" [];
+  "node_train_precision" -> "node_precision_fp16_bf16" [];
+  "node_train_precision" -> "node_precision_fp8" [];
+  "node_root_training_eval" -> "node_train_activation_storage" [];
+  "node_train_activation_storage" -> "node_activations_store_all" [];
+  "node_train_activation_storage" -> "node_activations_checkpoint" [];
+  "node_root_training_eval" -> "node_train_evaluation" [];
+  "node_train_evaluation" -> "node_eval_param_golf" [];
+  "node_root_training_eval" -> "node_train_budget_accounting" [];
+  "node_train_budget_accounting" -> "node_budget_parameters" [];
+  "node_train_budget_accounting" -> "node_budget_memory" [];
+}
