@@ -282,7 +282,6 @@ def cmd_idea(
 
     accepted_idea_raw: Optional[Dict[str, Any]] = None
     accepted_review: Optional[Dict[str, Any]] = None
-    accepted_train_gpt_lines: Optional[List[str]] = None
     accepted_train_gpt_text: Optional[str] = None
     accepted_patch_text: Optional[str] = None
 
@@ -332,32 +331,64 @@ def cmd_idea(
                 novelty_score=0,
                 reasons=["Model returned non-object JSON; cannot accept."],
                 revision_instructions="Return a single JSON object matching the ideator schema.",
-                must_fix_fields=["schema_version", "parent_implementation", "implementation_steps", "train_gpt_py_lines"],
+                must_fix_fields=["schema_version", "parent_implementation", "implementation_steps", "train_gpt_patch"],
             )
             sys.stderr.write(f"review round {round_idx + 1}/{rounds}: revise (non-object JSON)\n")
             continue
 
+        train_gpt_text_round: Optional[str] = None
+        patch_text_round: Optional[str] = None
+
+        train_gpt_patch = idea_raw.get("train_gpt_patch")
         train_gpt_lines = idea_raw.get("train_gpt_py_lines")
-        if not isinstance(train_gpt_lines, list) or not all(isinstance(x, str) for x in train_gpt_lines):
+
+        # Backwards compatibility: accept the full file (train_gpt_py_lines) if present.
+        if isinstance(train_gpt_lines, list) and all(isinstance(x, str) for x in train_gpt_lines):
+            train_gpt_text_round = _join_lines(train_gpt_lines)
+            patch_text_round = _unified_diff_text(parent.content, train_gpt_text_round)
+        elif isinstance(train_gpt_patch, str) and train_gpt_patch.strip():
+            try:
+                train_gpt_text_round = _apply_unified_diff(parent.content, train_gpt_patch)
+            except PatchApplyError as e:
+                if not reviewer_enabled:
+                    sys.stderr.write(str(e).rstrip() + "\n")
+                    return 2
+                prev_thin_idea = _thin_idea_for_review(idea_raw, parent_sha256=parent.sha256)
+                prev_review = _synthetic_review(
+                    decision="revise",
+                    novelty_score=0,
+                    reasons=["train_gpt_patch did not apply cleanly to the provided parent train_gpt.py."],
+                    revision_instructions=(
+                        "Regenerate train_gpt_patch as a valid unified diff against the provided Parent train_gpt.py. "
+                        "Include correct file headers (---/+++), hunk headers (@@ -l,s +l,s @@), and enough context "
+                        "so the patch applies exactly. Keep the patch minimal and focused."
+                    ),
+                    must_fix_fields=["train_gpt_patch"],
+                )
+                sys.stderr.write(f"review round {round_idx + 1}/{rounds}: revise (invalid train_gpt_patch)\n")
+                continue
+            patch_text_round = _unified_diff_text(parent.content, train_gpt_text_round)
+        else:
             if not reviewer_enabled:
-                sys.stderr.write("Model output missing train_gpt_py_lines (expected array of strings).\n")
+                sys.stderr.write("Model output missing train_gpt_patch (expected unified diff string).\n")
                 return 2
             prev_thin_idea = _thin_idea_for_review(idea_raw, parent_sha256=parent.sha256)
             prev_review = _synthetic_review(
                 decision="revise",
                 novelty_score=0,
-                reasons=["Missing train_gpt_py_lines (full updated file required)."],
+                reasons=["Missing train_gpt_patch (unified diff required)."],
                 revision_instructions=(
-                    "Return train_gpt_py_lines as the FULL updated train_gpt.py file, "
-                    "one string per line, reflecting your proposed changes."
+                    "Return train_gpt_patch as a unified diff from the provided Parent train_gpt.py "
+                    "to your updated train_gpt.py, encoded as a single JSON string with \\n escapes."
                 ),
-                must_fix_fields=["train_gpt_py_lines"],
+                must_fix_fields=["train_gpt_patch"],
             )
-            sys.stderr.write(f"review round {round_idx + 1}/{rounds}: revise (missing train_gpt_py_lines)\n")
+            sys.stderr.write(f"review round {round_idx + 1}/{rounds}: revise (missing train_gpt_patch)\n")
             continue
 
-        train_gpt_text_round = _join_lines(train_gpt_lines)
-        patch_text_round = _unified_diff_text(parent.content, train_gpt_text_round)
+        if train_gpt_text_round is None or patch_text_round is None:
+            sys.stderr.write("Internal error: missing train_gpt output.\n")
+            return 2
 
         thin_candidate = _thin_idea_for_review(
             idea_raw,
@@ -368,7 +399,6 @@ def cmd_idea(
 
         if not reviewer_enabled:
             accepted_idea_raw = idea_raw
-            accepted_train_gpt_lines = list(train_gpt_lines)
             accepted_train_gpt_text = train_gpt_text_round
             accepted_patch_text = patch_text_round
             break
@@ -410,7 +440,6 @@ def cmd_idea(
         if decision == "pass":
             accepted_idea_raw = idea_raw
             accepted_review = review
-            accepted_train_gpt_lines = list(train_gpt_lines)
             accepted_train_gpt_text = train_gpt_text_round
             accepted_patch_text = patch_text_round
             break
@@ -418,7 +447,7 @@ def cmd_idea(
         prev_thin_idea = thin_candidate
         prev_review = review
 
-    if accepted_idea_raw is None or accepted_train_gpt_lines is None:
+    if accepted_idea_raw is None or accepted_train_gpt_text is None:
         sys.stderr.write(
             f"Reviewer did not approve an idea after {rounds} round(s); refusing to emit an unreviewed idea.\n"
         )
@@ -428,12 +457,13 @@ def cmd_idea(
 
     idea = dict(accepted_idea_raw)
     idea.pop("train_gpt_py_lines", None)
+    idea.pop("train_gpt_patch", None)
 
     idea_id = _sanitize_slug(str(idea.get("idea_id") or "idea"))
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_id = f"{ts}_{idea_id}"
 
-    train_gpt_text = accepted_train_gpt_text or _join_lines(accepted_train_gpt_lines)
+    train_gpt_text = accepted_train_gpt_text
     patch_text = accepted_patch_text or _unified_diff_text(parent.content, train_gpt_text)
 
     idea_final = _finalize_idea_v2(
@@ -586,6 +616,106 @@ def _unified_diff_text(a_text: str, b_text: str) -> str:
     return diff
 
 
+class PatchApplyError(RuntimeError):
+    pass
+
+
+_HUNK_HEADER_RE = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
+
+
+def _apply_unified_diff(original_text: str, patch_text: str) -> str:
+    patch_text = patch_text.replace("\r\n", "\n").replace("\r", "\n")
+    lines = patch_text.split("\n")
+
+    # Drop trailing empty entry if patch_text ends with \n.
+    if lines and lines[-1] == "":
+        lines = lines[:-1]
+
+    # Find first hunk header.
+    idx = 0
+    while idx < len(lines) and not lines[idx].startswith("@@ "):
+        idx += 1
+    if idx >= len(lines):
+        raise PatchApplyError("Invalid train_gpt_patch: no hunks found (expected lines starting with '@@ ').")
+
+    src_lines = original_text.splitlines()
+    out_lines: List[str] = []
+    src_i = 0
+
+    while idx < len(lines):
+        header = lines[idx]
+        if not header.startswith("@@ "):
+            idx += 1
+            continue
+
+        m = _HUNK_HEADER_RE.match(header)
+        if not m:
+            raise PatchApplyError(f"Invalid train_gpt_patch hunk header: {header!r}")
+
+        a_start = int(m.group(1))
+        # a_len = int(m.group(2) or "1")  # unused (we validate by matching lines)
+        target_src_i = a_start - 1
+        if target_src_i < src_i:
+            raise PatchApplyError("Invalid train_gpt_patch: hunks are overlapping or out of order.")
+
+        out_lines.extend(src_lines[src_i:target_src_i])
+        src_i = target_src_i
+        idx += 1
+
+        while idx < len(lines) and not lines[idx].startswith("@@ "):
+            pline = lines[idx]
+            if (
+                pline.startswith("diff ")
+                or pline.startswith("index ")
+                or pline.startswith("--- ")
+                or pline.startswith("+++ ")
+            ):
+                idx += 1
+                continue
+            if pline.startswith("\\ No newline at end of file"):
+                idx += 1
+                continue
+            if pline == "":
+                raise PatchApplyError("Invalid train_gpt_patch: encountered an empty patch line without a prefix.")
+
+            prefix = pline[0]
+            content = pline[1:]
+
+            if prefix == " ":
+                if src_i >= len(src_lines):
+                    raise PatchApplyError("Invalid train_gpt_patch: context line goes past end of file.")
+                if src_lines[src_i] != content:
+                    got = src_lines[src_i]
+                    raise PatchApplyError(
+                        f"Invalid train_gpt_patch: context mismatch at source line {src_i + 1}. "
+                        f"Expected {content!r}, got {got!r}."
+                    )
+                out_lines.append(content)
+                src_i += 1
+            elif prefix == "-":
+                if src_i >= len(src_lines):
+                    raise PatchApplyError("Invalid train_gpt_patch: removal goes past end of file.")
+                if src_lines[src_i] != content:
+                    got = src_lines[src_i]
+                    raise PatchApplyError(
+                        f"Invalid train_gpt_patch: removal mismatch at source line {src_i + 1}. "
+                        f"Expected {content!r}, got {got!r}."
+                    )
+                src_i += 1
+            elif prefix == "+":
+                out_lines.append(content)
+            else:
+                raise PatchApplyError(f"Invalid train_gpt_patch: unexpected line prefix {prefix!r} in {pline!r}.")
+
+            idx += 1
+
+    out_lines.extend(src_lines[src_i:])
+    text = "\n".join(out_lines)
+    if not text.endswith("\n"):
+        text += "\n"
+    return text
+
+
 def _diff_stats(patch_text: str) -> Dict[str, int]:
     added = 0
     removed = 0
@@ -626,12 +756,20 @@ def _thin_idea_for_review(
 ) -> Dict[str, Any]:
     thin = dict(idea_raw)
     train_lines = thin.pop("train_gpt_py_lines", None)
+    patch_candidate = thin.pop("train_gpt_patch", None)
 
     summary: Dict[str, Any] = {
         "parent_sha256": parent_sha256,
         "train_gpt_py_lines_present": isinstance(train_lines, list),
         "train_gpt_py_lines_count": len(train_lines) if isinstance(train_lines, list) else None,
+        "train_gpt_patch_present": isinstance(patch_candidate, str) and bool(patch_candidate.strip()),
+        "train_gpt_patch_chars": len(patch_candidate) if isinstance(patch_candidate, str) else None,
     }
+    if isinstance(patch_candidate, str) and patch_candidate.strip():
+        excerpt = patch_candidate.strip()
+        if len(excerpt) > 1400:
+            excerpt = excerpt[:1400] + "\n...[truncated]"
+        summary["train_gpt_patch_excerpt"] = excerpt
     if train_gpt_text is not None:
         train_bytes = train_gpt_text.encode("utf-8")
         summary.update(

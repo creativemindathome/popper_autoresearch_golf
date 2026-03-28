@@ -121,16 +121,17 @@ Return a JSON object with:
   - locate: how to find the insertion/edit point (anchor strings to search for)
   - change: explicit pseudocode or a small diff-like snippet
   - done_when: measurable acceptance criterion (e.g., script runs; prints val_bpb; artifact size stays under cap)
-- falsifier_smoke_tests: 2–5 quick tests with pass/fail criteria (should run in minutes)
-- expected_metric_change: expected direction/range on val_bpb and why
-- train_gpt_py_lines: the FULL updated train_gpt.py file as an array of strings, one element per line, no trailing "\\n" on elements.
+	- falsifier_smoke_tests: 2–5 quick tests with pass/fail criteria (should run in minutes)
+	- expected_metric_change: expected direction/range on val_bpb and why
+	- train_gpt_patch: a unified diff (patch) from the parent train_gpt.py to your updated train_gpt.py, encoded as a SINGLE JSON string with "\\n" escapes (no literal newlines in the JSON string).
 
-IMPORTANT:
-- Do NOT mention CIFAR/ImageNet/other datasets. Only refer to Parameter Golf (FineWeb, train_gpt.py, val_bpb).
-- Make the implementation instructions unambiguous: anchors + what to insert/replace.
-- The updated train_gpt.py must run end-to-end, print val_bpb, and preserve the existing CLI args/options unless your change requires adding a minimal new flag.
-- Keep code additions minimal (code bytes count toward the 16MB artifact budget).
-- Do not output absolute user paths (e.g. "/Users/..."). Use relative paths and/or env vars in run_command.
+	IMPORTANT:
+	- Do NOT mention CIFAR/ImageNet/other datasets. Only refer to Parameter Golf (FineWeb, train_gpt.py, val_bpb).
+	- Make the implementation instructions unambiguous: anchors + what to insert/replace.
+	- The patch must apply cleanly to the provided Parent train_gpt.py and produce an updated train_gpt.py that runs end-to-end, prints val_bpb, and preserves the existing CLI args/options unless your change requires adding a minimal new flag.
+	- Keep train_gpt_patch minimal: do NOT include the full file; only include hunks for lines that change.
+	- Keep code additions minimal (code bytes count toward the 16MB artifact budget).
+	- Do not output absolute user paths (e.g. "/Users/..."). Use relative paths and/or env vars in run_command.
 
 Output JSON only.
 """.strip()
@@ -183,12 +184,15 @@ Return a JSON object with the same fields and constraints as the original Ideato
   - primary_file: must be "train_gpt.py"
   - run_command: a single command (or env-var + command string) the falsifier can run to test
   - code_search_hints: 3–8 ripgrep-style search strings to locate the relevant section(s) in train_gpt.py
-- implementation_steps: 3–7 concrete steps (anchors + explicit changes)
-- falsifier_smoke_tests: 2–5
-- expected_metric_change
-- train_gpt_py_lines: the FULL updated train_gpt.py file as an array of strings
+	- implementation_steps: 3–7 concrete steps (anchors + explicit changes)
+	- falsifier_smoke_tests: 2–5
+	- expected_metric_change
+	- train_gpt_patch: a unified diff (patch) from the parent train_gpt.py to your updated train_gpt.py, encoded as a SINGLE JSON string with "\\n" escapes
 
-Output JSON only.
+	IMPORTANT:
+	- Keep train_gpt_patch minimal: do NOT include the full file; only include hunks for lines that change.
+
+	Output JSON only.
 """.strip()
     return system, user
 
@@ -264,11 +268,7 @@ def ideator_response_schema() -> Dict[str, Any]:
                 "maxItems": 5,
             },
             "expected_metric_change": {"type": "string"},
-            "train_gpt_py_lines": {
-                "type": "array",
-                "items": {"type": "string"},
-                "minItems": 1,
-            },
+	            "train_gpt_patch": {"type": "string"},
         },
         "required": [
             "schema_version",
@@ -279,7 +279,7 @@ def ideator_response_schema() -> Dict[str, Any]:
             "implementation_steps",
             "falsifier_smoke_tests",
             "expected_metric_change",
-            "train_gpt_py_lines",
+	            "train_gpt_patch",
         ],
         "additionalProperties": False,
     }
