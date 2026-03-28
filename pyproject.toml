@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=81"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "null-fellow-hackathon"
+version = "0.1.0"
+description = "Repo-local falsifier-first parameter-golf workflow"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "numpy",
+  "typing-extensions==4.15.0",
+]
+
+[project.optional-dependencies]
+train = [
+  "datasets",
+  "huggingface-hub",
+  "kernels",
+  "sentencepiece",
+  "tiktoken",
+  "torch",
+  "tqdm",
+]
+dev = [
+  "pytest>=8.3",
+  "ruff>=0.12.0",
+]
+llm = [
+  "anthropic>=0.28.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["falsifier*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
