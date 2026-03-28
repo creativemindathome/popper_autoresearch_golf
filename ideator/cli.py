@@ -11,7 +11,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from .gemini import GeminiClient, GeminiError
+from .anthropic_client import AnthropicClient, AnthropicError, get_anthropic_api_key
+from .gemini import GeminiClient, GeminiError, GeminiHTTPError
 from .knowledge import choose_knowledge_dir, load_knowledge_context
 from .openai_client import OpenAIClient, OpenAIError
 from .parent_code import (
@@ -46,6 +47,15 @@ def _env_openai_api_key() -> Optional[str]:
         if value:
             return value
     return None
+
+
+def _env_anthropic_api_key() -> Optional[str]:
+    return get_anthropic_api_key()
+
+
+def _env_fallback_anthropic_model() -> str:
+    model = os.getenv("IDEATOR_FALLBACK_ANTHROPIC_MODEL", "claude-3-5-haiku-latest").strip()
+    return model or "claude-3-5-haiku-latest"
 
 
 def _env_gemini_timeout_s() -> float:
@@ -141,6 +151,24 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         help="Disable the novelty reviewer loop (not recommended)",
     )
     p_idea.add_argument(
+        "--fallback-anthropic-api-key",
+        default=None,
+        help="Anthropic API key to use as fallback if Gemini errors (or set ANTHROPIC_API_KEY)",
+    )
+    p_idea.add_argument(
+        "--fallback-anthropic-model",
+        default=_env_fallback_anthropic_model(),
+        help=(
+            "Claude model name for Gemini fallback (default: claude-3-5-haiku-latest; "
+            "override via IDEATOR_FALLBACK_ANTHROPIC_MODEL)"
+        ),
+    )
+    p_idea.add_argument(
+        "--no-fallback",
+        action="store_true",
+        help="Disable Anthropic fallback when Gemini errors (e.g., rate limits)",
+    )
+    p_idea.add_argument(
         "--parent-run",
         default=None,
         help="Run id to use as parent (defaults to latest generated train_gpt if present)",
@@ -223,6 +251,9 @@ def cmd_idea(
     reviewer_min_score: int,
     max_review_rounds: int,
     no_reviewer: bool,
+    fallback_anthropic_api_key: Optional[str],
+    fallback_anthropic_model: str,
+    no_fallback: bool,
     parent_run: Optional[str],
     parent_train_gpt: Optional[str],
     parent_repo_url: str,
@@ -298,6 +329,82 @@ def cmd_idea(
         max_retries=_env_gemini_max_retries(),
     )
 
+    fallback_anthropic_model = (fallback_anthropic_model or "").strip() or _env_fallback_anthropic_model()
+
+    fallback_client: Optional[AnthropicClient] = None
+    if not no_fallback:
+        anthropic_key = fallback_anthropic_api_key or _env_anthropic_api_key()
+        if anthropic_key:
+            fallback_client = AnthropicClient(api_key=anthropic_key)
+
+    active_provider = "gemini"
+    idea_model_used = model
+    patch_model_used = model
+
+    def _is_transient_gemini_error(err: GeminiError) -> bool:
+        if isinstance(err, GeminiHTTPError):
+            return int(err.status_code) in {408, 429, 500, 502, 503, 504}
+        msg = str(err).lower()
+        return ("rate limit" in msg) or ("quota" in msg) or ("timed out" in msg) or ("network error" in msg)
+
+    def _llm_generate_json(
+        *,
+        context: str,
+        system_prompt: str,
+        user_prompt: str,
+        response_schema: Optional[Dict[str, Any]],
+        temperature: float,
+        top_p: float,
+        max_output_tokens: int,
+        seed: Optional[int],
+    ) -> Tuple[Any, str]:
+        nonlocal active_provider
+        if active_provider == "anthropic":
+            if fallback_client is None:
+                raise AnthropicError("Anthropic fallback requested but no ANTHROPIC_API_KEY is set.")
+            obj = fallback_client.generate_json(
+                model=fallback_anthropic_model,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                response_schema=response_schema,
+                temperature=temperature,
+                max_tokens=min(int(max_output_tokens), 8192),
+            )
+            return obj, fallback_anthropic_model
+
+        try:
+            obj = ideator_client.generate_json(
+                model=model,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                response_schema=response_schema,
+                temperature=temperature,
+                top_p=top_p,
+                max_output_tokens=max_output_tokens,
+                seed=seed,
+            )
+            return obj, model
+        except GeminiError as e:
+            if fallback_client is None or not _is_transient_gemini_error(e):
+                raise
+
+            sys.stderr.write(
+                f"{context}: Gemini error; falling back to Anthropic ({fallback_anthropic_model}).\n"
+            )
+            active_provider = "anthropic"
+            try:
+                obj = fallback_client.generate_json(
+                    model=fallback_anthropic_model,
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    response_schema=response_schema,
+                    temperature=temperature,
+                    max_tokens=min(int(max_output_tokens), 8192),
+                )
+                return obj, fallback_anthropic_model
+            except AnthropicError as e2:
+                raise AnthropicError(f"Gemini failed and Anthropic fallback failed: {e2}") from e2
+
     accepted_idea_raw: Optional[Dict[str, Any]] = None
     accepted_review: Optional[Dict[str, Any]] = None
 
@@ -323,15 +430,16 @@ def cmd_idea(
 
         idea_raw: Any = None
         ideator_attempts = 3
-        last_ideator_err: Optional[GeminiError] = None
+        last_ideator_err: Optional[Exception] = None
+        last_call_model: Optional[str] = None
         for attempt_idx in range(ideator_attempts):
             if attempt_idx:
                 sys.stderr.write(f"ideator: retry {attempt_idx + 1}/{ideator_attempts}\n")
             try:
                 retry_temperature = temperature if attempt_idx == 0 else min(temperature, 0.8)
                 retry_max_tokens = max_output_tokens if attempt_idx == 0 else min(int(max_output_tokens), 4096)
-                idea_raw = ideator_client.generate_json(
-                    model=model,
+                idea_raw, last_call_model = _llm_generate_json(
+                    context="ideator",
                     system_prompt=ideator_system,
                     user_prompt=ideator_user
                     + (
@@ -348,7 +456,7 @@ def cmd_idea(
                 )
                 last_ideator_err = None
                 break
-            except GeminiError as e:
+            except (GeminiError, AnthropicError) as e:
                 last_ideator_err = e
                 msg = str(e)
                 recoverable = "Model did not return valid JSON" in msg
@@ -357,7 +465,12 @@ def cmd_idea(
                 if recoverable and reviewer_enabled and round_idx > 0:
                     break
                 sys.stderr.write(msg.rstrip() + "\n")
-                sys.stderr.write("Tip: run `python3 -m ideator list-models` to verify model availability.\n")
+                if isinstance(e, GeminiError):
+                    sys.stderr.write("Tip: run `python3 -m ideator list-models` to verify model availability.\n")
+                    if _is_transient_gemini_error(e) and fallback_client is None and not no_fallback:
+                        sys.stderr.write("Tip: set ANTHROPIC_API_KEY to enable automatic Claude fallback.\n")
+                else:
+                    sys.stderr.write("Tip: verify ANTHROPIC_API_KEY and model access.\n")
                 return 2
         if last_ideator_err is not None:
             msg = str(last_ideator_err)
@@ -367,8 +480,15 @@ def cmd_idea(
                 )
                 continue
             sys.stderr.write(msg.rstrip() + "\n")
-            sys.stderr.write("Tip: run `python3 -m ideator list-models` to verify model availability.\n")
+            if isinstance(last_ideator_err, GeminiError):
+                sys.stderr.write("Tip: run `python3 -m ideator list-models` to verify model availability.\n")
+                if _is_transient_gemini_error(last_ideator_err) and fallback_client is None and not no_fallback:
+                    sys.stderr.write("Tip: set ANTHROPIC_API_KEY to enable automatic Claude fallback.\n")
+            else:
+                sys.stderr.write("Tip: verify ANTHROPIC_API_KEY and model access.\n")
             return 2
+        if last_call_model:
+            idea_model_used = last_call_model
 
         if not isinstance(idea_raw, dict):
             if not reviewer_enabled:
@@ -462,9 +582,12 @@ def cmd_idea(
 
     # After an idea is accepted, generate a minimal patch separately (more reliable than bundling with ideation JSON).
     train_gpt_text: Optional[str] = None
-    last_patch_err: Optional[str] = None
+    patch_applied = False
+    patch_generation_err: Optional[str] = None
+    last_patch_apply_err: Optional[str] = None
     patch_attempts = 3
     sys.stderr.write("patch: generating train_gpt_patch...\n")
+    patch_str: Optional[str] = None
     for attempt_idx in range(patch_attempts):
         if attempt_idx:
             sys.stderr.write(f"patch: retry {attempt_idx + 1}/{patch_attempts}\n")
@@ -472,15 +595,15 @@ def cmd_idea(
             parent_train_gpt_py=parent.content,
             accepted_idea=idea,
         )
-        if last_patch_err:
+        if last_patch_apply_err:
             patch_user += (
                 "\n\nPrevious patch attempt failed to apply:\n"
-                f"{last_patch_err}\n\n"
+                f"{last_patch_apply_err}\n\n"
                 "Regenerate a correct minimal unified diff that applies cleanly to the provided Parent train_gpt.py."
             )
         try:
-            patch_obj = ideator_client.generate_json(
-                model=model,
+            patch_obj, patch_model_used = _llm_generate_json(
+                context="patch",
                 system_prompt=patch_system,
                 user_prompt=patch_user,
                 response_schema=patch_response_schema(),
@@ -489,37 +612,44 @@ def cmd_idea(
                 max_output_tokens=int(max_output_tokens),
                 seed=seed,
             )
-        except GeminiError as e:
-            sys.stderr.write(str(e).rstrip() + "\n")
-            return 2
+        except (GeminiError, AnthropicError) as e:
+            patch_generation_err = str(e).strip()
+            continue
 
         patch_str = patch_obj.get("train_gpt_patch") if isinstance(patch_obj, dict) else None
         if not isinstance(patch_str, str) or not patch_str.strip():
-            last_patch_err = "Patch generator returned missing/empty train_gpt_patch."
+            patch_generation_err = "Patch generator returned missing/empty train_gpt_patch."
             continue
+        patch_str = _normalize_train_gpt_patch(patch_str)
         try:
-            train_gpt_text = _apply_unified_diff(parent.content, patch_str)
+            train_gpt_text = _apply_unified_diff_fuzzy(parent.content, patch_str)
+            patch_applied = True
+            patch_generation_err = None
+            last_patch_apply_err = None
             break
         except PatchApplyError as e:
-            last_patch_err = str(e)
+            last_patch_apply_err = str(e)
             continue
 
     if train_gpt_text is None:
-        sys.stderr.write("Failed to generate an applicable train_gpt_patch.\n")
-        if last_patch_err:
-            sys.stderr.write(last_patch_err.rstrip() + "\n")
-        return 2
+        sys.stderr.write("warning: failed to apply train_gpt_patch; saving parent train_gpt.py + patch for later.\n")
+        if last_patch_apply_err:
+            sys.stderr.write(last_patch_apply_err.rstrip() + "\n")
+        if patch_generation_err:
+            sys.stderr.write(patch_generation_err.rstrip() + "\n")
+        train_gpt_text = parent.content
+        patch_applied = False
 
     idea_id = _sanitize_slug(str(idea.get("idea_id") or "idea"))
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_id = f"{ts}_{idea_id}"
 
-    patch_text = _unified_diff_text(parent.content, train_gpt_text)
+    patch_text = _unified_diff_text(parent.content, train_gpt_text) if patch_applied else (patch_str or "")
 
     idea_final = _finalize_idea_v2(
         idea=idea,
         run_id=run_id,
-        model=model,
+        model=idea_model_used,
         parent=parent,
         parent_code_ref=parent_code_ref,
         save_root=save_root,
@@ -528,6 +658,16 @@ def cmd_idea(
         reviewer_feedback=accepted_review,
         reviewer_model=reviewer_model if reviewer_enabled else None,
     )
+    idea_final_meta = idea_final.get("meta")
+    if isinstance(idea_final_meta, dict):
+        idea_final_meta = dict(idea_final_meta)
+        idea_final_meta["patch_applied"] = bool(patch_applied)
+        idea_final_meta["patch_model"] = patch_model_used
+        if not patch_applied and last_patch_apply_err:
+            idea_final_meta["patch_apply_error"] = str(last_patch_apply_err).strip()
+        if not patch_applied and patch_generation_err:
+            idea_final_meta["patch_generation_error"] = str(patch_generation_err).strip()
+        idea_final["meta"] = idea_final_meta
 
     _print_json(idea_final)
 
@@ -656,6 +796,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             reviewer_min_score=args.reviewer_min_score,
             max_review_rounds=args.max_review_rounds,
             no_reviewer=args.no_reviewer,
+            fallback_anthropic_api_key=args.fallback_anthropic_api_key,
+            fallback_anthropic_model=args.fallback_anthropic_model,
+            no_fallback=args.no_fallback,
             parent_run=args.parent_run,
             parent_train_gpt=args.parent_train_gpt,
             parent_repo_url=args.parent_repo_url,
@@ -825,6 +968,146 @@ def _apply_unified_diff(original_text: str, patch_text: str) -> str:
 
     out_lines.extend(src_lines[src_i:])
     text = "\n".join(out_lines)
+    if not text.endswith("\n"):
+        text += "\n"
+    return text
+
+
+def _normalize_train_gpt_patch(patch_text: str) -> str:
+    patch_text = patch_text.replace("\r\n", "\n").replace("\r", "\n").strip()
+    if patch_text.startswith("```"):
+        lines = patch_text.splitlines()
+        if lines and lines[0].startswith("```") and lines[-1].strip() == "```":
+            patch_text = "\n".join(lines[1:-1]).strip()
+
+    if "@@ " not in patch_text:
+        return patch_text + ("\n" if patch_text and not patch_text.endswith("\n") else "")
+
+    has_from = any(ln.startswith("--- ") for ln in patch_text.splitlines())
+    has_to = any(ln.startswith("+++ ") for ln in patch_text.splitlines())
+    if not has_from and not has_to:
+        patch_text = f"--- a/train_gpt.py\n+++ b/train_gpt.py\n{patch_text}"
+
+    if not patch_text.endswith("\n"):
+        patch_text += "\n"
+    return patch_text
+
+
+def _apply_unified_diff_fuzzy(
+    original_text: str,
+    patch_text: str,
+    *,
+    search_radius: int = 250,
+) -> str:
+    """
+    Apply a unified diff with a small amount of "fuzz" for hunk start lines.
+
+    Gemini often emits correct context but slightly wrong hunk header line numbers (e.g. off by a few lines).
+    This helper searches near the indicated location (and then globally) to find the preimage match.
+    """
+    patch_text = patch_text.replace("\r\n", "\n").replace("\r", "\n")
+    lines = patch_text.split("\n")
+    if lines and lines[-1] == "":
+        lines = lines[:-1]
+
+    hunks: List[Tuple[int, List[Tuple[str, str]]]] = []
+    idx = 0
+    while idx < len(lines):
+        line = lines[idx]
+        if not line.startswith("@@ "):
+            idx += 1
+            continue
+        m = _HUNK_HEADER_RE.match(line)
+        if not m:
+            raise PatchApplyError(f"Invalid train_gpt_patch hunk header: {line!r}")
+        a_start = int(m.group(1))
+        idx += 1
+        hunk_lines: List[Tuple[str, str]] = []
+        while idx < len(lines) and not lines[idx].startswith("@@ "):
+            pline = lines[idx]
+            if (
+                pline.startswith("diff ")
+                or pline.startswith("index ")
+                or pline.startswith("--- ")
+                or pline.startswith("+++ ")
+            ):
+                idx += 1
+                continue
+            if pline.startswith("\\ No newline at end of file"):
+                idx += 1
+                continue
+            if pline == "":
+                raise PatchApplyError("Invalid train_gpt_patch: encountered an empty patch line without a prefix.")
+            prefix = pline[0]
+            if prefix not in (" ", "+", "-"):
+                raise PatchApplyError(f"Invalid train_gpt_patch: unexpected line prefix {prefix!r} in {pline!r}.")
+            hunk_lines.append((prefix, pline[1:]))
+            idx += 1
+        hunks.append((a_start, hunk_lines))
+
+    if not hunks:
+        raise PatchApplyError("Invalid train_gpt_patch: no hunks found (expected lines starting with '@@ ').")
+
+    src_lines = original_text.splitlines()
+    line_offset = 0
+    min_search = 0
+
+    for a_start, hunk_lines in hunks:
+        preimage: List[str] = [c for p, c in hunk_lines if p in (" ", "-")]
+        postimage: List[str] = [c for p, c in hunk_lines if p in (" ", "+")]
+        if not preimage:
+            raise PatchApplyError("Invalid train_gpt_patch: empty hunk preimage (no context/removals).")
+
+        guess = max(min_search, (a_start - 1) + line_offset)
+        guess = min(guess, len(src_lines))
+
+        def matches(at: int) -> bool:
+            if at < min_search:
+                return False
+            end = at + len(preimage)
+            if end > len(src_lines):
+                return False
+            return src_lines[at:end] == preimage
+
+        chosen: Optional[int] = None
+        if matches(guess):
+            chosen = guess
+        else:
+            lo = max(min_search, guess - int(search_radius))
+            hi = min(len(src_lines), guess + int(search_radius) + 1)
+            best_dist: Optional[int] = None
+            for at in range(lo, hi):
+                if not matches(at):
+                    continue
+                dist = abs(at - guess)
+                if best_dist is None or dist < best_dist:
+                    chosen = at
+                    best_dist = dist
+                    if dist == 0:
+                        break
+
+        if chosen is None:
+            # Global search (still constrained to be after previous hunks).
+            for at in range(min_search, len(src_lines) - len(preimage) + 1):
+                if matches(at):
+                    chosen = at
+                    break
+
+        if chosen is None:
+            excerpt = "\n".join(preimage[:8])
+            if len(preimage) > 8:
+                excerpt += "\n...[truncated]"
+            raise PatchApplyError(
+                "Invalid train_gpt_patch: could not find hunk preimage in source.\n"
+                f"Expected preimage (first lines):\n{excerpt}"
+            )
+
+        src_lines = src_lines[:chosen] + postimage + src_lines[chosen + len(preimage) :]
+        delta = len(postimage) - len(preimage)
+        line_offset += delta
+        min_search = chosen + len(postimage)
+
+    text = "\n".join(src_lines)
     if not text.endswith("\n"):
         text += "\n"
     return text

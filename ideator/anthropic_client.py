@@ -1,12 +1,13 @@
 """Anthropic Claude client for ideator.
 
-Supports Claude 3.5/4 Sonnet for idea generation.
+Used as an optional fallback when Gemini is unavailable (e.g. rate limits).
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -78,7 +79,7 @@ class AnthropicClient:
     def generate_idea(
         self,
         *,
-        model: str = "claude-sonnet-4-20250514",
+        model: str = "claude-3-5-haiku-latest",
         system_prompt: str,
         user_prompt: str,
         temperature: float = 1.0,
@@ -122,6 +123,79 @@ class AnthropicClient:
                 
         return "".join(text_parts)
 
+    def generate_json(
+        self,
+        *,
+        model: str = "claude-3-5-haiku-latest",
+        system_prompt: str,
+        user_prompt: str,
+        response_schema: Optional[Dict[str, Any]] = None,
+        temperature: float = 1.0,
+        max_tokens: int = 8192,
+    ) -> Any:
+        text = self.generate_idea(
+            model=model,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
+        parsed = _parse_json_relaxed(text)
+        if parsed is not None:
+            return parsed
+
+        repaired = self._repair_json_with_model(
+            model=model,
+            raw_text=text,
+            response_schema=response_schema,
+            max_tokens=max_tokens,
+        )
+        if repaired is not None:
+            return repaired
+
+        raise AnthropicError(f"Model did not return valid JSON. Raw text:\n{text}")
+
+    def _repair_json_with_model(
+        self,
+        *,
+        model: str,
+        raw_text: str,
+        response_schema: Optional[Dict[str, Any]],
+        max_tokens: int,
+    ) -> Optional[Any]:
+        raw_text = raw_text.strip()
+        if not raw_text:
+            return None
+
+        system_prompt = (
+            "You are a strict JSON repair tool. Return a single valid JSON object only. "
+            "Do not add commentary. Do not wrap in markdown."
+        )
+        schema_hint = ""
+        if response_schema is not None:
+            schema_hint = json.dumps(response_schema, ensure_ascii=False)
+        user_prompt = (
+            "Fix the following into valid JSON.\n\n"
+            f"Schema (if present): {schema_hint}\n\n"
+            "Text to fix:\n"
+            f"{raw_text[:12000]}\n\n"
+            "Return ONLY the repaired JSON object."
+        )
+
+        try:
+            text = self.generate_idea(
+                model=model,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=0.0,
+                max_tokens=min(1024, int(max_tokens)),
+            )
+        except AnthropicError:
+            return None
+
+        return _parse_json_relaxed(text or "")
+
 
 def get_anthropic_api_key() -> Optional[str]:
     """Get Anthropic API key from environment."""
@@ -158,3 +232,83 @@ if __name__ == "__main__":
         print("\n✓ Client ready for use")
     else:
         print("\n✗ Set ANTHROPIC_API_KEY environment variable")
+
+
+def _extract_json_from_text(text: str) -> Optional[Any]:
+    text = text.strip()
+    try:
+        return json.loads(text)
+    except Exception:
+        pass
+
+    match = re.search(r"(\{.*\}|\[.*\])", text, flags=re.DOTALL)
+    if not match:
+        return None
+    candidate = match.group(1)
+    try:
+        return json.loads(candidate)
+    except Exception:
+        return None
+
+
+def _parse_json_relaxed(text: str) -> Optional[Any]:
+    text = text.strip()
+    if not text:
+        return None
+
+    try:
+        return json.loads(text)
+    except Exception:
+        pass
+
+    try:
+        fixed = _escape_control_chars_inside_strings(text)
+        return json.loads(fixed)
+    except Exception:
+        pass
+
+    extracted = _extract_json_from_text(text)
+    if extracted is not None:
+        return extracted
+
+    match = re.search(r"(\{.*\}|\[.*\])", text, flags=re.DOTALL)
+    if match:
+        candidate = match.group(1)
+        for attempt in (candidate, _escape_control_chars_inside_strings(candidate)):
+            try:
+                return json.loads(attempt)
+            except Exception:
+                continue
+
+    return None
+
+
+def _escape_control_chars_inside_strings(text: str) -> str:
+    out: List[str] = []
+    in_string = False
+    escaped = False
+    for ch in text:
+        if escaped:
+            out.append(ch)
+            escaped = False
+            continue
+        if ch == "\\":
+            out.append(ch)
+            escaped = True
+            continue
+        if ch == '"':
+            out.append(ch)
+            in_string = not in_string
+            continue
+        if in_string:
+            if ch == "\n":
+                out.append("\\n")
+                continue
+            if ch == "\r":
+                out.append("\\r")
+                continue
+            if ch == "\t":
+                out.append("\\t")
+                continue
+        out.append(ch)
+    return "".join(out)

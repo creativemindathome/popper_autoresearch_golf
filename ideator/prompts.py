@@ -278,6 +278,9 @@ Rules:
 - train_gpt_patch must be a unified diff from the provided Parent train_gpt.py to the updated train_gpt.py.
 - Encode the patch as a SINGLE JSON string using "\\n" escapes (no literal newline characters inside the JSON string).
 - Keep the patch minimal: only include hunks for lines that change; do NOT include the full file.
+- The patch must ONLY modify train_gpt.py and must include file headers:
+  - --- a/train_gpt.py
+  - +++ b/train_gpt.py
 - Ensure the patch applies cleanly to the provided Parent train_gpt.py.
 """.strip()
 
