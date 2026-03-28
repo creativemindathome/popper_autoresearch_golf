@@ -1,0 +1,49 @@
+{
+  "schema_version": "ideator.idea.v1",
+  "idea_id": "low-rank-transformer-layers",
+  "title": "Low-Rank Factorized Transformer Layers",
+  "novelty_summary": "This idea proposes to replace all standard `nn.Linear` layers within a Transformer model with low-rank factorized approximations to reduce parameter count and computational cost, potentially improving inference speed and memory efficiency without significant performance degradation.",
+  "parent_implementation": {
+    "repo_url": "https://github.com/openai/parameter-golf",
+    "primary_file": "train_gpt.py",
+    "run_command": "python examples/run_glue.py --model_name_or_path bert-base-uncased --task_name MRPC --do_train --do_eval --output_dir /tmp/mrpc_output/",
+    "code_search_hints": [
+      "nn.Linear",
+      "BertSelfAttention",
+      "BertIntermediate",
+      "BertOutput"
+    ]
+  },
+  "implementation_steps": [
+    {
+      "step_id": "step_1",
+      "file": "src/transformers/models/bert/modeling_bert.py",
+      "locate": "class BertSelfAttention(nn.Module):",
+      "change": "Modify the `query`, `key`, `value`, and `dense` linear layers to use low-rank factorization (e.g., two smaller linear layers with a non-linearity or direct low-rank decomposition).",
+      "done_when": "The `BertSelfAttention` module uses low-rank factorized linear layers for its projections."
+    },
+    {
+      "step_id": "step_2",
+      "file": "src/transformers/models/bert/modeling_bert.py",
+      "locate": "class BertIntermediate(nn.Module):",
+      "change": "Replace the `dense` linear layer in `BertIntermediate` with a low-rank factorized equivalent.",
+      "done_when": "The `BertIntermediate` module's `dense` layer is factorized."
+    },
+    {
+      "step_id": "step_3",
+      "file": "src/transformers/models/bert/modeling_bert.py",
+      "locate": "class BertOutput(nn.Module):",
+      "change": "Replace the `dense` linear layer in `BertOutput` with a low-rank factorized equivalent.",
+      "done_when": "The `BertOutput` module's `dense` layer is factorized."
+    }
+  ],
+  "falsifier_smoke_tests": [
+    "python -m pytest tests/models/bert/test_modeling_bert.py",
+    "python examples/run_glue.py --model_name_or_path bert-base-uncased --task_name MRPC --do_eval --output_dir /tmp/mrpc_output/ --max_seq_length 128 --per_device_eval_batch_size 8"
+  ],
+  "expected_metric_change": "Expect a slight decrease in model accuracy (e.g., 1-3% drop in F1 score on GLUE tasks) but a significant reduction in parameter count and potentially faster inference times.",
+  "meta": {
+    "generated_at": "2026-03-28T11:25:38.829997+00:00",
+    "model": "gemini-2.5-flash"
+  }
+}

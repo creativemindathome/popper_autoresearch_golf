@@ -1,14 +1,36 @@
+# Environment
 .env
 .env.*
 !.env.example
 !.env.*.example
 .venv/
+
+# Python
+__pycache__/
+*.py[cod]
 *.egg-info/
+.pytest_cache/
+.python-version
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
+
+# Agent infrastructure
 infra/agents/env/.env.hermes
 infra/agents/env/.env.symphony
 infra/agents/var/
-__pycache__/
-*.pyc
-*.egg-info/
-.pytest_cache/
-.DS_Store
+
+# Data/Artifacts
+*.bin
+*.pt
+*.ckpt
+checkpoints/
+data/datasets/
+data/tokenizers/
+
+# Knowledge graph outputs (keep structure, ignore large files)
+knowledge_graph/outbox/**/*.pt
+knowledge_graph/outbox/**/*.bin
+knowledge_graph/work/**/*.log

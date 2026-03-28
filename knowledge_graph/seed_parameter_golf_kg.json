@@ -1,0 +1,1176 @@
+{
+  "nodes": [
+    {
+      "id": "node_root_data_pipeline",
+      "label": "Data Pipeline",
+      "type": "RootBox",
+      "random_inspiration": null,
+      "mechanism_description": "Controls how raw text/code becomes token sequences presented to the model. Choices here shape distribution, context construction, and the effective learning signal under a fixed compute budget.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_root_neural_network",
+      "label": "Neural Network",
+      "type": "RootBox",
+      "random_inspiration": null,
+      "mechanism_description": "Defines the parameterized function that maps tokens to next-token probabilities. Under Parameter Golf, architecture choices must trade off accuracy against strict parameter and memory ceilings.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_root_training_eval",
+      "label": "Training & Evaluation",
+      "type": "RootBox",
+      "random_inspiration": null,
+      "mechanism_description": "Specifies how the model is optimized and scored, including loss design, optimizer state, precision, and benchmark harness constraints. These choices strongly affect peak memory and convergence at small scale.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+
+    {
+      "id": "node_data_sources",
+      "label": "Data Sources",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Determines the domains and genres the model observes during training. Source composition controls coverage, bias, and the kind of generalization the model can learn.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_data_source_web_text",
+      "label": "Web Text",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Broad natural-language text from the web provides diverse topics and writing styles. It tends to increase general knowledge but can introduce noise and duplication.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.2
+    },
+    {
+      "id": "node_data_source_code",
+      "label": "Code",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Programming language corpora emphasize syntax, long-range dependencies, and precise token patterns. Code data often improves reasoning-like behaviors at small model sizes.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.2
+    },
+    {
+      "id": "node_data_source_books",
+      "label": "Books / Long-Form",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Long-form text increases exposure to extended discourse structure and narrative coherence. It can help models learn longer-context patterns even with limited context windows.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.2
+    },
+    {
+      "id": "node_data_source_synthetic",
+      "label": "Synthetic / Generated Data",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Synthetic data can target specific skills or failure modes by generating curated examples. It risks distribution shift or error amplification if generation quality is low.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.3
+    },
+
+    {
+      "id": "node_data_cleaning",
+      "label": "Cleaning & Filtering",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Removes low-quality, duplicated, or harmful text before training. Better filtering usually increases effective data quality without increasing parameters.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_data_dedup",
+      "label": "Deduplication",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Detects and removes near-duplicate documents or passages to reduce memorization and wasted steps. This increases data efficiency at fixed compute.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.1
+    },
+    {
+      "id": "node_data_language_id",
+      "label": "Language ID Filter",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Keeps only target languages (or mixes them deliberately) to control distribution. It reduces accidental multilingual drift in a tiny model.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.1
+    },
+    {
+      "id": "node_data_quality_filter",
+      "label": "Quality Scoring Filter",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Uses heuristics or learned scoring to prioritize coherent, information-dense text. It effectively increases signal-to-noise ratio without changing architecture.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.1
+    },
+    {
+      "id": "node_data_toxicity_filter",
+      "label": "Safety / Toxicity Filter",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Removes or down-weights content associated with harmful or toxic language. It improves behavioral robustness with negligible model-side cost.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.1
+    },
+
+    {
+      "id": "node_data_tokenization",
+      "label": "Tokenization",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Maps text into discrete tokens that define the model's input/output alphabet. Token choices affect sequence lengths, embedding size, and downstream memory/parameter budgets.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_tokenizer_bpe",
+      "label": "BPE (Subword)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Byte Pair Encoding learns a subword vocabulary that balances token count and coverage. It is a standard choice for compact tokenization at scale.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.2
+    },
+    {
+      "id": "node_tokenizer_unigram",
+      "label": "Unigram (SentencePiece)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Unigram tokenization chooses tokens via a probabilistic model, often yielding more flexible segmentations. It can reduce brittleness to rare substrings.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.2
+    },
+    {
+      "id": "node_tokenizer_bytelevel_bpe",
+      "label": "Byte-level BPE",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Operates on bytes before merging into subwords, ensuring full coverage of arbitrary text. It often increases sequence length slightly but avoids unknown tokens.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.25
+    },
+    {
+      "id": "node_tokenizer_character",
+      "label": "Character-level",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Uses characters as tokens, guaranteeing coverage but producing much longer sequences. This typically increases activation/KV-cache memory for a fixed context length.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.3
+    },
+
+    {
+      "id": "node_data_sequence_construction",
+      "label": "Sequence Construction",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Defines how tokens are packed into fixed-length training sequences. Packing strategy changes utilization, padding waste, and effective batch size under memory limits.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_sequence_packing",
+      "label": "Packing Strategy",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Controls how multiple documents are concatenated or separated to fill context windows. Better packing increases tokens-per-step at the same memory cost.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_packing_concat_fixed",
+      "label": "Fixed Concat + Padding",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Concatenates samples into fixed-size blocks with padding where needed. Simple to implement but can waste compute on padding tokens.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.1
+    },
+    {
+      "id": "node_packing_dynamic",
+      "label": "Dynamic Packing",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Dynamically packs variable-length samples to minimize padding and maximize real tokens per batch. This improves throughput under strict memory budgets.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.15
+    },
+    {
+      "id": "node_context_length",
+      "label": "Context Length",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Sets the maximum number of tokens processed per forward pass. Memory scales roughly linearly for activations and KV cache, making this a key Parameter Golf lever.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_context_256",
+      "label": "256 Tokens",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Short context reduces activation and KV-cache memory, enabling larger batch sizes or wider models. It can hurt tasks requiring long-range dependencies.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 40.0
+    },
+    {
+      "id": "node_context_512",
+      "label": "512 Tokens",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Moderate context is a common tradeoff between long-range modeling and memory cost. It keeps KV cache manageable while retaining some long-context capacity.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 80.0
+    },
+    {
+      "id": "node_context_1024",
+      "label": "1024 Tokens",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Long context increases both activation memory and KV cache substantially. This often forces reductions in model width/depth under a fixed memory ceiling.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 160.0
+    },
+
+    {
+      "id": "node_data_sampling_batching",
+      "label": "Sampling & Batching",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Determines how examples are selected and grouped into batches. Batching decisions affect gradient noise, throughput, and peak memory during training.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_batching_random",
+      "label": "Random Sampling",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Samples sequences uniformly or with simple weights, producing diverse batches. It is robust but can incur padding inefficiency with variable lengths.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.1
+    },
+    {
+      "id": "node_batching_length_bucketed",
+      "label": "Length-bucketed Batching",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Groups sequences of similar length to minimize padding and wasted compute. This increases effective tokens-per-step under a fixed memory budget.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.15
+    },
+
+    {
+      "id": "node_data_augmentation",
+      "label": "Data Augmentation",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Applies transformations that change the training distribution without adding parameters. Augmentation can improve robustness but must preserve label semantics for next-token prediction.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_aug_span_corruption",
+      "label": "Span Corruption / Masking",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Randomly masks contiguous spans and trains the model to predict missing tokens. This can encourage modeling longer dependencies and reduce overfitting.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.2
+    },
+    {
+      "id": "node_aug_token_dropout",
+      "label": "Token Dropout",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Randomly drops or replaces tokens during training to discourage reliance on brittle cues. It is a lightweight way to increase robustness at tiny scale.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.15
+    },
+    {
+      "id": "node_aug_contrastive_crop",
+      "label": "Contrastive Cropping",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Creates multiple cropped views of the same document to encourage consistent representations. It can help compact models learn invariances but adds pipeline complexity.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.25
+    },
+
+    {
+      "id": "node_data_curriculum_mixing",
+      "label": "Curriculum & Mixing",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Controls how different data types or difficulties are scheduled over training. Curricula can improve convergence and sample-efficiency without increasing parameters.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_curriculum_length",
+      "label": "Length Curriculum",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Starts with shorter sequences and gradually increases context length. This can stabilize early training and manage memory usage over time.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.15
+    },
+    {
+      "id": "node_mix_dataset_sampling",
+      "label": "Dataset Mixing Weights",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Adjusts sampling probabilities across corpora to control the effective training distribution. Mixing is a powerful lever for tiny models where capacity is limited.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.1
+    },
+
+    {
+      "id": "node_nn_embeddings",
+      "label": "Embeddings",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Maps discrete tokens into continuous vectors the network can process. Embeddings often dominate parameter count in tiny LLMs because they scale with vocabulary size.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_nn_embedding_strategy",
+      "label": "Token Embedding Strategy",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Defines how token IDs are converted to vectors and how much parameter budget is allocated to that mapping. Changing this is a common way to free parameters for the backbone.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_embed_full",
+      "label": "Full Embedding Matrix",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "A learned lookup table mapping each vocabulary token to a dense vector. It is expressive but can consume a large fraction of the parameter budget.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 8000000,
+      "memory_estimate_mb": 12.0
+    },
+    {
+      "id": "node_embed_factorized",
+      "label": "Factorized Embeddings",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Represents embeddings as a low-rank factorization to reduce parameters while preserving expressivity. This trades some embedding capacity for parameter headroom.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 5000000,
+      "memory_estimate_mb": 12.0
+    },
+    {
+      "id": "node_embed_hashing",
+      "label": "Hashed / Shared Embeddings",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Maps multiple tokens to shared embedding slots via hashing or sharing rules to reduce parameters. This can free significant budget but may introduce collisions that hurt accuracy.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 2500000,
+      "memory_estimate_mb": 10.0
+    },
+
+    {
+      "id": "node_nn_positional_encoding",
+      "label": "Positional Encoding",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Injects token position information so the model can distinguish order. Some methods are parameter-free but affect attention behavior and memory scaling with context length.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_pos_rope",
+      "label": "RoPE (Rotary)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Applies a deterministic rotation to query/key vectors based on position, enabling extrapolation to longer contexts. It is parameter-free and common in modern LLMs.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.5
+    },
+    {
+      "id": "node_pos_alibi",
+      "label": "ALiBi (Linear Bias)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Adds a head-dependent linear bias to attention logits that encodes relative positions. It is parameter-free and can improve long-context generalization under budget.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.5
+    },
+    {
+      "id": "node_pos_absolute",
+      "label": "Learned Absolute Positions",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Uses a learned embedding for each position up to the context limit. It adds parameters proportional to context length and can be less robust to extrapolation.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 260000,
+      "memory_estimate_mb": 0.8
+    },
+
+    {
+      "id": "node_nn_transformer",
+      "label": "Transformer Backbone",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Stacks attention and feed-forward blocks to model complex token dependencies. Under Parameter Golf, most innovation lives in reallocating parameter/memory across these sub-components.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_transformer_block",
+      "label": "Transformer Block",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "A repeated unit combining attention, MLP, normalization, and residual connections. Its internal design determines both parameter efficiency and activation/KV-cache memory.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+
+    {
+      "id": "node_transformer_attention",
+      "label": "Attention",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Computes content-dependent mixing of token representations to model long-range interactions. Attention is memory-heavy due to attention logits/activations and KV cache during inference.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_attn_projections",
+      "label": "Attention Projections",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Linear layers that produce queries, keys, values, and output projections. Projection parameter count scales roughly with hidden size squared, making it a major budget lever.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_attn_query_proj",
+      "label": "Query Projection",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Projects hidden states into query vectors used to retrieve information from keys/values. Its parameters scale with hidden size and number of layers.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 400000,
+      "memory_estimate_mb": 5.0
+    },
+    {
+      "id": "node_attn_key_proj",
+      "label": "Key Projection",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Projects hidden states into key vectors that index information in attention. Key projection can be per-head (more parameters) or shared across heads (fewer parameters).",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_attn_key_per_head",
+      "label": "Per-head Keys (MHA-style)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Computes distinct key vectors for each attention head, maximizing expressivity. This typically uses more parameters than shared-key variants.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 400000,
+      "memory_estimate_mb": 5.0
+    },
+    {
+      "id": "node_attn_key_shared",
+      "label": "Shared Keys (GQA/MQA-style)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Shares key projections across heads or head groups, reducing parameter count. It often trades some expressivity for large memory savings in KV cache during inference.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 120000,
+      "memory_estimate_mb": 5.0
+    },
+    {
+      "id": "node_attn_value_proj",
+      "label": "Value Projection",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Projects hidden states into value vectors that carry content aggregated by attention weights. Like keys, values can be per-head or shared to reduce parameters and KV cache.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_attn_value_per_head",
+      "label": "Per-head Values (MHA-style)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Computes distinct value vectors per head to maximize representational capacity. This uses more parameters and increases KV cache size compared to shared-value variants.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 400000,
+      "memory_estimate_mb": 5.0
+    },
+    {
+      "id": "node_attn_value_shared",
+      "label": "Shared Values (GQA/MQA-style)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Shares value projections across heads or head groups, reducing parameter count. It can significantly reduce inference KV cache memory at small parameter budgets.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 120000,
+      "memory_estimate_mb": 5.0
+    },
+    {
+      "id": "node_attn_output_proj",
+      "label": "Output Projection",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Projects concatenated head outputs back to the model hidden size. It is required for standard multi-head attention and scales with hidden size squared.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 400000,
+      "memory_estimate_mb": 5.0
+    },
+
+    {
+      "id": "node_attn_compute",
+      "label": "Attention Computation",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Computes attention weights and applies them to values. The choice of implementation affects peak activation memory and speed, especially at longer context lengths.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_attn_softmax_impl",
+      "label": "Softmax Attention Implementation",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Determines how attention logits and softmax are computed and stored. Memory-efficient implementations can reduce peak activation memory without changing parameters.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_attn_softmax_naive",
+      "label": "Naive / Standard Softmax",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Materializes attention logits/weights more directly, increasing activation memory at long context. It is widely supported but often memory-limited in Parameter Golf settings.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 40.0
+    },
+    {
+      "id": "node_attn_softmax_flash",
+      "label": "FlashAttention-style (Tiled)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Computes attention in tiles to avoid storing full attention matrices. This can sharply reduce peak activation memory while preserving standard softmax attention.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 18.0
+    },
+
+    {
+      "id": "node_attn_kv_cache",
+      "label": "KV Cache Strategy (Inference)",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Stores past keys/values for autoregressive decoding to avoid recomputation. KV cache memory scales with context length and head dimensions, often dominating inference memory.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_kv_cache_none",
+      "label": "No KV Cache (Recompute)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Does not store past keys/values, recomputing them each step. This reduces memory but increases compute and can be infeasible for long contexts.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_kv_cache_fp16",
+      "label": "FP16/BF16 KV Cache",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Stores keys/values in half precision, balancing fidelity and memory usage. This is a common baseline for inference memory accounting.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 24.0
+    },
+    {
+      "id": "node_kv_cache_int8",
+      "label": "INT8 KV Cache",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Quantizes KV cache to 8-bit representations to reduce memory footprint. This can introduce approximation error but may be critical under strict memory budgets.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 12.0
+    },
+
+    {
+      "id": "node_transformer_mlp",
+      "label": "Feed-Forward Network (MLP)",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Applies per-token nonlinear transformations that expand and contract hidden representations. MLP layers often dominate parameter count and a large share of activation memory.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_mlp_variant",
+      "label": "MLP Variant",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Chooses the internal structure of the MLP (activation, gating, sparsity, or factorization). This is a prime target for parameter reallocation toward OOD ideas.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_mlp_dense_fnn",
+      "label": "Dense FFN (ReLU/GELU)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Standard two-layer feed-forward network with a pointwise nonlinearity. It is a strong baseline but uses many parameters for a given hidden size.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 4200000,
+      "memory_estimate_mb": 70.0
+    },
+    {
+      "id": "node_mlp_swiglu",
+      "label": "SwiGLU (Gated MLP)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Uses a gated activation that can improve quality at fixed depth. It often increases parameters slightly versus a dense FFN but can be more compute-efficient per gain.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 5200000,
+      "memory_estimate_mb": 80.0
+    },
+    {
+      "id": "node_mlp_low_rank",
+      "label": "Low-rank / Factorized MLP",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Factorizes large MLP matrices into low-rank components to reduce parameters. This can free budget for attention or new modules but may bottleneck capacity.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 2500000,
+      "memory_estimate_mb": 55.0
+    },
+    {
+      "id": "node_mlp_moe",
+      "label": "Mixture-of-Experts (Sparse)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Routes tokens to a subset of expert MLPs, increasing total parameters without proportional compute. It can boost capacity but complicates routing and memory accounting.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 8000000,
+      "memory_estimate_mb": 90.0
+    },
+
+    {
+      "id": "node_transformer_norm",
+      "label": "Normalization",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Stabilizes activations and gradients to enable deep training. Normalization has low parameter cost but strongly affects optimization dynamics in small models.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_norm_layernorm",
+      "label": "LayerNorm",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Normalizes activations using mean and variance across hidden dimensions with learned gain/bias. It is widely used but can be slower than RMSNorm in some kernels.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 10000,
+      "memory_estimate_mb": 1.0
+    },
+    {
+      "id": "node_norm_rmsnorm",
+      "label": "RMSNorm",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Normalizes by root-mean-square without subtracting the mean, typically using only a learned gain. It can be more parameter- and compute-efficient while remaining stable.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 8000,
+      "memory_estimate_mb": 0.8
+    },
+
+    {
+      "id": "node_transformer_residual",
+      "label": "Residual Connections",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Adds skip connections that improve gradient flow and allow iterative refinement of representations. Residuals add negligible parameters but contribute to activation storage.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 1.0
+    },
+    {
+      "id": "node_transformer_dropout",
+      "label": "Dropout",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Randomly zeroes activations during training to reduce overfitting. It has no parameters but can change optimization behavior and effective capacity in tiny models.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.5
+    },
+
+    {
+      "id": "node_nn_output_head",
+      "label": "Output Head",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Maps final hidden states to logits over the vocabulary. The output layer can match embedding size and may rival embeddings in parameter cost unless weights are tied or factorized.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_head_strategy",
+      "label": "LM Head Strategy",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Defines how logits are produced, including whether the head is untied, tied to embeddings, or structured to reduce parameters. This is a common place to free parameters under strict budgets.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_head_untied",
+      "label": "Untied Linear LM Head",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Uses a separate weight matrix to map hidden states to vocabulary logits. This maximizes flexibility but can nearly double parameters when embeddings are also large.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 8000000,
+      "memory_estimate_mb": 10.0
+    },
+    {
+      "id": "node_head_weight_tied",
+      "label": "Weight-tied Head (Reuse Embeddings)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Reuses the token embedding matrix as the output projection, reducing parameters and sometimes improving generalization. This is a high-leverage Parameter Golf trick.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 2.0
+    },
+    {
+      "id": "node_head_adaptive_softmax",
+      "label": "Adaptive / Factorized Softmax",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Structures the output distribution to reduce compute and parameters for rare tokens. It can save parameters but adds complexity and may affect benchmark comparability.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 4000000,
+      "memory_estimate_mb": 8.0
+    },
+
+    {
+      "id": "node_train_loss",
+      "label": "Loss Function",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Defines the training objective that shapes gradients. Loss modifications can change calibration and stability without adding parameters to the model.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_loss_cross_entropy",
+      "label": "Cross-Entropy",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Maximizes the likelihood of the next token under the model distribution. It is the standard objective for language modeling and typically parameter-free.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.2
+    },
+    {
+      "id": "node_loss_label_smoothing",
+      "label": "Label Smoothing",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Blends the one-hot target with a uniform distribution to reduce overconfidence. This can improve generalization and calibration in small models.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.2
+    },
+    {
+      "id": "node_loss_z_loss",
+      "label": "Z-loss / Logit Penalty",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Adds a penalty to stabilize logits and improve numerical behavior, often helpful with low precision. It can improve training stability without changing model size.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.2
+    },
+
+    {
+      "id": "node_train_optimizer",
+      "label": "Optimizer & State",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Controls parameter updates and determines additional optimizer-state memory. Optimizer choice is a major contributor to peak training memory at fixed parameter counts.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_optimizer_state_strategy",
+      "label": "Optimizer State Strategy",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Represents the extra state stored per parameter (e.g., moments) and its precision. Under tight memory budgets, quantized or factorized states can free memory for larger batches or models.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_opt_adamw_fp32_state",
+      "label": "AdamW (FP32 moments)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Stores first and second moment estimates for each parameter, typically in FP32 for stability. This is effective but can dominate training memory for tiny models.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 120.0
+    },
+    {
+      "id": "node_opt_adamw_8bit_state",
+      "label": "AdamW (8-bit moments)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Quantizes optimizer moments to reduce memory while approximating Adam updates. This can significantly lower peak memory with modest accuracy impact when tuned.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 60.0
+    },
+    {
+      "id": "node_opt_adafactor",
+      "label": "Adafactor (Factorized)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Approximates second-moment statistics with factored representations to reduce memory. It is often used when optimizer-state memory is the main bottleneck.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 40.0
+    },
+    {
+      "id": "node_opt_sgd_momentum",
+      "label": "SGD + Momentum",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Uses momentum buffers but avoids second-moment estimates, reducing state memory. It can be harder to tune for transformers but is memory-light.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 30.0
+    },
+
+    {
+      "id": "node_train_precision",
+      "label": "Numerical Precision",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Chooses numeric formats for weights, activations, and gradients. Lower precision reduces memory and bandwidth but can require stabilization tricks to train reliably.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_precision_fp32",
+      "label": "FP32 Training",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Uses 32-bit floats for most tensors, offering stability at high memory cost. This often violates Parameter Golf memory constraints for longer contexts.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 180.0
+    },
+    {
+      "id": "node_precision_fp16_bf16",
+      "label": "FP16/BF16 Mixed Precision",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Uses half precision for activations/weights with selective FP32 accumulations. It is a standard approach to fit larger models/batches under memory limits.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 120.0
+    },
+    {
+      "id": "node_precision_fp8",
+      "label": "FP8 Activations (Advanced)",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Uses 8-bit floats for some tensors to further reduce memory and bandwidth. It can provide large savings but often needs careful scaling and kernel support.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 90.0
+    },
+
+    {
+      "id": "node_train_activation_storage",
+      "label": "Activation Storage Strategy",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Controls how intermediate activations are stored for backpropagation. Checkpointing can reduce peak memory by recomputing activations at the cost of extra compute.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_activations_store_all",
+      "label": "Store All Activations",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Keeps forward activations for backpropagation, minimizing recomputation. This is compute-efficient but often hits memory ceilings first.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 120.0
+    },
+    {
+      "id": "node_activations_checkpoint",
+      "label": "Gradient Checkpointing",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Recomputes some forward passes during backpropagation instead of storing all activations. This reduces peak memory and can unlock larger batch sizes in Parameter Golf.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 60.0
+    },
+
+    {
+      "id": "node_train_evaluation",
+      "label": "Evaluation Harness",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Defines how the model is scored and constrained, including exact benchmark implementation. A stable harness is required to compare innovations under the same Parameter Golf rules.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_eval_param_golf",
+      "label": "OpenAI Parameter Golf Benchmark",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Scores models under strict parameter and memory constraints, preventing trivial scaling. The benchmark incentivizes architectural and optimization innovations that fit tight budgets.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+
+    {
+      "id": "node_train_budget_accounting",
+      "label": "Budget Accounting",
+      "type": "Branch",
+      "random_inspiration": null,
+      "mechanism_description": "Tracks parameter count and memory usage to enforce constraints and guide component swaps. Accurate accounting enables deliberate tradeoffs rather than accidental OOM failures.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.0
+    },
+    {
+      "id": "node_budget_parameters",
+      "label": "Parameter Counter",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Computes model parameter count, optionally by component, to ensure compliance with size limits. It enables targeted parameter reallocation toward novel modules.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.2
+    },
+    {
+      "id": "node_budget_memory",
+      "label": "Peak Memory Estimator",
+      "type": "Leaf",
+      "random_inspiration": null,
+      "mechanism_description": "Estimates peak memory from activations, optimizer state, and KV cache to prevent exceeding constraints. It supports 'swap out' reasoning for memory-heavy components like attention.",
+      "status": "BASE_KNOWLEDGE",
+      "parameter_estimate": 0,
+      "memory_estimate_mb": 0.2
+    }
+  ],
+  "edges": [
+    { "source": "node_root_data_pipeline", "target": "node_data_sources", "relationship": "sub_component_of" },
+    { "source": "node_data_sources", "target": "node_data_source_web_text", "relationship": "sub_component_of" },
+    { "source": "node_data_sources", "target": "node_data_source_code", "relationship": "sub_component_of" },
+    { "source": "node_data_sources", "target": "node_data_source_books", "relationship": "sub_component_of" },
+    { "source": "node_data_sources", "target": "node_data_source_synthetic", "relationship": "sub_component_of" },
+
+    { "source": "node_root_data_pipeline", "target": "node_data_cleaning", "relationship": "sub_component_of" },
+    { "source": "node_data_cleaning", "target": "node_data_dedup", "relationship": "sub_component_of" },
+    { "source": "node_data_cleaning", "target": "node_data_language_id", "relationship": "sub_component_of" },
+    { "source": "node_data_cleaning", "target": "node_data_quality_filter", "relationship": "sub_component_of" },
+    { "source": "node_data_cleaning", "target": "node_data_toxicity_filter", "relationship": "sub_component_of" },
+
+    { "source": "node_root_data_pipeline", "target": "node_data_tokenization", "relationship": "sub_component_of" },
+    { "source": "node_data_tokenization", "target": "node_tokenizer_bpe", "relationship": "sub_component_of" },
+    { "source": "node_data_tokenization", "target": "node_tokenizer_unigram", "relationship": "sub_component_of" },
+    { "source": "node_data_tokenization", "target": "node_tokenizer_bytelevel_bpe", "relationship": "sub_component_of" },
+    { "source": "node_data_tokenization", "target": "node_tokenizer_character", "relationship": "sub_component_of" },
+
+    { "source": "node_root_data_pipeline", "target": "node_data_sequence_construction", "relationship": "sub_component_of" },
+    { "source": "node_data_sequence_construction", "target": "node_sequence_packing", "relationship": "sub_component_of" },
+    { "source": "node_sequence_packing", "target": "node_packing_concat_fixed", "relationship": "sub_component_of" },
+    { "source": "node_sequence_packing", "target": "node_packing_dynamic", "relationship": "sub_component_of" },
+    { "source": "node_data_sequence_construction", "target": "node_context_length", "relationship": "sub_component_of" },
+    { "source": "node_context_length", "target": "node_context_256", "relationship": "sub_component_of" },
+    { "source": "node_context_length", "target": "node_context_512", "relationship": "sub_component_of" },
+    { "source": "node_context_length", "target": "node_context_1024", "relationship": "sub_component_of" },
+
+    { "source": "node_root_data_pipeline", "target": "node_data_sampling_batching", "relationship": "sub_component_of" },
+    { "source": "node_data_sampling_batching", "target": "node_batching_random", "relationship": "sub_component_of" },
+    { "source": "node_data_sampling_batching", "target": "node_batching_length_bucketed", "relationship": "sub_component_of" },
+
+    { "source": "node_root_data_pipeline", "target": "node_data_augmentation", "relationship": "sub_component_of" },
+    { "source": "node_data_augmentation", "target": "node_aug_span_corruption", "relationship": "sub_component_of" },
+    { "source": "node_data_augmentation", "target": "node_aug_token_dropout", "relationship": "sub_component_of" },
+    { "source": "node_data_augmentation", "target": "node_aug_contrastive_crop", "relationship": "sub_component_of" },
+
+    { "source": "node_root_data_pipeline", "target": "node_data_curriculum_mixing", "relationship": "sub_component_of" },
+    { "source": "node_data_curriculum_mixing", "target": "node_curriculum_length", "relationship": "sub_component_of" },
+    { "source": "node_data_curriculum_mixing", "target": "node_mix_dataset_sampling", "relationship": "sub_component_of" },
+
+    { "source": "node_root_neural_network", "target": "node_nn_embeddings", "relationship": "sub_component_of" },
+    { "source": "node_nn_embeddings", "target": "node_nn_embedding_strategy", "relationship": "sub_component_of" },
+    { "source": "node_nn_embedding_strategy", "target": "node_embed_full", "relationship": "sub_component_of" },
+    { "source": "node_nn_embedding_strategy", "target": "node_embed_factorized", "relationship": "sub_component_of" },
+    { "source": "node_nn_embedding_strategy", "target": "node_embed_hashing", "relationship": "sub_component_of" },
+    { "source": "node_nn_embeddings", "target": "node_nn_positional_encoding", "relationship": "sub_component_of" },
+    { "source": "node_nn_positional_encoding", "target": "node_pos_rope", "relationship": "sub_component_of" },
+    { "source": "node_nn_positional_encoding", "target": "node_pos_alibi", "relationship": "sub_component_of" },
+    { "source": "node_nn_positional_encoding", "target": "node_pos_absolute", "relationship": "sub_component_of" },
+
+    { "source": "node_root_neural_network", "target": "node_nn_transformer", "relationship": "sub_component_of" },
+    { "source": "node_nn_transformer", "target": "node_transformer_block", "relationship": "sub_component_of" },
+    { "source": "node_transformer_block", "target": "node_transformer_attention", "relationship": "sub_component_of" },
+    { "source": "node_transformer_attention", "target": "node_attn_projections", "relationship": "sub_component_of" },
+    { "source": "node_attn_projections", "target": "node_attn_query_proj", "relationship": "sub_component_of" },
+    { "source": "node_attn_projections", "target": "node_attn_key_proj", "relationship": "sub_component_of" },
+    { "source": "node_attn_key_proj", "target": "node_attn_key_per_head", "relationship": "sub_component_of" },
+    { "source": "node_attn_key_proj", "target": "node_attn_key_shared", "relationship": "sub_component_of" },
+    { "source": "node_attn_projections", "target": "node_attn_value_proj", "relationship": "sub_component_of" },
+    { "source": "node_attn_value_proj", "target": "node_attn_value_per_head", "relationship": "sub_component_of" },
+    { "source": "node_attn_value_proj", "target": "node_attn_value_shared", "relationship": "sub_component_of" },
+    { "source": "node_attn_projections", "target": "node_attn_output_proj", "relationship": "sub_component_of" },
+    { "source": "node_transformer_attention", "target": "node_attn_compute", "relationship": "sub_component_of" },
+    { "source": "node_attn_compute", "target": "node_attn_softmax_impl", "relationship": "sub_component_of" },
+    { "source": "node_attn_softmax_impl", "target": "node_attn_softmax_naive", "relationship": "sub_component_of" },
+    { "source": "node_attn_softmax_impl", "target": "node_attn_softmax_flash", "relationship": "sub_component_of" },
+    { "source": "node_transformer_attention", "target": "node_attn_kv_cache", "relationship": "sub_component_of" },
+    { "source": "node_attn_kv_cache", "target": "node_kv_cache_none", "relationship": "sub_component_of" },
+    { "source": "node_attn_kv_cache", "target": "node_kv_cache_fp16", "relationship": "sub_component_of" },
+    { "source": "node_attn_kv_cache", "target": "node_kv_cache_int8", "relationship": "sub_component_of" },
+
+    { "source": "node_transformer_block", "target": "node_transformer_mlp", "relationship": "sub_component_of" },
+    { "source": "node_transformer_mlp", "target": "node_mlp_variant", "relationship": "sub_component_of" },
+    { "source": "node_mlp_variant", "target": "node_mlp_dense_fnn", "relationship": "sub_component_of" },
+    { "source": "node_mlp_variant", "target": "node_mlp_swiglu", "relationship": "sub_component_of" },
+    { "source": "node_mlp_variant", "target": "node_mlp_low_rank", "relationship": "sub_component_of" },
+    { "source": "node_mlp_variant", "target": "node_mlp_moe", "relationship": "sub_component_of" },
+
+    { "source": "node_transformer_block", "target": "node_transformer_norm", "relationship": "sub_component_of" },
+    { "source": "node_transformer_norm", "target": "node_norm_layernorm", "relationship": "sub_component_of" },
+    { "source": "node_transformer_norm", "target": "node_norm_rmsnorm", "relationship": "sub_component_of" },
+    { "source": "node_transformer_block", "target": "node_transformer_residual", "relationship": "sub_component_of" },
+    { "source": "node_transformer_block", "target": "node_transformer_dropout", "relationship": "sub_component_of" },
+
+    { "source": "node_root_neural_network", "target": "node_nn_output_head", "relationship": "sub_component_of" },
+    { "source": "node_nn_output_head", "target": "node_head_strategy", "relationship": "sub_component_of" },
+    { "source": "node_head_strategy", "target": "node_head_untied", "relationship": "sub_component_of" },
+    { "source": "node_head_strategy", "target": "node_head_weight_tied", "relationship": "sub_component_of" },
+    { "source": "node_head_strategy", "target": "node_head_adaptive_softmax", "relationship": "sub_component_of" },
+
+    { "source": "node_root_training_eval", "target": "node_train_loss", "relationship": "sub_component_of" },
+    { "source": "node_train_loss", "target": "node_loss_cross_entropy", "relationship": "sub_component_of" },
+    { "source": "node_train_loss", "target": "node_loss_label_smoothing", "relationship": "sub_component_of" },
+    { "source": "node_train_loss", "target": "node_loss_z_loss", "relationship": "sub_component_of" },
+
+    { "source": "node_root_training_eval", "target": "node_train_optimizer", "relationship": "sub_component_of" },
+    { "source": "node_train_optimizer", "target": "node_optimizer_state_strategy", "relationship": "sub_component_of" },
+    { "source": "node_optimizer_state_strategy", "target": "node_opt_adamw_fp32_state", "relationship": "sub_component_of" },
+    { "source": "node_optimizer_state_strategy", "target": "node_opt_adamw_8bit_state", "relationship": "sub_component_of" },
+    { "source": "node_optimizer_state_strategy", "target": "node_opt_adafactor", "relationship": "sub_component_of" },
+    { "source": "node_optimizer_state_strategy", "target": "node_opt_sgd_momentum", "relationship": "sub_component_of" },
+
+    { "source": "node_root_training_eval", "target": "node_train_precision", "relationship": "sub_component_of" },
+    { "source": "node_train_precision", "target": "node_precision_fp32", "relationship": "sub_component_of" },
+    { "source": "node_train_precision", "target": "node_precision_fp16_bf16", "relationship": "sub_component_of" },
+    { "source": "node_train_precision", "target": "node_precision_fp8", "relationship": "sub_component_of" },
+
+    { "source": "node_root_training_eval", "target": "node_train_activation_storage", "relationship": "sub_component_of" },
+    { "source": "node_train_activation_storage", "target": "node_activations_store_all", "relationship": "sub_component_of" },
+    { "source": "node_train_activation_storage", "target": "node_activations_checkpoint", "relationship": "sub_component_of" },
+
+    { "source": "node_root_training_eval", "target": "node_train_evaluation", "relationship": "sub_component_of" },
+    { "source": "node_train_evaluation", "target": "node_eval_param_golf", "relationship": "sub_component_of" },
+
+    { "source": "node_root_training_eval", "target": "node_train_budget_accounting", "relationship": "sub_component_of" },
+    { "source": "node_train_budget_accounting", "target": "node_budget_parameters", "relationship": "sub_component_of" },
+    { "source": "node_train_budget_accounting", "target": "node_budget_memory", "relationship": "sub_component_of" }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "schema_version": "ideator.review_failure.v1",
+  "generated_at": "2026-03-28T13:11:52.282552+00:00",
+  "previous_idea": {
+    "schema_version": "ideator.idea.v2",
+    "idea_id": "token-modulated-prototypes",
+    "title": "Token-Modulated Prototypes: Input-Conditional Low-Rank Adaptation of Discretely Selected Weights",
+    "novelty_summary": "This idea introduces a novel mechanism for adaptive computation where each token first *discretely selects* a single base prototype weight matrix from a global bank, and then *conditionally modulates* this chosen prototype with a token-specific low-rank update. Unlike traditional Mixture-of-Experts (MoE) where experts are static or soft-blended, here the selected 'expert' is dynamically adapted per token. This differs from simple low-rank factorization (which is static) and hypernetworks (which generate full weights) by focusing on adaptive *perturbation* of a pre-selected base. The process uses a Gumbel-Softmax-based 'Arbitration Network' for discrete selection and a 'Modulation Network' to generate the low-rank delta, offering fine-grained adaptability within a compressed parameter budget without relying on continuous convex combinations or static decompositions.",
+    "parent_implementation": {
+      "repo_url": "https://github.com/openai/parameter-golf",
+      "git_ref": "main",
+      "primary_file": "train_gpt.py",
+      "run_command": "NUM_PROTOTYPES=4 RANK_UPDATE=1 RUN_ID=token_modulated DATA_PATH=./data/datasets/fineweb10B_sp1024/ TOKENIZER_PATH=./data/tokenizers/fineweb_1024_bpe.model VOCAB_SIZE=1024 torchrun --standalone --nproc_per_node=1 train_gpt.py",
+      "code_search_hints": [
+        "class GPT(nn.Module):",
+        "class Block(nn.Module):",
+        "class MLP(nn.Module):",
+        "self.c_fc = Conv1D(4 * config.n_embd, config.n_embd)",
+        "self.c_proj = Conv1D(config.n_embd, 4 * config.n_embd)",
+        "class Conv1D(nn.Module):",
+        "self.weight = nn.Parameter(w)"
+      ]
+    },
+    "implementation_steps": [
+      {
+        "step_id": "define-inputmodulatedconv1d",
+        "file": "train_gpt.py",
+        "locate": "class Conv1D(nn.Module):",
+        "change": "import torch.nn.functional as F\n\nclass InputModulatedConv1D(nn.Module):\n    def __init__(self, nf, nx, num_prototypes_val, prototype_bank_ref, rank_update_val):\n        super().__init__()\n        self.nf = nf\n        self.nx = nx\n        self.num_prototypes = num_prototypes_val\n        self.rank_update = rank_update_val\n        self.prototype_bank_ref = prototype_bank_ref # An nn.ModuleList of Conv1D prototypes\n        assert isinstance(self.prototype_bank_ref, nn.ModuleList), \"prototype_bank_ref must be an nn.ModuleList\"\n        assert len(self.prototype_bank_ref) == self.num_prototypes, \"Prototype bank size mismatch\"\n\n        self.arbitration_net = nn.Linear(nx, num_prototypes_val) # Decides which prototype to use\n        # Modulation net outputs parameters for rank-1 update (u_vec, v_vec) for each selected prototype\n        self.modulation_net = nn.Linear(nx, self.rank_update * (nx + nf))\n\n    def forward(self, x):\n        original_shape = x.size()\n        x_flat = x.view(-1, self.nx)\n\n        # 1. Discrete Prototype Selection via Gumbel-Softmax\n        routing_logits = self.arbitration_net(x_flat)\n        # Use hard=True for straight-through estimation during training; behaves as argmax during inference\n        prototype_selector = F.gumbel_softmax(routing_logits, tau=1.0, hard=True, dim=-1)\n        selected_prototype_idx = prototype_selector.argmax(dim=-1)\n\n        # Stack prototype weights and biases from the shared global pool\n        all_proto_weights = torch.stack([p.weight for p in self.prototype_bank_ref], dim=0) # (num_prototypes, nx, nf)\n        chosen_weights = all_proto_weights[selected_prototype_idx] # (B*T, nx, nf)\n\n        chosen_biases = None\n        if self.prototype_bank_ref[0].bias is not None:\n            all_proto_biases = torch.stack([p.bias for p in self.prototype_bank_ref], dim=0) # (num_prototypes, nf)\n            chosen_biases = all_proto_biases[selected_prototype_idx] # (B*T, nf)\n\n        # 2. Input-Conditional Low-Rank Modulation\n        modulation_output = self.modulation_net(x_flat)\n        # Split into u_vec (for rows) and v_vec (for columns) for rank-N update\n        u_vecs, v_vecs = modulation_output.split([self.nx * self.rank_update, self.nf * self.rank_update], dim=-1)\n        u_vecs = u_vecs.view(-1, self.nx, self.rank_update)\n        v_vecs = v_vecs.view(-1, self.rank_update, self.nf)\n\n        delta_W_per_token = torch.bmm(u_vecs, v_vecs) # (B*T, nx, rank_update) @ (B*T, rank_update, nf) -> (B*T, nx, nf)\n\n        # 3. Form effective weight matrix and apply\n        effective_weights_per_token = chosen_weights + delta_W_per_token\n\n        output_flat = torch.bmm(x_flat.unsqueeze(1), effective_weights_per_token).squeeze(1)\n\n        if chosen_biases is not None:\n            output_flat = output_flat + chosen_biases\n        \n        return output_flat.view(original_shape[:-1] + (self.nf,))\n\nclass Conv1D(nn.Module):",
+        "done_when": "The `InputModulatedConv1D` class is defined above `Conv1D`, including `arbitration_net`, `modulation_net`, `F.gumbel_softmax`, and `torch.bmm` for dynamic weight assembly."
+      },
+      {
+        "step_id": "setup-prototypes-and-rank-in-gpt",
+        "file": "train_gpt.py",
+        "locate": "self.transformer = nn.ModuleDict(dict(",
+        "change": "        self.num_prototypes = config.num_prototypes if hasattr(config, 'num_prototypes') else 4 # Default if not set via ENV\n        self.rank_update = config.rank_update if hasattr(config, 'rank_update') else 1 # Default rank for modulation\n        logger.info(f\"Using {self.num_prototypes} prototypes with rank-{self.rank_update} modulation.\")\n        # Initialize global prototype banks for MLP Conv1D layers using standard Conv1D\n        self.prototype_banks = nn.ModuleDict({\n            'mlp_c_fc': nn.ModuleList([Conv1D(4 * config.n_embd, config.n_embd) for _ in range(self.num_prototypes)]),\n            'mlp_c_proj': nn.ModuleList([Conv1D(config.n_embd, 4 * config.n_embd) for _ in range(self.num_prototypes)]),\n        })\n        # Pass these parameters and banks through config to inner modules\n        config.prototype_banks = self.prototype_banks\n        config.num_prototypes = self.num_prototypes\n        config.rank_update = self.rank_update\n        self.transformer = nn.ModuleDict(dict(",
+        "done_when": "GPT's constructor initializes `self.num_prototypes` and `self.rank_update`, creates `self.prototype_banks` for MLP layers using standard `Conv1D`, and passes these to `config`."
+      },
+      {
+        "step_id": "modify-mlp-for-inputmodulatedconv1d",
+        "file": "train_gpt.py",
+        "locate": "class MLP(nn.Module):\n    def __init__(self, config):",
+        "change": "class MLP(nn.Module):\n    def __init__(self, config):\n        super().__init__()\n        # Replace Conv1D with InputModulatedConv1D for MLP layers\n        self.c_fc    = InputModulatedConv1D(4 * config.n_embd, config.n_embd, config.num_prototypes, config.prototype_banks['mlp_c_fc'], config.rank_update)\n        self.gelu    = nn.GELU()\n        self.c_proj  = InputModulatedConv1D(config.n_embd, 4 * config.n_embd, config.num_prototypes, config.prototype_banks['mlp_c_proj'], config.rank_update)",
+        "done_when": "MLP's constructor successfully replaces `Conv1D` instances with `InputModulatedConv1D`, passing `num_prototypes`, `prototype_banks`, and `rank_update` from `config`."
+      }
+    ],
+    "falsifier_smoke_tests": [
+      "Execute the proposed `run_command` using `NUM_PROTOTYPES=4 RANK_UPDATE=1`. The training run completes without Python or PyTorch errors.",
+      "Verify the model initialization output contains the 'Using X prototypes with rank-Y modulation.' line, where X and Y match the specified `NUM_PROTOTYPES` and `RANK_UPDATE`.",
+      "Observe the reported 'number of parameters' in the logger output. It should reflect the parameter sharing and be smaller than a baseline model with full-rank, non-shared MLP weights, given reasonable `num_prototypes` and `rank_update` settings.",
+      "Confirm the final output reports 'val_bpb' and 'compressed model size', indicating a complete training and evaluation run."
+    ],
+    "expected_metric_change": "A significant reduction in the 'compressed model size' is expected, as most MLP parameters are now a shared bank of prototypes plus small per-token modulation networks. For 'val_bpb', improvements are hypothesized due to the increased expressivity of token-adaptive weights over static ones. The discrete selection combined with low-rank modulation offers a novel balance between parameter efficiency and model capacity, potentially leading to lower BBP compared to a naive model of similar parameter count.",
+    "_code_summary": {
+      "parent_sha256": "c6cae5e767aa0464e8767620f3bbdb08048c99f4b7ae0f0e146dd9b17e68e673",
+      "train_gpt_py_lines_present": false,
+      "train_gpt_py_lines_count": null,
+      "train_gpt_patch_present": false,
+      "train_gpt_patch_chars": null
+    }
+  },
+  "reviewer_feedback": {
+    "decision": "revise",
+    "novelty_score": 6,
+    "primary_reasons": [
+      "Mechanism is somewhat novel but resembles existing low-rank adaptations.",
+      "Uses Gumbel-Softmax, which is a common technique in similar contexts.",
+      "Implementation lacks clarity on how it significantly differs from existing methods."
+    ],
+    "revision_instructions": "To enhance novelty, consider introducing a new mechanism for prototype selection that does not rely on Gumbel-Softmax. Explore alternative methods for dynamic weight adaptation that are not commonly used in existing literature. Additionally, clarify how the proposed method achieves a unique balance between parameter efficiency and model capacity compared to existing low-rank adaptations.",
+    "must_fix_fields": [
+      "novelty_summary",
+      "implementation_steps"
+    ],
+    "similar_to_knowledge": [
+      "low-rank-transformer-layers"
+    ]
+  }
+}

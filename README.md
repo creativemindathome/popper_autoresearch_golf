@@ -1,72 +1,132 @@
-# Null Fellow Hackathon
+# AutoResearch Loop: Ideator + Falsifier
 
-Integration note: [Verifier and Reviewer Integration](infra/agents/docs/VERIFIER_REVIEWER_INTEGRATION.md)
-
-Repo-local scaffold for a falsifier-first `parameter-golf` workflow with:
-
-- upstream-compatible training/eval integration
-- Symphony + Linear orchestration under `infra/agents/`
-- research evidence under `research/`
-- record packaging under `records/`
-- upstream challenge code imported at repo root (`train_gpt.py`, `train_gpt_mlx.py`, `data/`, `requirements.txt`)
-- `uv` as the preferred dependency and contributor environment manager
-
-## Repo Layout
-
-- `infra/agents/`: orchestration prompts, env templates, scripts, handoffs, runtime state
-- `research/profiles/`: baseline probe snapshots
-- `research/theories/`: theory specs
-- `research/falsification/`: experiment specs, results, verdicts
-- `research/knowledge_graph/`: distilled learnings and anti-patterns
-- `records/track_10min_16mb/`: record-track candidate runs
-- `records/track_non_record_16mb/`: non-record runs
+Hackathon scaffold for an AutoResearch loop focused on OpenAI's Parameter Golf benchmark, combining:
+- **Ideator** (Gemini + OpenAI): Generates novel, testable ideas with novelty review
+- **Falsifier** (Systematic testing): Validates ideas through T2-T7 gates + Stage 2 adversarial prosecution
+- **Knowledge Graph**: Unified store of ideas, failures, and learnings
 
 ## Quick Start
 
-1. Fill `infra/agents/env/.env.symphony` from the example file.
-2. Fill `infra/agents/env/.env.hermes` from the example file.
-3. Run `uv sync`.
-4. Run `infra/agents/scripts/bootstrap_repo.sh`.
-5. Run `uv run pytest`.
-6. Run `uv run python infra/agents/scripts/check_symphony_readiness.py`.
-7. Launch Symphony with `infra/agents/scripts/run_symphony.sh`.
+### 1. Environment Setup
 
-The actual agent society can evolve later. The execution substrate is fixed here so Codex, Cursor, Symphony, and Linear all have predictable paths and contracts.
+```bash
+# Gemini API key (for ideator)
+export GEMINI_API_KEY="..."
 
-## Real Integration Status
+# OpenAI API key (for novelty reviewer)
+export OPENAI_API_KEY="..."
 
-- The upstream OpenAI `parameter-golf` code surface is now present locally.
-- `run_baseline_profile.py` performs actual architecture and quantization analysis against the imported PyTorch model surface.
-- `run_falsification_batch.py` executes real probe batches against the same surface and can use threshold-based refutation rules from a JSON experiment spec.
-- Deeper activation probes and no-training ablations are not wired yet; the current probe layer is weight/checkpoint based.
-- A reduced falsifier package now exists under `falsifier/` with typed contracts, a deterministic Stage 1 core (`T0`, `T2`), and tests.
+# Optional configuration
+export GEMINI_MODEL="gemini-2.5-flash"
+export OPENAI_REVIEWER_MODEL="gpt-4o-mini"
+export IDEATOR_MAX_REVIEW_ROUNDS="4"
+export IDEATOR_REVIEWER_MIN_SCORE="6"
+```
 
-## Project Split
+### 2. Generate an Idea
 
-- Buildout/control-plane work runs in the active Symphony project named in `SYMPHONY_LINEAR_PROJECT_SLUG`.
-- Actual falsifier/execution research should live in a separate execution project named by `SYMPHONY_EXECUTION_PROJECT_SLUG`.
-- This keeps repo plumbing and agent/runtime work separate from theory-testing and candidate evaluation work.
+```bash
+# Clone parameter-golf parent code
+git clone https://github.com/openai/parameter-golf.git parameter-golf
 
-## Local Constraints
+# Generate and review an idea
+python3 -m ideator --parent-train-gpt parameter-golf/train_gpt.py
 
-### Test-Driven Development
+# Outputs:
+# - knowledge_graph/outbox/ideator/latest.json
+# - knowledge_graph/outbox/ideator/latest_train_gpt.py
+# - knowledge_graph/outbox/ideator/latest_review.json
+```
 
-- Every non-trivial code change must start with a validation target before implementation begins.
-- Every issue must include at least one concrete validation command under `Validation`.
-- If a test does not exist yet, the issue must define the smallest reproducible failing check or smoke command that captures the expected behavior.
-- An issue is not complete until its declared validation commands pass after the change.
-- Agents must prefer narrow, behavior-level tests over broad manual verification.
-- If a change affects orchestration, handoff parsing, verdict generation, or Linear synchronization, the issue must include a regression check for that surface.
+### 3. Falsify an Approved Idea
 
-### Non-Breakage Policy
+```bash
+# First, symlink approved idea to inbox
+ln -s knowledge_graph/outbox/ideator/<idea_id>.json knowledge_graph/inbox/approved/
 
-- Preserve existing repo paths, artifact contracts, and issue-template headings unless the issue explicitly owns a migration.
-- Do not mark work complete if a required delivery artifact, validation output, or verdict file is missing.
-- Changes to scripts under `infra/agents/scripts/` must preserve machine-readable exit behavior so Symphony can continue to route issues safely.
+# Run falsifier
+python -m falsifier.main \
+    --candidate-json knowledge_graph/inbox/approved/<idea_id>.json \
+    --graph-path knowledge_graph/graph.json \
+    --output-json knowledge_graph/outbox/falsifier/<idea_id>_result.json
+```
 
-### Linear and Handoff Safety
+## System Architecture
 
-- Checked-in handoffs under `infra/agents/handoffs/` remain the repo-local source of truth; Linear must reflect them, not diverge from them.
-- Agents must not mutate Linear issue scope, dependencies, or completion state unless the corresponding local handoff file supports that change.
-- A Linear issue may move forward only when its local validation and delivery contract still match the repo state.
-- If Linear and local handoffs disagree, agents must stop and reconcile the mismatch before proceeding.
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│   Ideator   │────→│   Reviewer   │────→│  Falsifier  │
+│  (Gemini)   │     │  (OpenAI)    │     │  (T2-T7+S2) │
+└─────────────┘     └──────────────┘     └─────────────┘
+       │                   │                    │
+       └───────────────────┴────────────────────┘
+                          │
+                          ▼
+              ┌─────────────────────┐
+              │  Knowledge Graph    │
+              │  (Source of Truth)  │
+              └─────────────────────┘
+```
+
+## Repo Layout
+
+- `ideator/` - LLM-powered idea generation with novelty reviewer loop
+- `falsifier/` - Systematic validation (Stage 1: T2-T7 gates, Stage 2: adversarial prosecution)
+- `knowledge_graph/` - Unified knowledge store
+  - `seed_parameter_golf_kg.json` - Base knowledge hierarchy (RootBox/Branch/Leaf)
+  - `outbox/ideator/` - Generated ideas
+  - `outbox/falsifier/` - Falsification results
+  - `inbox/approved/` - Queue for falsification
+  - `work/in_falsification/` - Lock files for in-progress work
+  - `graph.json` - Unified graph (all nodes + edges)
+- `infra/agents/` - Symphony orchestration infrastructure
+- `research/` - Baseline profiles, probe library
+- `docs/prd/` - Detailed specifications
+
+## Component Details
+
+### Ideator (`ideator/`)
+- Reads knowledge context from `knowledge_graph/`
+- Generates one novel, falsifiable idea per run
+- Runs pessimistic novelty reviewer (OpenAI)
+- Auto-revises up to max rounds if rejected
+- Emits only reviewer-approved ideas
+
+### Falsifier (`falsifier/`)
+- **Stage 1**: T2 (budget) → T3 (compilation) → T4 (signal) → T5 (init) → T7 (micro-train)
+- **Stage 2**: Adversarial hypothesis generation → experiments → trend verification
+- **Output**: REFUTED, STAGE_1_PASSED, or STAGE_2_PASSED
+- Updates knowledge graph with full failure analysis
+
+### Knowledge Graph (`knowledge_graph/`)
+- Single source of truth for all ideas and results
+- Tracks full lifecycle: GENERATED → PENDING_REVIEW → APPROVED → IN_FALSIFICATION → REFUTED/PASSED
+- Enables learning from failures (pattern recognition)
+
+## Development
+
+```bash
+# Setup
+uv sync
+
+# Tests
+uv run pytest
+
+# Symphony readiness check
+python infra/agents/scripts/check_symphony_readiness.py
+```
+
+## Documentation
+
+- `docs/prd/FALSIFIER_REVISED_PRD.md` - Falsifier specification
+- `docs/prd/CALIBRATION_LITE.md` - Calibration procedures
+- `docs/prd/EXECUTION_ADMISSION_GATE.md` - Execution validation
+- `infra/agents/docs/FALSIFIER_V1_PRD.md` - Original falsifier PRD
+
+## Integration Principles
+
+- Knowledge graph is the source of truth
+- File-based storage (debuggable, version-control friendly)
+- Lock files prevent duplicate falsification
+- Rich failure analysis feeds back to ideator
+- Schema versioning for backward compatibility
