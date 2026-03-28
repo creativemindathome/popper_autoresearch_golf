@@ -1,0 +1,45 @@
+[2026-03-28T17:10:39.643919] [INFO] ======================================================================
+[2026-03-28T17:10:39.644027] [INFO] FULL LIVE EXPERIMENT WITH SEPARATE STAGE MODELS
+[2026-03-28T17:10:39.644065] [INFO] ======================================================================
+[2026-03-28T17:10:39.644091] [INFO] Output directory: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_171039
+[2026-03-28T17:10:39.644115] [INFO] Stage 0 (Ideation): claude-sonnet-4-20250514
+[2026-03-28T17:10:39.644139] [INFO] Stage 2 (Falsifier): ENABLED
+[2026-03-28T17:10:39.644162] [INFO]   Model: claude-sonnet-4-20250514
+[2026-03-28T17:10:39.644184] [INFO]   Max hypotheses: 5
+[2026-03-28T17:10:39.644206] [INFO] 
+[2026-03-28T17:10:39.644229] [INFO] Starting experiment: 10 hypotheses
+[2026-03-28T17:10:39.644251] [INFO] Estimated time: 30-50 minutes
+[2026-03-28T17:10:39.644273] [INFO] 
+[2026-03-28T17:10:39.644295] [INFO] 
+======================================================================
+[2026-03-28T17:10:39.644319] [INFO] HYPOTHESIS 1/10
+[2026-03-28T17:10:39.644342] [INFO] ======================================================================
+[2026-03-28T17:10:39.644392] [INFO] 
+[2026-03-28T17:10:39.644413] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:10:39.644438] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:10:39.644461] [INFO]   Hypothesis #1
+[2026-03-28T17:10:39.644485] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:10:39.644509] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:11:23.461821] [INFO] ✓ Generated hypothesis #1: cascade-depth-attention
+[2026-03-28T17:11:23.463075] [INFO]   Parameter estimate: ~8.2M parameters (n_embd=512, n_layer=6, n_head=8, vocab_size=50304, verified <10M)
+[2026-03-28T17:11:23.463210] [INFO]   Novelty: 3 claims
+[2026-03-28T17:11:23.463312] [INFO]   Code: ~192 lines
+[2026-03-28T17:11:23.463455] [INFO]   ✓ Parameter estimate 8.2M is within 10M budget
+[2026-03-28T17:11:23.463494] [INFO]   ✓ Parameter estimate 10.0M is within 10M budget
+[2026-03-28T17:11:23.463907] [ERROR] ✗ Hypothesis #1 failed: 'str' object has no attribute 'get'
+[2026-03-28T17:11:23.463981] [INFO] 
+✓ Hypothesis #1 complete in 43.8s
+[2026-03-28T17:11:23.464060] [INFO]   Verdict: None
+[2026-03-28T17:11:23.465860] [INFO]   [Graph Sync] Created new node: cascade-depth-attention
+[2026-03-28T17:11:23.466238] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:11:26.468077] [INFO] 
+======================================================================
+[2026-03-28T17:11:26.468351] [INFO] HYPOTHESIS 2/10
+[2026-03-28T17:11:26.468596] [INFO] ======================================================================
+[2026-03-28T17:11:26.468672] [INFO] 
+[2026-03-28T17:11:26.468702] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:11:26.468749] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:11:26.468783] [INFO]   Hypothesis #2
+[2026-03-28T17:11:26.468818] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:11:26.468864] [INFO] Calling Anthropic API (Sonnet)...

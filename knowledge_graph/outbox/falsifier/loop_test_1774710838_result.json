@@ -1,0 +1,52 @@
+{
+  "theory_id": "loop_test_1774710838",
+  "verdict": "REFUTED",
+  "killed_by": "T2",
+  "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+  "t2_budget": {
+    "status": "FAIL_FATAL",
+    "test_id": "T2",
+    "estimated_params": 42253312,
+    "estimated_artifact_bytes": 25353110,
+    "budget_remaining_bytes": -8575894,
+    "budget_utilization": 1.5111631155014038,
+    "flops_ratio": 1.0,
+    "estimated_training_seconds": 14843.406974976,
+    "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "tags": [
+      {
+        "tag_id": "T2_tight_budget",
+        "test_id": "T2",
+        "category": "speed_pathology",
+        "description": "Only -8,575,894 bytes remaining (-8374.9KB < 200KB safety margin)"
+      }
+    ],
+    "wall_seconds": 0.000552875004359521,
+    "attn_flops_ratio": 0.3492463501747937,
+    "mlp_flops_ratio": 0.17462317508739686,
+    "embed_flops_ratio": 0.47613047473780945,
+    "architectural_balance_score": 0.0
+  },
+  "t3_compilation": null,
+  "t4_signal": null,
+  "t5_init": null,
+  "t7_microtrain": null,
+  "s2_results": null,
+  "tags": [
+    {
+      "tag_id": "T2_tight_budget",
+      "test_id": "T2",
+      "category": "speed_pathology",
+      "description": "Only -8,575,894 bytes remaining (-8374.9KB < 200KB safety margin)"
+    }
+  ],
+  "feedback": {
+    "one_line": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "stage_reached": 0,
+    "failure_analysis": null,
+    "suggested_directions": [],
+    "key_measurements": {}
+  },
+  "total_wall_seconds": 0.0005707740783691406,
+  "total_gpu_seconds": 0.0
+}

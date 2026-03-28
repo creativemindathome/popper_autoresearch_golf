@@ -1,0 +1,8 @@
+{
+  "total_frames": 50,
+  "fps": 30,
+  "target_duration_seconds": 7200,
+  "actual_duration_seconds": 79.29548811912537,
+  "has_matplotlib": true,
+  "frame_pattern": "frame_%05d.png"
+}

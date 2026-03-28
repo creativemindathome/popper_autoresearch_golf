@@ -1,0 +1,42 @@
+[
+  {
+    "name": "good_student.py",
+    "verdict": "REFUTED",
+    "killed_by": "T5",
+    "kill_reason": "56% of weight matrices are rank-deficient (effective rank < 90% of theoretical)",
+    "tags": 5,
+    "duration": 1.2507390975952148,
+    "expected": "T5",
+    "reached_expected": true
+  },
+  {
+    "name": "gradient_flow_issues.py",
+    "verdict": "REFUTED",
+    "killed_by": "T5",
+    "kill_reason": "75% of weight matrices are rank-deficient (effective rank < 90% of theoretical)",
+    "tags": 5,
+    "duration": 0.8818602561950684,
+    "expected": "T5",
+    "reached_expected": true
+  },
+  {
+    "name": "over_parametrized.py",
+    "verdict": "REFUTED",
+    "killed_by": "T2",
+    "kill_reason": "Estimated training time 175921.9s exceeds limit 720.0s (600s * 1.2)",
+    "tags": 2,
+    "duration": 0.70619797706604,
+    "expected": "T2",
+    "reached_expected": true
+  },
+  {
+    "name": "broken_architecture.py",
+    "verdict": "REFUTED",
+    "killed_by": "T4",
+    "kill_reason": "T4 MLX error: model_dim must be divisible by num_heads",
+    "tags": 1,
+    "duration": 0.7526319026947021,
+    "expected": "T3",
+    "reached_expected": false
+  }
+]

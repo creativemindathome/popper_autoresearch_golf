@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Graph Evolution</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: rgba(22, 33, 62, 0.9);
+            padding: 1.5rem 2rem;
+            border-bottom: 2px solid #0f3460;
+            backdrop-filter: blur(10px);
+        }
+        h1 { 
+            font-size: 1.8rem; 
+            color: #e94560;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle { 
+            color: #888; 
+            font-size: 1rem;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            padding: 1rem;
+            gap: 1rem;
+            overflow: hidden;
+        }
+        #graph-container {
+            flex: 3;
+            background: rgba(15, 52, 96, 0.3);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(233, 69, 96, 0.2);
+        }
+        #graph-svg {
+            width: 100%;
+            height: 100%;
+        }
+        .controls-panel {
+            flex: 1;
+            background: rgba(22, 33, 62, 0.8);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 350px;
+            border: 1px solid rgba(233, 69, 96, 0.2);
+        }
+        .control-section {
+            background: rgba(26, 26, 46, 0.6);
+            padding: 1rem;
+            border-radius: 8px;
+        }
+        .control-section h3 {
+            color: #e94560;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .play-btn {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            width: 100%;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        .play-btn:hover {
+            background: #ff6b6b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+        }
+        .play-btn.playing {
+            background: #51cf66;
+        }
+        .timeline-container {
+            margin-top: 1rem;
+        }
+        #timeline-slider {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: #0f3460;
+            outline: none;
+        }
+        #timeline-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e94560;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
+        }
+        .timeline-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #888;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        .stat-box {
+            background: rgba(15, 52, 96, 0.5);
+            padding: 0.75rem;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #e94560;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 0.25rem;
+        }
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .node-label {
+            font-size: 10px;
+            fill: #fff;
+            pointer-events: none;
+            text-anchor: middle;
+        }
+        .link {
+            stroke-opacity: 0.6;
+            stroke-width: 2px;
+        }
+        .current-info {
+            background: rgba(233, 69, 96, 0.1);
+            border: 1px solid rgba(233, 69, 96, 0.3);
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .event-log {
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.75rem;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.75rem;
+            border-radius: 6px;
+        }
+        .event-item {
+            margin-bottom: 0.25rem;
+            color: #aaa;
+        }
+        .event-item.new-node { color: #51cf66; }
+        .event-item.killed { color: #ff6b6b; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🔬 Knowledge Graph Evolution</h1>
+        <div class="subtitle">Animated visualization of hypothesis falsification over time</div>
+    </header>
+
+    <div class="container">
+        <div id="graph-container">
+            <svg id="graph-svg"></svg>
+        </div>
+
+        <div class="controls-panel">
+            <div class="control-section">
+                <h3>Playback</h3>
+                <button id="play-btn" class="play-btn">▶ Play Evolution</button>
+                <div class="timeline-container">
+                    <input type="range" id="timeline-slider" min="0" max="100" value="0">
+                    <div class="timeline-info">
+                        <span id="current-time">00:00</span>
+                        <span id="total-time">00:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>Statistics</h3>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-value" id="stat-total">0</div>
+                        <div class="stat-label">Total Ideas</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="stat-active">0</div>
+                        <div class="stat-label">Active</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="stat-killed">0</div>
+                        <div class="stat-label">Killed</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="stat-stage2">0</div>
+                        <div class="stat-label">Stage 2</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>Legend</h3>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #339af0;"></div>
+                        <span>Pending (Generated)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #fcc419;"></div>
+                        <span>Stage 1 Running</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #51cf66;"></div>
+                        <span>Stage 1 Passed</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #ff6b6b;"></div>
+                        <span>Killed (Falsified)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #cc5de8;"></div>
+                        <span>Stage 2 Passed</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>Current State</h3>
+                <div class="current-info" id="current-info">
+                    Loading...
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>Event Log</h3>
+                <div class="event-log" id="event-log">
+                    Waiting for data...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load visualization data
+        const vizData = {"timeline": [{"time": 0, "hypothesis": 1, "event": "start", "theory_id": "gradient-sculpted-attention"}, {"time": 33.3567852973938, "hypothesis": 1, "event": "complete", "verdict": "REFUTED", "status": "complete", "stage1_verdict": "REFUTED", "stage2_verdict": null}, {"time": 36.36260008811951, "hypothesis": 2, "event": "start", "theory_id": "dynamic-width-ensemble"}, {"time": 79.29612231254578, "hypothesis": 2, "event": "complete", "verdict": "REFUTED", "status": "complete", "stage1_verdict": "REFUTED", "stage2_verdict": null}], "evolution": [{"frame": 0, "timestamp": 0, "total_ideas": 0, "approved": 0, "falsified": 0, "stage1_passed": 0, "stage2_triggered": 0, "stage2_passed": 0}, {"frame": 1, "timestamp": 0, "total_ideas": 0, "approved": 0, "falsified": 0, "stage1_passed": 0, "stage2_triggered": 0, "stage2_passed": 0}, {"frame": 2, "timestamp": 0, "total_ideas": 0, "approved": 0, "falsified": 0, "stage1_passed": 0, "stage2_triggered": 0, "stage2_passed": 0}, {"frame": 3, "timestamp": 0, "total_ideas": 0, "approved": 0, "falsified": 0, "stage1_passed": 0, "stage2_triggered": 0, "stage2_passed": 0}], "start_time": 1774712131.724964, "runs": [{"run_id": "h001_3b9e8f2a", "hypothesis_number": 1, "start_time": 1774712131.725505, "end_time": 1774712165.082291, "status": "complete", "idea_json": {"theory_id": "gradient-sculpted-attention", "what_and_why": "This architecture introduces gradient-sculpted attention mechanisms where attention weights are dynamically modulated based on the gradient flow through each attention head. The key insight is that attention heads with higher gradient magnitudes should receive more capacity allocation, as they are learning more actively. We implement this by creating a learnable 'gradient sensitivity' parameter per head that scales the attention scores inversely proportional to the running average of gradient norms. This should theoretically allow the model to automatically allocate capacity to the most 'productive' attention heads while letting less useful heads atrophy naturally.", "train_gpt_code": "import torch\nimport torch.nn as nn\nimport math\n\nclass GradientSculptedAttention(nn.Module):\n    def __init__(self, n_embd, n_head, dropout=0.1):\n        super().__init__()\n        assert n_embd % n_head == 0\n        self.n_head = n_head\n        self.n_embd = n_embd\n        self.head_dim = n_embd // n_head\n        \n        self.qkv = nn.Linear(n_embd, 3 * n_embd)\n        self.proj = nn.Linear(n_embd, n_embd)\n        self.dropout = nn.Dropout(dropout)\n        \n        # Gradient sculpting parameters\n        self.gradient_sensitivity = nn.Parameter(torch.ones(n_head))\n        self.register_buffer('grad_norm_history', torch.zeros(n_head))\n        self.grad_history_decay = 0.9\n        \n    def forward(self, x):\n        B, T, C = x.size()\n        \n        qkv = self.qkv(x).split(self.n_embd, dim=2)\n        q, k, v = [y.view(B, T, self.n_head, self.head_dim).transpose(1, 2) for y in qkv]\n        \n        # Compute attention scores\n        scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.head_dim)\n        \n        # Apply gradient sculpting\n        sensitivity = torch.sigmoid(self.gradient_sensitivity)\n        scores = scores * sensitivity.view(1, self.n_head, 1, 1)\n        \n        attn = torch.softmax(scores, dim=-1)\n        attn = self.dropout(attn)\n        \n        y = torch.matmul(attn, v)\n        y = y.transpose(1, 2).contiguous().view(B, T, C)\n        \n        return self.proj(y)\n\nclass GPT(nn.Module):\n    def __init__(self, vocab_size=50257, n_embd=384, n_head=6, n_layer=6, dropout=0.1):\n        super().__init__()\n        self.tok_emb = nn.Embedding(vocab_size, n_embd)\n        self.pos_emb = nn.Embedding(1024, n_embd)\n        self.dropout = nn.Dropout(dropout)\n        \n        self.blocks = nn.ModuleList([\n            nn.ModuleDict({\n                'attn': GradientSculptedAttention(n_embd, n_head, dropout),\n                'ln1': nn.LayerNorm(n_embd),\n                'ffn': nn.Sequential(\n                    nn.Linear(n_embd, 4 * n_embd),\n                    nn.GELU(),\n                    nn.Linear(4 * n_embd, n_embd),\n                    nn.Dropout(dropout)\n                ),\n                'ln2': nn.LayerNorm(n_embd)\n            }) for _ in range(n_layer)\n        ])\n        \n        self.ln_f = nn.LayerNorm(n_embd)\n        self.head = nn.Linear(n_embd, vocab_size, bias=False)\n        \n        self.apply(self._init_weights)\n        \n    def _init_weights(self, module):\n        if isinstance(module, nn.Linear):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            if module.bias is not None:\n                torch.nn.init.zeros_(module.bias)\n        elif isinstance(module, nn.Embedding):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n        elif isinstance(module, GradientSculptedAttention):\n            # Initialize gradient sensitivity to encourage exploration\n            nn.init.uniform_(module.gradient_sensitivity, -1, 1)\n    \n    def forward(self, input_ids, target_ids=None):\n        B, T = input_ids.size()\n        tok_emb = self.tok_emb(input_ids)\n        pos_emb = self.pos_emb(torch.arange(T, device=input_ids.device))\n        x = self.dropout(tok_emb + pos_emb)\n        \n        for block in self.blocks:\n            x = x + block['attn'](block['ln1'](x))\n            x = x + block['ffn'](block['ln2'](x))\n        \n        x = self.ln_f(x)\n        logits = self.head(x)\n        \n        loss = None\n        if target_ids is not None:\n            loss = nn.functional.cross_entropy(logits.view(-1, logits.size(-1)), target_ids.view(-1))\n        \n        return logits, loss", "parent_architecture": "GPT-2 small with attention modifications", "novelty_claims": ["Gradient-sculpted attention that dynamically modulates head capacity", "Running gradient norm history tracking per attention head", "Learnable gradient sensitivity parameters with sigmoid activation", "Automatic capacity allocation to productive attention heads", "Atrophy mechanism for less useful heads"], "expected_behavior": "The model should show uneven attention head utilization with some heads dominating early training, followed by stabilization as gradient sensitivities converge. Training curves should show faster initial loss reduction compared to baseline due to capacity optimization."}, "stage1_result": {"verdict": "REFUTED", "killed_by": "T2", "kill_reason": "Budget exceeded: estimated 45M parameters (limit 10M)", "tags": [{"tag_id": "T2_BUDGET_VIOLATION", "test_id": "T2", "category": "resource", "description": "Parameter count exceeds 10M limit"}], "t2_budget": {"status": "FAILED", "estimated_params": 45000000, "param_limit": 10000000, "memory_estimate_gb": 0.18}, "t3_compilation": null, "t4_signal": null, "t5_init": null, "t7_microtrain": null}, "stage2_result": null, "kill_hypotheses": [], "experiments_run": 0, "error": null, "verdict": "REFUTED"}, {"run_id": "h002_a1c3d5e7", "hypothesis_number": 2, "start_time": 1774712168.087165, "end_time": 1774712211.020444, "status": "complete", "idea_json": {"theory_id": "dynamic-width-ensemble", "what_and_why": "This architecture introduces dynamic width ensemble layers where each transformer block contains multiple parallel sub-networks of varying widths (32, 64, 128, 256 dimensions). A gating mechanism learns to route tokens through appropriate sub-networks based on their complexity. Simple tokens flow through narrow sub-networks, complex tokens through wider ones. This should theoretically reduce computation for easy tokens while maintaining capacity for hard ones, achieving better compute efficiency than uniform-width models.", "train_gpt_code": "import torch\nimport torch.nn as nn\nimport math\n\nclass DynamicWidthEnsemble(nn.Module):\n    def __init__(self, input_dim, widths=[32, 64, 128, 256], dropout=0.1):\n        super().__init__()\n        self.widths = widths\n        self.n_branches = len(widths)\n        \n        # Gating network to route tokens to appropriate width\n        self.gate = nn.Sequential(\n            nn.Linear(input_dim, 64),\n            nn.ReLU(),\n            nn.Linear(64, self.n_branches)\n        )\n        \n        # Projection to each width\n        self.down_projs = nn.ModuleList([\n            nn.Linear(input_dim, w) for w in widths\n        ])\n        \n        # FFN at each width\n        self.ffns = nn.ModuleList([\n            nn.Sequential(\n                nn.Linear(w, w * 4),\n                nn.GELU(),\n                nn.Linear(w * 4, w),\n                nn.Dropout(dropout)\n            ) for w in widths\n        ])\n        \n        # Projection back to input_dim\n        self.up_projs = nn.ModuleList([\n            nn.Linear(w, input_dim) for w in widths\n        ])\n        \n    def forward(self, x):\n        B, T, C = x.shape\n        \n        # Get routing weights\n        gate_logits = self.gate(x)  # [B, T, n_branches]\n        routing = torch.softmax(gate_logits, dim=-1)  # [B, T, n_branches]\n        \n        # Process through each branch\n        outputs = []\n        for i, (down, ffn, up) in enumerate(zip(self.down_projs, self.ffns, self.up_projs)):\n            # Project down\n            x_down = down(x)  # [B, T, width_i]\n            \n            # Apply FFN\n            x_processed = ffn(x_down)  # [B, T, width_i]\n            \n            # Project up\n            x_up = up(x_processed)  # [B, T, C]\n            \n            # Weight by routing probability\n            weight = routing[:, :, i:i+1]  # [B, T, 1]\n            outputs.append(x_up * weight)\n        \n        # Combine all branches\n        return sum(outputs)\n\nclass GPT(nn.Module):\n    def __init__(self, vocab_size=50257, n_embd=384, n_head=6, n_layer=6, dropout=0.1):\n        super().__init__()\n        self.tok_emb = nn.Embedding(vocab_size, n_embd)\n        self.pos_emb = nn.Embedding(1024, n_embd)\n        self.dropout = nn.Dropout(dropout)\n        \n        self.blocks = nn.ModuleList([\n            nn.ModuleDict({\n                'attn': nn.MultiheadAttention(n_embd, n_head, dropout=dropout, batch_first=True),\n                'ln1': nn.LayerNorm(n_embd),\n                'dwe': DynamicWidthEnsemble(n_embd, dropout=dropout),\n                'ln2': nn.LayerNorm(n_embd)\n            }) for _ in range(n_layer)\n        ])\n        \n        self.ln_f = nn.LayerNorm(n_embd)\n        self.head = nn.Linear(n_embd, vocab_size, bias=False)\n        \n        self.apply(self._init_weights)\n        \n    def _init_weights(self, module):\n        if isinstance(module, nn.Linear):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            if module.bias is not None:\n                torch.nn.init.zeros_(module.bias)\n        elif isinstance(module, nn.Embedding):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n    \n    def forward(self, input_ids, target_ids=None):\n        B, T = input_ids.size()\n        tok_emb = self.tok_emb(input_ids)\n        pos_emb = self.pos_emb(torch.arange(T, device=input_ids.device))\n        x = self.dropout(tok_emb + pos_emb)\n        \n        for block in self.blocks:\n            attn_out, _ = block['attn'](block['ln1'](x), block['ln1'](x), block['ln1'](x))\n            x = x + attn_out\n            x = x + block['dwe'](block['ln2'](x))\n        \n        x = self.ln_f(x)\n        logits = self.head(x)\n        \n        loss = None\n        if target_ids is not None:\n            loss = nn.functional.cross_entropy(logits.view(-1, logits.size(-1)), target_ids.view(-1))\n        \n        return logits, loss", "parent_architecture": "GPT-2 with dynamic width ensemble layers", "novelty_claims": ["Multi-width parallel sub-networks (32/64/128/256 dims)", "Learnable gating mechanism for token routing", "Dynamic compute allocation based on token complexity", "Ensemble approach within single transformer block", "Width-adaptive processing per token position"], "expected_behavior": "Routing distribution should start uniform and specialize over training, with simple tokens (common words) favoring narrow branches and complex tokens (rare/technical terms) using wider branches. Loss should decrease faster initially due to efficient capacity usage."}, "stage1_result": {"verdict": "REFUTED", "killed_by": "T2", "kill_reason": "Budget exceeded: estimated 52M parameters (limit 10M)", "tags": [{"tag_id": "T2_BUDGET_VIOLATION", "test_id": "T2", "category": "resource", "description": "Parameter count exceeds 10M limit"}], "t2_budget": {"status": "FAILED", "estimated_params": 52000000, "param_limit": 10000000, "memory_estimate_gb": 0.21}, "t3_compilation": null, "t4_signal": null, "t5_init": null, "t7_microtrain": null}, "stage2_result": null, "kill_hypotheses": [], "experiments_run": 0, "error": null, "verdict": "REFUTED"}], "stage2_config": {"enabled": true, "model": "claude-sonnet-4-20250514", "max_hypotheses": 5, "max_tokens": 4000, "temperature": 0.7}};
+
+        // Set up D3 visualization
+        const width = document.getElementById('graph-container').clientWidth;
+        const height = document.getElementById('graph-container').clientHeight;
+
+        const svg = d3.select("#graph-svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        // Create simulation
+        const simulation = d3.forceSimulation()
+            .force("link", d3.forceLink().id(d => d.id).distance(100))
+            .force("charge", d3.forceManyBody().strength(-300))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide().radius(40));
+
+        let nodes = [];
+        let links = [];
+        let currentFrame = 0;
+        let isPlaying = false;
+        let animationInterval;
+
+        // Color scale
+        const colors = {
+            pending: "#339af0",
+            stage1_running: "#fcc419", 
+            stage1_passed: "#51cf66",
+            killed: "#ff6b6b",
+            stage2_passed: "#cc5de8",
+            root: "#e94560"
+        };
+
+        // Create graph elements
+        const g = svg.append("g");
+
+        let linkElements = g.append("g").attr("class", "links").selectAll("line");
+        let nodeElements = g.append("g").attr("class", "nodes").selectAll("g");
+
+        // Timeline events
+        const timeline = vizData.timeline;
+        const evolution = vizData.evolution;
+        const runs = vizData.runs;
+
+        // Set up slider
+        const slider = document.getElementById('timeline-slider');
+        slider.max = timeline.length - 1;
+        slider.value = 0;
+
+        // Format time
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        document.getElementById('total-time').textContent = formatTime(timeline[timeline.length - 1]?.time || 0);
+
+        // Event log
+        const eventLog = document.getElementById('event-log');
+        function logEvent(message, type = '') {
+            const div = document.createElement('div');
+            div.className = `event-item ${type}`;
+            div.textContent = `[${formatTime(currentTime)}] ${message}`;
+            eventLog.insertBefore(div, eventLog.firstChild);
+            if (eventLog.children.length > 20) {
+                eventLog.removeChild(eventLog.lastChild);
+            }
+        }
+
+        // Update graph based on current time
+        function updateGraph(frameIndex) {
+            const currentTime = timeline[frameIndex]?.time || 0;
+            document.getElementById('current-time').textContent = formatTime(currentTime);
+            document.getElementById('timeline-slider').value = frameIndex;
+
+            // Build current state from timeline events
+            const activeNodes = new Map();
+            const activeLinks = [];
+
+            for (let i = 0; i <= frameIndex; i++) {
+                const event = timeline[i];
+                if (event.event === 'start') {
+                    const run = runs.find(r => r.hypothesis_number === event.hypothesis);
+                    activeNodes.set(event.theory_id, {
+                        id: event.theory_id,
+                        hypothesis: event.hypothesis,
+                        status: 'pending',
+                        kill_reason: null,
+                        startTime: event.time
+                    });
+                    logEvent(`Hypothesis #${event.hypothesis} generated: ${event.theory_id}`, 'new-node');
+                } else if (event.event === 'complete') {
+                    const node = activeNodes.get(event.theory_id);
+                    if (node) {
+                        node.status = event.verdict === 'REFUTED' ? 'killed' : 
+                                     event.stage2_verdict ? 'stage2_passed' : 'stage1_passed';
+                        node.endTime = event.time;
+                        if (event.verdict === 'REFUTED') {
+                            const run = runs.find(r => r.hypothesis_number === event.hypothesis);
+                            node.kill_reason = run?.stage1_result?.kill_reason || 'Killed at Stage 1';
+                            logEvent(`Hypothesis #${event.hypothesis} KILLED: ${node.kill_reason?.substring(0, 50)}...`, 'killed');
+                        }
+                    }
+                }
+            }
+
+            // Convert to arrays
+            const newNodes = Array.from(activeNodes.values());
+            
+            // Update statistics
+            document.getElementById('stat-total').textContent = newNodes.length;
+            document.getElementById('stat-active').textContent = newNodes.filter(n => n.status === 'pending' || n.status === 'stage1_running').length;
+            document.getElementById('stat-killed').textContent = newNodes.filter(n => n.status === 'killed').length;
+            document.getElementById('stat-stage2').textContent = newNodes.filter(n => n.status === 'stage2_passed').length;
+
+            // Update current info
+            const currentNode = newNodes[newNodes.length - 1];
+            document.getElementById('current-info').innerHTML = currentNode ? `
+                <strong>Current:</strong> ${currentNode.id}<br>
+                <strong>Status:</strong> ${currentNode.status}<br>
+                <strong>Hypothesis:</strong> #${currentNode.hypothesis}
+                ${currentNode.kill_reason ? `<br><strong>Reason:</strong> ${currentNode.kill_reason.substring(0, 100)}...` : ''}
+            ` : 'No active hypotheses';
+
+            // Update D3 data binding
+            nodeElements = nodeElements.data(newNodes, d => d.id);
+            linkElements = linkElements.data(activeLinks);
+
+            // Remove old elements
+            nodeElements.exit().transition().duration(300).attr("opacity", 0).remove();
+            linkElements.exit().transition().duration(300).attr("opacity", 0).remove();
+
+            // Add new nodes
+            const nodeEnter = nodeElements.enter().append("g")
+                .attr("class", "node")
+                .attr("opacity", 0)
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended));
+
+            nodeEnter.append("circle")
+                .attr("r", 25)
+                .attr("fill", d => colors[d.status] || colors.pending)
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 2);
+
+            nodeEnter.append("text")
+                .attr("class", "node-label")
+                .attr("dy", 35)
+                .text(d => `H${d.hypothesis}`);
+
+            nodeEnter.append("title")
+                .text(d => `${d.id}\nStatus: ${d.status}\n${d.kill_reason || ''}`);
+
+            nodeEnter.transition().duration(500).attr("opacity", 1);
+
+            nodeElements = nodeEnter.merge(nodeElements);
+
+            // Update colors based on status
+            nodeElements.select("circle")
+                .transition().duration(300)
+                .attr("fill", d => colors[d.status] || colors.pending);
+
+            // Restart simulation
+            simulation.nodes(newNodes);
+            simulation.force("link").links(activeLinks);
+            simulation.alpha(1).restart();
+        }
+
+        // Drag functions
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+        // Simulation tick
+        simulation.on("tick", () => {
+            nodeElements.attr("transform", d => `translate(${d.x},${d.y})`);
+        });
+
+        // Playback controls
+        const playBtn = document.getElementById('play-btn');
+        
+        playBtn.addEventListener('click', () => {
+            if (isPlaying) {
+                stopPlayback();
+            } else {
+                startPlayback();
+            }
+        });
+
+        function startPlayback() {
+            isPlaying = true;
+            playBtn.textContent = '⏸ Pause';
+            playBtn.classList.add('playing');
+            
+            animationInterval = setInterval(() => {
+                currentFrame++;
+                if (currentFrame >= timeline.length) {
+                    currentFrame = 0;
+                    eventLog.innerHTML = '';
+                }
+                updateGraph(currentFrame);
+            }, 1000);
+        }
+
+        function stopPlayback() {
+            isPlaying = false;
+            playBtn.textContent = '▶ Play Evolution';
+            playBtn.classList.remove('playing');
+            clearInterval(animationInterval);
+        }
+
+        // Slider control
+        slider.addEventListener('input', (e) => {
+            stopPlayback();
+            currentFrame = parseInt(e.target.value);
+            updateGraph(currentFrame);
+        });
+
+        // Initial render
+        document.getElementById('current-info').textContent = 'Press Play to start evolution';
+        
+        // Start with first frame
+        updateGraph(0);
+    </script>
+</body>
+</html>

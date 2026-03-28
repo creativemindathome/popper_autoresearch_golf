@@ -1,0 +1,9 @@
+[2026-03-28T17:03:35.739853] [INFO] ======================================================================
+[2026-03-28T17:03:35.740022] [INFO] FULL LIVE EXPERIMENT WITH SEPARATE STAGE MODELS
+[2026-03-28T17:03:35.740064] [INFO] ======================================================================
+[2026-03-28T17:03:35.740098] [INFO] Output directory: experiments/ten_hypothesis_run/live_run_20260328_170335
+[2026-03-28T17:03:35.740129] [INFO] Stage 0 (Ideation): claude-sonnet-4-20250514
+[2026-03-28T17:03:35.740158] [INFO] Stage 2 (Falsifier): ENABLED
+[2026-03-28T17:03:35.740186] [INFO]   Model: claude-sonnet-4-20250514
+[2026-03-28T17:03:35.740213] [INFO]   Max hypotheses: 5
+[2026-03-28T17:03:35.740239] [INFO] 

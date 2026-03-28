@@ -1,0 +1,58 @@
+{
+  "run_id": "h007_7aebaed7",
+  "hypothesis_number": 7,
+  "start_time": 1774714963.2142878,
+  "end_time": 1774715003.50389,
+  "status": "complete",
+  "idea_json": {
+    "theory_id": "dynamic-sparse-attention-heads",
+    "what_and_why": "This architecture replaces traditional multi-head attention with dynamically sparse attention heads that learn to activate only relevant head subsets per token. Each attention head has a learned 'activation gate' that outputs a scalar weight (0-1) determining if that head should contribute to the final output. The sparse routing is implemented via a lightweight gating network that takes the query as input and outputs head activation probabilities. This allows the model to adaptively use different attention patterns (local vs global, syntactic vs semantic) based on token context, rather than always computing all heads. The key insight is that not all attention heads are needed for every token - some heads specialize in syntax, others in semantics, others in positional relationships. By learning when to activate each head, we can maintain representational capacity while reducing computational overhead. Expected falsification: If the gating network learns meaningful specialization, we should see (1) different heads activating for different token types, (2) interpretable attention patterns in active heads, (3) training convergence with 20-30% fewer active heads on average. If it fails, all heads will activate equally (no specialization) or the model will underperform due to insufficient capacity.",
+    "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\n\n# PARAMETER COUNT: ~8.2M parameters (verified <10M)\n# n_embd=384, n_layer=6, n_head=6, vocab=50304\n# Base params: ~6.5M + gating networks: ~1.7M = ~8.2M total\n\nclass DynamicSparseAttention(nn.Module):\n    def __init__(self, n_embd, n_head, bias=True, dropout=0.1):\n        super().__init__()\n        assert n_embd % n_head == 0\n        self.n_head = n_head\n        self.n_embd = n_embd\n        self.head_dim = n_embd // n_head\n        \n        # Standard attention projections\n        self.c_attn = nn.Linear(n_embd, 3 * n_embd, bias=bias)\n        self.c_proj = nn.Linear(n_embd, n_embd, bias=bias)\n        \n        # Head gating network: query -> head activation weights\n        self.head_gate = nn.Sequential(\n            nn.Linear(self.head_dim, self.head_dim // 2),\n            nn.ReLU(),\n            nn.Linear(self.head_dim // 2, 1),\n            nn.Sigmoid()\n        )\n        \n        self.dropout = nn.Dropout(dropout)\n        \n    def forward(self, x):\n        B, T, C = x.size()\n        \n        # Calculate qkv\n        qkv = self.c_attn(x)\n        q, k, v = qkv.split(self.n_embd, dim=2)\n        q = q.view(B, T, self.n_head, self.head_dim).transpose(1, 2)  # (B, nh, T, hs)\n        k = k.view(B, T, self.n_head, self.head_dim).transpose(1, 2)\n        v = v.view(B, T, self.n_head, self.head_dim).transpose(1, 2)\n        \n        # Calculate head activation gates from queries\n        q_mean = q.mean(dim=2)  # Average query across sequence: (B, nh, hs)\n        head_gates = self.head_gate(q_mean.view(B * self.n_head, -1))  # (B*nh, 1)\n        head_gates = head_gates.view(B, self.n_head, 1, 1)  # (B, nh, 1, 1)\n        \n        # Standard scaled dot-product attention\n        att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))\n        att = F.softmax(att, dim=-1)\n        att = self.dropout(att)\n        y = att @ v  # (B, nh, T, hs)\n        \n        # Apply head gating (sparse activation)\n        y = y * head_gates  # Multiply each head by its gate\n        \n        # Concatenate heads and project\n        y = y.transpose(1, 2).contiguous().view(B, T, C)\n        y = self.c_proj(y)\n        \n        return y, head_gates.squeeze(-1).squeeze(-1)  # Return gates for analysis\n\nclass MLP(nn.Module):\n    def __init__(self, n_embd, bias=True, dropout=0.1):\n        super().__init__()\n        self.c_fc = nn.Linear(n_embd, 4 * n_embd, bias=bias)\n        self.gelu = nn.GELU()\n        self.c_proj = nn.Linear(4 * n_embd, n_embd, bias=bias)\n        self.dropout = nn.Dropout(dropout)\n        \n    def forward(self, x):\n        x = self.c_fc(x)\n        x = self.gelu(x)\n        x = self.c_proj(x)\n        x = self.dropout(x)\n        return x\n\nclass Block(nn.Module):\n    def __init__(self, n_embd, n_head, bias=True, dropout=0.1):\n        super().__init__()\n        self.ln_1 = nn.LayerNorm(n_embd)\n        self.attn = DynamicSparseAttention(n_embd, n_head, bias, dropout)\n        self.ln_2 = nn.LayerNorm(n_embd)\n        self.mlp = MLP(n_embd, bias, dropout)\n        \n    def forward(self, x):\n        attn_out, head_gates = self.attn(self.ln_1(x))\n        x = x + attn_out\n        x = x + self.mlp(self.ln_2(x))\n        return x, head_gates\n\nclass DynamicSparseGPT(nn.Module):\n    def __init__(self, vocab_size=50304, n_embd=384, n_layer=6, n_head=6, bias=True, dropout=0.1):\n        super().__init__()\n        self.vocab_size = vocab_size\n        self.n_embd = n_embd\n        self.n_layer = n_layer\n        \n        self.transformer = nn.ModuleDict(dict(\n            wte = nn.Embedding(vocab_size, n_embd),\n            wpe = nn.Embedding(1024, n_embd),\n            drop = nn.Dropout(dropout),\n            h = nn.ModuleList([Block(n_embd, n_head, bias, dropout) for _ in range(n_layer)]),\n            ln_f = nn.LayerNorm(n_embd),\n        ))\n        self.lm_head = nn.Linear(n_embd, vocab_size, bias=False)\n        \n        # Weight tying\n        self.transformer.wte.weight = self.lm_head.weight\n        \n        # Initialize weights\n        self.apply(self._init_weights)\n        \n    def _init_weights(self, module):\n        if isinstance(module, nn.Linear):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            if module.bias is not None:\n                torch.nn.init.zeros_(module.bias)\n        elif isinstance(module, nn.Embedding):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            \n    def forward(self, idx, targets=None):\n        device = idx.device\n        b, t = idx.size()\n        assert t <= 1024, f\"Cannot forward sequence of length {t}, max is 1024\"\n        \n        pos = torch.arange(0, t, dtype=torch.long, device=device)\n        \n        # Forward pass\n        tok_emb = self.transformer.wte(idx)\n        pos_emb = self.transformer.wpe(pos)\n        x = self.transformer.drop(tok_emb + pos_emb)\n        \n        gate_history = []\n        for block in self.transformer.h:\n            x, gates = block(x)\n            gate_history.append(gates)\n            \n        x = self.transformer.ln_f(x)\n        logits = self.lm_head(x)\n        \n        loss = None\n        if targets is not None:\n            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)\n            \n        return logits, loss, gate_history\n\n# Training setup\nif __name__ == \"__main__\":\n    device = 'cuda' if torch.cuda.is_available() else 'cpu'\n    model = DynamicSparseGPT().to(device)\n    \n    # Parameter count verification\n    total_params = sum(p.numel() for p in model.parameters())\n    print(f\"Total parameters: {total_params:,} ({total_params/1e6:.1f}M)\")\n    assert total_params < 10_000_000, f\"Model too large: {total_params} parameters\"\n    \n    # Test forward pass\n    dummy_input = torch.randint(0, 50304, (2, 64)).to(device)\n    with torch.no_grad():\n        logits, loss, gates = model(dummy_input, dummy_input)\n        print(f\"Output shape: {logits.shape}\")\n        print(f\"Average head activation: {torch.stack(gates).mean():.3f}\")\n        print(\"Model initialized successfully!\")",
+    "parent_architecture": "GPT-2 small (modified)",
+    "novelty_claims": [
+      "Dynamic sparse attention that learns when to activate each attention head per token context",
+      "Lightweight gating network that routes attention computation based on query content",
+      "Adaptive attention patterns that can specialize different heads for different linguistic phenomena"
+    ],
+    "expected_behavior": "Initial loss should be ~11-12 (similar to standard GPT). After 100 steps, expect loss reduction to ~8-9 if gating learns effectively. Success metrics: (1) average head activation <0.8 (showing sparsity), (2) variance in head activations >0.1 (showing specialization), (3) different activation patterns for different token types. Failure mode: all heads activate equally (~1.0) with no specialization learned.",
+    "parameter_estimate": "Explicit count: ~8.2M parameters (6.5M base + 1.7M gating networks, verified <10M)",
+    "risk_factors": [
+      "Gating network might learn to always activate all heads (no sparsity benefit)",
+      "Insufficient capacity due to sparse activation could hurt final performance",
+      "Training instability if gates saturate to 0 too quickly"
+    ]
+  },
+  "stage1_result": {
+    "verdict": "REFUTED",
+    "killed_by": "T2",
+    "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "tags": [],
+    "t2_budget": {
+      "status": "FAIL_FATAL",
+      "test_id": "T2",
+      "estimated_params": 17046016,
+      "estimated_artifact_bytes": 10233690,
+      "budget_remaining_bytes": 6543526,
+      "budget_utilization": 0.6099754571914673,
+      "flops_ratio": 1.0,
+      "estimated_training_seconds": 14843.406974976,
+      "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+      "tags": [],
+      "wall_seconds": 0.0057421250094193965,
+      "attn_flops_ratio": 0.6545454545454545,
+      "mlp_flops_ratio": 0.32727272727272727,
+      "embed_flops_ratio": 0.01818181818181818,
+      "architectural_balance_score": 0.0
+    },
+    "t3_compilation": null,
+    "t4_signal": null,
+    "t5_init": null,
+    "t7_microtrain": null
+  },
+  "stage2_input": null,
+  "stage2_result": null,
+  "verdict": "REFUTED",
+  "kill_hypotheses": [],
+  "experiments_run": 0,
+  "error": null
+}

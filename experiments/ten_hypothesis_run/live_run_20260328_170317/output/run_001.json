@@ -1,0 +1,54 @@
+{
+  "run_id": "h001_50c038c4",
+  "hypothesis_number": 1,
+  "start_time": 1774713797.1713102,
+  "end_time": 1774713832.4107509,
+  "status": "complete",
+  "idea_json": {
+    "theory_id": "entropy-guided-sparse-attention",
+    "what_and_why": "This architecture introduces 'Entropy-Guided Sparse Attention' where attention heads dynamically prune connections based on the entropy of their attention distributions. The key insight is that high-entropy attention (nearly uniform distributions) often indicates the model is attending to irrelevant information, while low-entropy attention indicates focused, meaningful connections. Each attention head maintains a running estimate of its entropy and uses this to gate connections - heads with consistently high entropy get increasingly sparse, while focused heads remain dense.\n\nThe mechanism works by computing attention entropy per head, then using a learnable threshold to determine sparsity levels. This creates a self-organizing system where useful attention patterns are preserved while noisy ones are pruned. Unlike fixed sparse attention patterns, this adapts to the data and task, potentially discovering optimal sparsity patterns automatically. The entropy signal provides a principled way to distinguish signal from noise in attention, which could lead to both efficiency gains and better generalization.",
+    "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\nfrom torch.utils.data import DataLoader\nimport numpy as np\n\nclass EntropyGuidedAttention(nn.Module):\n    def __init__(self, d_model, n_heads, entropy_alpha=0.9, min_sparsity=0.1):\n        super().__init__()\n        self.d_model = d_model\n        self.n_heads = n_heads\n        self.d_head = d_model // n_heads\n        self.entropy_alpha = entropy_alpha\n        self.min_sparsity = min_sparsity\n        \n        self.q_proj = nn.Linear(d_model, d_model)\n        self.k_proj = nn.Linear(d_model, d_model)\n        self.v_proj = nn.Linear(d_model, d_model)\n        self.out_proj = nn.Linear(d_model, d_model)\n        \n        # Entropy tracking and threshold parameters\n        self.register_buffer('entropy_ema', torch.ones(n_heads))\n        self.entropy_threshold = nn.Parameter(torch.ones(n_heads) * 2.0)\n        \n    def forward(self, x, mask=None):\n        B, L, D = x.shape\n        \n        q = self.q_proj(x).view(B, L, self.n_heads, self.d_head).transpose(1, 2)\n        k = self.k_proj(x).view(B, L, self.n_heads, self.d_head).transpose(1, 2)\n        v = self.v_proj(x).view(B, L, self.n_heads, self.d_head).transpose(1, 2)\n        \n        # Compute attention scores\n        scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_head)\n        \n        if mask is not None:\n            scores = scores.masked_fill(mask == 0, -1e9)\n            \n        attn_weights = F.softmax(scores, dim=-1)\n        \n        # Compute entropy per head (average across batch and sequence)\n        entropy = -torch.sum(attn_weights * torch.log(attn_weights + 1e-10), dim=-1)\n        head_entropy = entropy.mean(dim=[0, 2])  # Average over batch and sequence\n        \n        # Update entropy EMA\n        if self.training:\n            self.entropy_ema = self.entropy_alpha * self.entropy_ema + (1 - self.entropy_alpha) * head_entropy\n        \n        # Compute sparsity ratio based on entropy\n        sparsity_ratio = torch.sigmoid(self.entropy_ema - self.entropy_threshold)\n        sparsity_ratio = self.min_sparsity + (1 - self.min_sparsity) * sparsity_ratio\n        \n        # Apply entropy-guided sparsity\n        for h in range(self.n_heads):\n            if self.training or True:  # Apply during inference too\n                # Keep top-k attention weights based on sparsity ratio\n                k_keep = max(1, int(L * (1 - sparsity_ratio[h])))\n                _, top_indices = torch.topk(attn_weights[:, h], k_keep, dim=-1)\n                \n                # Create sparse mask\n                sparse_mask = torch.zeros_like(attn_weights[:, h])\n                sparse_mask.scatter_(-1, top_indices, 1.0)\n                \n                # Apply sparsity\n                attn_weights[:, h] = attn_weights[:, h] * sparse_mask\n                # Renormalize\n                attn_weights[:, h] = attn_weights[:, h] / (attn_weights[:, h].sum(dim=-1, keepdim=True) + 1e-10)\n        \n        out = torch.matmul(attn_weights, v)\n        out = out.transpose(1, 2).contiguous().view(B, L, D)\n        \n        return self.out_proj(out)\n\nclass EntropyTransformerBlock(nn.Module):\n    def __init__(self, d_model, n_heads, d_ff, dropout=0.1):\n        super().__init__()\n        self.attention = EntropyGuidedAttention(d_model, n_heads)\n        self.norm1 = nn.LayerNorm(d_model)\n        self.norm2 = nn.LayerNorm(d_model)\n        self.ff = nn.Sequential(\n            nn.Linear(d_model, d_ff),\n            nn.GELU(),\n            nn.Linear(d_ff, d_model),\n            nn.Dropout(dropout)\n        )\n        self.dropout = nn.Dropout(dropout)\n        \n    def forward(self, x, mask=None):\n        x = x + self.dropout(self.attention(self.norm1(x), mask))\n        x = x + self.dropout(self.ff(self.norm2(x)))\n        return x\n\nclass EntropyGPT(nn.Module):\n    def __init__(self, vocab_size, d_model=256, n_heads=8, n_layers=6, max_len=512):\n        super().__init__()\n        self.embedding = nn.Embedding(vocab_size, d_model)\n        self.pos_embedding = nn.Embedding(max_len, d_model)\n        self.blocks = nn.ModuleList([\n            EntropyTransformerBlock(d_model, n_heads, d_model * 4)\n            for _ in range(n_layers)\n        ])\n        self.ln_f = nn.LayerNorm(d_model)\n        self.head = nn.Linear(d_model, vocab_size)\n        \n    def forward(self, x, targets=None):\n        B, L = x.shape\n        pos = torch.arange(L, device=x.device).unsqueeze(0)\n        \n        x = self.embedding(x) + self.pos_embedding(pos)\n        \n        # Causal mask\n        mask = torch.tril(torch.ones(L, L, device=x.device)).unsqueeze(0).unsqueeze(0)\n        \n        for block in self.blocks:\n            x = block(x, mask)\n            \n        x = self.ln_f(x)\n        logits = self.head(x)\n        \n        if targets is not None:\n            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))\n            return logits, loss\n        \n        return logits\n\n# Training setup\nvocab_size = 1000\nmodel = EntropyGPT(vocab_size, d_model=128, n_heads=4, n_layers=4, max_len=64)\noptimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)\n\n# Synthetic data\ndef generate_batch(batch_size=16, seq_len=32):\n    x = torch.randint(0, vocab_size, (batch_size, seq_len))\n    targets = torch.roll(x, -1, dims=1)\n    return x, targets\n\n# Training loop\nmodel.train()\nfor step in range(1000):\n    x, targets = generate_batch()\n    \n    logits, loss = model(x, targets)\n    \n    optimizer.zero_grad()\n    loss.backward()\n    optimizer.step()\n    \n    if step % 100 == 0:\n        # Print entropy statistics\n        entropies = [block.attention.entropy_ema.cpu().numpy() for block in model.blocks]\n        thresholds = [block.attention.entropy_threshold.detach().cpu().numpy() for block in model.blocks]\n        print(f'Step {step}, Loss: {loss.item():.4f}')\n        print(f'Layer 0 entropies: {entropies[0]}')\n        print(f'Layer 0 thresholds: {thresholds[0]}')\n        print()",
+    "parent_architecture": "GPT-2 small",
+    "novelty_claims": [
+      "First use of attention entropy as a dynamic sparsity criterion",
+      "Self-organizing sparse attention that adapts to data patterns",
+      "Learnable entropy thresholds per attention head",
+      "EMA-based entropy tracking for stable sparsity decisions",
+      "Principled method to distinguish signal from noise in attention"
+    ],
+    "expected_behavior": "We should see attention heads naturally segregate into high-sparsity (noisy) and low-sparsity (focused) groups. Training loss should decrease while sparsity patterns emerge. Entropy values should stabilize after initial training, with some heads consistently showing low entropy (focused attention) and others high entropy (becoming sparse). The model should achieve comparable or better perplexity than dense attention while using fewer computations in the attention mechanism."
+  },
+  "stage1_result": {
+    "verdict": "REFUTED",
+    "killed_by": "T2",
+    "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "tags": [],
+    "t2_budget": {
+      "status": "FAIL_FATAL",
+      "test_id": "T2",
+      "estimated_params": 17046016,
+      "estimated_artifact_bytes": 10233556,
+      "budget_remaining_bytes": 6543660,
+      "budget_utilization": 0.6099674701690674,
+      "flops_ratio": 1.0,
+      "estimated_training_seconds": 14843.406974976,
+      "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+      "tags": [],
+      "wall_seconds": 0.0035857089969795197,
+      "attn_flops_ratio": 0.6545454545454545,
+      "mlp_flops_ratio": 0.32727272727272727,
+      "embed_flops_ratio": 0.01818181818181818,
+      "architectural_balance_score": 0.0
+    },
+    "t3_compilation": null,
+    "t4_signal": null,
+    "t5_init": null,
+    "t7_microtrain": null
+  },
+  "stage2_input": null,
+  "stage2_result": null,
+  "verdict": "REFUTED",
+  "kill_hypotheses": [],
+  "experiments_run": 0,
+  "error": null
+}

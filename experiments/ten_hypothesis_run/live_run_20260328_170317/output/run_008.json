@@ -1,0 +1,54 @@
+{
+  "run_id": "h008_c956b9e1",
+  "hypothesis_number": 8,
+  "start_time": 1774714082.1816351,
+  "end_time": 1774714120.1307461,
+  "status": "complete",
+  "idea_json": {
+    "theory_id": "gradient-conditioned-attention-v8",
+    "what_and_why": "Traditional attention mechanisms compute attention weights based solely on current activations. This approach proposes Gradient-Conditioned Attention (GCA), where attention weights are modulated by the recent gradient history of key-value pairs. The core insight is that gradients contain information about which tokens are most useful for prediction - tokens with high gradient magnitudes are actively being updated to improve performance. By incorporating this gradient information directly into the attention computation, the model can dynamically prioritize tokens that are currently most relevant for learning.\n\nThe mechanism works by maintaining exponential moving averages of squared gradients for each token's key and value representations. These gradient statistics are then used to compute 'learning importance scores' that modulate the standard attention weights. This creates a feedback loop where the optimization process directly informs the attention mechanism about which representations are most valuable. Unlike standard attention which only sees current token relationships, GCA leverages the optimization dynamics to guide attention toward tokens that are actively contributing to learning progress.",
+    "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\nfrom torch.utils.data import DataLoader, TensorDataset\nimport matplotlib.pyplot as plt\n\nclass GradientConditionedAttention(nn.Module):\n    def __init__(self, d_model, n_heads, gradient_decay=0.99):\n        super().__init__()\n        self.d_model = d_model\n        self.n_heads = n_heads\n        self.head_dim = d_model // n_heads\n        self.gradient_decay = gradient_decay\n        \n        self.q_proj = nn.Linear(d_model, d_model)\n        self.k_proj = nn.Linear(d_model, d_model)\n        self.v_proj = nn.Linear(d_model, d_model)\n        self.out_proj = nn.Linear(d_model, d_model)\n        \n        # Gradient tracking buffers\n        self.register_buffer('k_grad_ema', torch.zeros(1024, d_model))  # max seq len\n        self.register_buffer('v_grad_ema', torch.zeros(1024, d_model))\n        self.register_buffer('step_count', torch.tensor(0))\n        \n        # Importance projection\n        self.importance_proj = nn.Linear(d_model, n_heads)\n        \n    def forward(self, x):\n        batch_size, seq_len, _ = x.shape\n        \n        q = self.q_proj(x).view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)\n        k = self.k_proj(x).view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)\n        v = self.v_proj(x).view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)\n        \n        # Store k,v for gradient tracking\n        self.current_k = k.clone().detach().requires_grad_(True)\n        self.current_v = v.clone().detach().requires_grad_(True)\n        self.seq_len = seq_len\n        \n        # Compute standard attention scores\n        scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.head_dim)\n        \n        # Apply causal mask\n        mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=1).bool().to(x.device)\n        scores.masked_fill_(mask, float('-inf'))\n        \n        # Compute gradient-based importance scores\n        k_importance = self.importance_proj(self.k_grad_ema[:seq_len]).transpose(0, 1)  # n_heads x seq_len\n        v_importance = self.importance_proj(self.v_grad_ema[:seq_len]).transpose(0, 1)\n        \n        # Combine importance scores and add to attention\n        importance_bias = (k_importance.unsqueeze(-1) + v_importance.unsqueeze(-2)) / 2\n        scores = scores + 0.1 * importance_bias.unsqueeze(0)  # scale factor\n        \n        attn_weights = F.softmax(scores, dim=-1)\n        out = torch.matmul(attn_weights, v)\n        \n        out = out.transpose(1, 2).contiguous().view(batch_size, seq_len, self.d_model)\n        return self.out_proj(out)\n    \n    def update_gradient_stats(self):\n        if hasattr(self, 'current_k') and self.current_k.grad is not None:\n            # Update EMA of squared gradients\n            k_grad_norm = torch.norm(self.current_k.grad, dim=(0, 2, 3))  # seq_len\n            v_grad_norm = torch.norm(self.current_v.grad, dim=(0, 2, 3))\n            \n            seq_len = min(self.seq_len, self.k_grad_ema.size(0))\n            self.k_grad_ema[:seq_len] = (self.gradient_decay * self.k_grad_ema[:seq_len] + \n                                       (1 - self.gradient_decay) * k_grad_norm[:seq_len].unsqueeze(1))\n            self.v_grad_ema[:seq_len] = (self.gradient_decay * self.v_grad_ema[:seq_len] + \n                                       (1 - self.gradient_decay) * v_grad_norm[:seq_len].unsqueeze(1))\n\nclass GCATransformerBlock(nn.Module):\n    def __init__(self, d_model, n_heads, d_ff):\n        super().__init__()\n        self.attn = GradientConditionedAttention(d_model, n_heads)\n        self.norm1 = nn.LayerNorm(d_model)\n        self.norm2 = nn.LayerNorm(d_model)\n        \n        self.ff = nn.Sequential(\n            nn.Linear(d_model, d_ff),\n            nn.ReLU(),\n            nn.Linear(d_ff, d_model)\n        )\n        \n    def forward(self, x):\n        x = x + self.attn(self.norm1(x))\n        x = x + self.ff(self.norm2(x))\n        return x\n\nclass GCATransformer(nn.Module):\n    def __init__(self, vocab_size=1000, d_model=256, n_heads=8, n_layers=6, max_len=512):\n        super().__init__()\n        self.embedding = nn.Embedding(vocab_size, d_model)\n        self.pos_embedding = nn.Parameter(torch.randn(max_len, d_model) * 0.02)\n        self.blocks = nn.ModuleList([GCATransformerBlock(d_model, n_heads, d_model*4) for _ in range(n_layers)])\n        self.norm = nn.LayerNorm(d_model)\n        self.lm_head = nn.Linear(d_model, vocab_size)\n        \n    def forward(self, x):\n        seq_len = x.size(1)\n        x = self.embedding(x) + self.pos_embedding[:seq_len]\n        \n        for block in self.blocks:\n            x = block(x)\n            \n        x = self.norm(x)\n        return self.lm_head(x)\n    \n    def update_all_gradient_stats(self):\n        for block in self.blocks:\n            block.attn.update_gradient_stats()\n\n# Training setup\ndef create_dummy_data(vocab_size=1000, seq_len=128, num_samples=1000):\n    data = torch.randint(0, vocab_size, (num_samples, seq_len))\n    return data\n\ndef train_model():\n    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\n    \n    # Model setup\n    model = GCATransformer(vocab_size=1000, d_model=256, n_heads=8, n_layers=4).to(device)\n    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0.01)\n    \n    # Data\n    train_data = create_dummy_data()\n    dataloader = DataLoader(TensorDataset(train_data), batch_size=16, shuffle=True)\n    \n    losses = []\n    \n    model.train()\n    for epoch in range(20):\n        epoch_loss = 0\n        for batch_idx, (batch,) in enumerate(dataloader):\n            batch = batch.to(device)\n            \n            optimizer.zero_grad()\n            \n            # Forward pass\n            logits = model(batch[:, :-1])\n            targets = batch[:, 1:]\n            \n            loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), targets.reshape(-1))\n            \n            # Backward pass\n            loss.backward()\n            \n            # Update gradient statistics BEFORE optimizer step\n            model.update_all_gradient_stats()\n            \n            optimizer.step()\n            \n            epoch_loss += loss.item()\n            \n            if batch_idx % 10 == 0:\n                print(f'Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item():.4f}')\n        \n        avg_loss = epoch_loss / len(dataloader)\n        losses.append(avg_loss)\n        print(f'Epoch {epoch} completed, Avg Loss: {avg_loss:.4f}')\n    \n    return losses\n\nif __name__ == '__main__':\n    losses = train_model()\n    print('Training completed!')",
+    "parent_architecture": "GPT-2 small",
+    "novelty_claims": [
+      "First attention mechanism to incorporate gradient history into attention weight computation",
+      "Dynamic attention prioritization based on learning progress rather than just token similarity",
+      "Exponential moving average of gradient norms to create learning importance scores",
+      "Feedback loop between optimization dynamics and attention mechanism",
+      "Gradient-conditioned bias terms that modulate standard attention scores"
+    ],
+    "expected_behavior": "If successful, we should see faster initial convergence as the model quickly identifies which tokens are most important for learning. Training curves should show steeper early drops in loss compared to standard transformers. The gradient importance scores should stabilize after several epochs, creating consistent attention patterns. We may observe more focused attention on informative tokens and reduced attention on less relevant positions. The model might also show better sample efficiency, requiring fewer training steps to reach comparable performance."
+  },
+  "stage1_result": {
+    "verdict": "REFUTED",
+    "killed_by": "T2",
+    "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "tags": [],
+    "t2_budget": {
+      "status": "FAIL_FATAL",
+      "test_id": "T2",
+      "estimated_params": 17046016,
+      "estimated_artifact_bytes": 10234217,
+      "budget_remaining_bytes": 6542999,
+      "budget_utilization": 0.6100068688392639,
+      "flops_ratio": 1.0,
+      "estimated_training_seconds": 14843.406974976,
+      "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+      "tags": [],
+      "wall_seconds": 0.0028809999930672348,
+      "attn_flops_ratio": 0.6545454545454545,
+      "mlp_flops_ratio": 0.32727272727272727,
+      "embed_flops_ratio": 0.01818181818181818,
+      "architectural_balance_score": 0.0
+    },
+    "t3_compilation": null,
+    "t4_signal": null,
+    "t5_init": null,
+    "t7_microtrain": null
+  },
+  "stage2_input": null,
+  "stage2_result": null,
+  "verdict": "REFUTED",
+  "kill_hypotheses": [],
+  "experiments_run": 0,
+  "error": null
+}

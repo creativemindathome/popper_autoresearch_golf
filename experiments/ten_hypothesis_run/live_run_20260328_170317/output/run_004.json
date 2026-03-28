@@ -1,0 +1,54 @@
+{
+  "run_id": "h004_7cb113a4",
+  "hypothesis_number": 4,
+  "start_time": 1774713920.5105972,
+  "end_time": 1774713952.675574,
+  "status": "complete",
+  "idea_json": {
+    "theory_id": "fourier-attention-gates",
+    "what_and_why": "Traditional attention mechanisms compute pairwise similarities between all tokens, creating O(n\u00b2) complexity. This architecture replaces standard attention with Fourier Transform-based global attention gates that operate in frequency domain. The key insight is that many natural language patterns (syntax, rhythm, periodicity) have strong frequency domain representations. By applying FFT to token embeddings, we can identify global patterns more efficiently than pairwise attention.\n\nThe mechanism works by: (1) Taking FFT of token embeddings along sequence dimension, (2) Learning frequency-domain filters that act as global attention gates, (3) Applying inverse FFT to get spatially-aware representations. This achieves global context awareness with O(n log n) complexity. The frequency filters can learn to attend to different linguistic scales - high frequencies for local syntax, low frequencies for document structure.",
+    "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\nfrom torch.utils.data import DataLoader, TensorDataset\n\nclass FourierAttentionBlock(nn.Module):\n    def __init__(self, d_model, num_freq_filters=64):\n        super().__init__()\n        self.d_model = d_model\n        self.num_freq_filters = num_freq_filters\n        \n        # Frequency domain gates\n        self.freq_gates = nn.Parameter(torch.randn(num_freq_filters, d_model) * 0.02)\n        self.freq_bias = nn.Parameter(torch.zeros(num_freq_filters, d_model))\n        \n        # Mixing weights for combining frequency components\n        self.freq_mix = nn.Linear(num_freq_filters, 1, bias=False)\n        \n        # Traditional components\n        self.norm1 = nn.LayerNorm(d_model)\n        self.norm2 = nn.LayerNorm(d_model)\n        self.ffn = nn.Sequential(\n            nn.Linear(d_model, 4 * d_model),\n            nn.GELU(),\n            nn.Linear(4 * d_model, d_model)\n        )\n        \n    def forward(self, x):\n        # x: [batch, seq_len, d_model]\n        residual = x\n        x = self.norm1(x)\n        \n        # Apply FFT along sequence dimension\n        x_freq = torch.fft.fft(x, dim=1)  # Complex tensor\n        seq_len = x.size(1)\n        \n        # Take only meaningful frequency components\n        n_freqs = min(self.num_freq_filters, seq_len // 2 + 1)\n        x_freq_trunc = x_freq[:, :n_freqs, :]\n        \n        # Apply frequency-domain gates\n        gates = torch.sigmoid(self.freq_gates[:n_freqs] + self.freq_bias[:n_freqs])\n        x_gated = x_freq_trunc * gates.unsqueeze(0)\n        \n        # Reconstruct full frequency representation\n        x_freq_full = torch.zeros_like(x_freq)\n        x_freq_full[:, :n_freqs, :] = x_gated\n        \n        # Inverse FFT\n        x_spatial = torch.fft.ifft(x_freq_full, dim=1).real\n        \n        # Mix frequency information\n        freq_weights = F.softmax(self.freq_mix.weight[:n_freqs], dim=0)\n        x_mixed = torch.sum(x_gated.real * freq_weights.view(1, -1, 1), dim=1, keepdim=True)\n        x_mixed = x_mixed.expand(-1, seq_len, -1)\n        \n        # Combine spatial and frequency representations\n        x = x_spatial + 0.1 * x_mixed\n        x = x + residual\n        \n        # FFN\n        residual = x\n        x = self.norm2(x)\n        x = self.ffn(x)\n        x = x + residual\n        \n        return x\n\nclass FourierGPT(nn.Module):\n    def __init__(self, vocab_size=1000, d_model=256, num_layers=6, max_seq_len=512):\n        super().__init__()\n        self.d_model = d_model\n        self.max_seq_len = max_seq_len\n        \n        self.token_embedding = nn.Embedding(vocab_size, d_model)\n        self.pos_embedding = nn.Embedding(max_seq_len, d_model)\n        \n        self.layers = nn.ModuleList([\n            FourierAttentionBlock(d_model) for _ in range(num_layers)\n        ])\n        \n        self.final_norm = nn.LayerNorm(d_model)\n        self.output_projection = nn.Linear(d_model, vocab_size)\n        \n        self.apply(self._init_weights)\n        \n    def _init_weights(self, module):\n        if isinstance(module, nn.Linear):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            if module.bias is not None:\n                torch.nn.init.zeros_(module.bias)\n        elif isinstance(module, nn.Embedding):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            \n    def forward(self, x, targets=None):\n        seq_len = x.size(1)\n        pos_ids = torch.arange(seq_len, device=x.device)\n        \n        x = self.token_embedding(x) + self.pos_embedding(pos_ids)\n        \n        for layer in self.layers:\n            x = layer(x)\n            \n        x = self.final_norm(x)\n        logits = self.output_projection(x)\n        \n        loss = None\n        if targets is not None:\n            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))\n            \n        return logits, loss\n\n# Training setup\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = FourierGPT(vocab_size=1000, d_model=256, num_layers=6).to(device)\noptimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.01)\n\n# Generate synthetic data\nbatch_size = 8\nseq_len = 128\nnum_batches = 100\n\n# Create training data with some periodic patterns\ntrain_data = []\nfor _ in range(num_batches):\n    # Add some periodic structure to test frequency domain learning\n    base = torch.randint(0, 1000, (batch_size, seq_len))\n    # Add periodic pattern every 16 tokens\n    for i in range(0, seq_len, 16):\n        if i + 8 < seq_len:\n            base[:, i:i+8] = torch.randint(100, 200, (batch_size, 8))\n    train_data.append(base)\n\n# Training loop\nmodel.train()\ntrain_losses = []\n\nfor epoch in range(20):\n    epoch_losses = []\n    \n    for batch_idx, batch in enumerate(train_data):\n        batch = batch.to(device)\n        inputs = batch[:, :-1]\n        targets = batch[:, 1:]\n        \n        optimizer.zero_grad()\n        logits, loss = model(inputs, targets)\n        loss.backward()\n        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)\n        optimizer.step()\n        \n        epoch_losses.append(loss.item())\n        \n    avg_loss = sum(epoch_losses) / len(epoch_losses)\n    train_losses.append(avg_loss)\n    print(f'Epoch {epoch+1}, Loss: {avg_loss:.4f}')\n\nprint('Training completed!')\nprint(f'Final loss: {train_losses[-1]:.4f}')",
+    "parent_architecture": "GPT-2 small",
+    "novelty_claims": [
+      "Replaces O(n\u00b2) attention with O(n log n) FFT-based global attention",
+      "Learns frequency-domain gates that capture linguistic patterns at different scales",
+      "Combines spatial and frequency domain representations for richer context modeling",
+      "Uses learnable frequency filters instead of fixed attention patterns",
+      "Exploits natural language's periodic/rhythmic structure through frequency analysis"
+    ],
+    "expected_behavior": "Should show faster convergence on sequences with periodic patterns. Training loss should decrease more rapidly than standard GPT on synthetic data with embedded periodicities. Memory usage should scale better with sequence length. Frequency gates should learn interpretable patterns - low frequencies for global structure, high frequencies for local syntax. May show unique capability to model long-range dependencies in structured text."
+  },
+  "stage1_result": {
+    "verdict": "REFUTED",
+    "killed_by": "T2",
+    "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "tags": [],
+    "t2_budget": {
+      "status": "FAIL_FATAL",
+      "test_id": "T2",
+      "estimated_params": 17046016,
+      "estimated_artifact_bytes": 10232990,
+      "budget_remaining_bytes": 6544226,
+      "budget_utilization": 0.6099337339401245,
+      "flops_ratio": 1.0,
+      "estimated_training_seconds": 14843.406974976,
+      "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+      "tags": [],
+      "wall_seconds": 0.0019471659907139838,
+      "attn_flops_ratio": 0.6545454545454545,
+      "mlp_flops_ratio": 0.32727272727272727,
+      "embed_flops_ratio": 0.01818181818181818,
+      "architectural_balance_score": 0.0
+    },
+    "t3_compilation": null,
+    "t4_signal": null,
+    "t5_init": null,
+    "t7_microtrain": null
+  },
+  "stage2_input": null,
+  "stage2_result": null,
+  "verdict": "REFUTED",
+  "kill_hypotheses": [],
+  "experiments_run": 0,
+  "error": null
+}

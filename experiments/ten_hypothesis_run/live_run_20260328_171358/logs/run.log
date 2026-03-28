@@ -1,0 +1,48 @@
+[2026-03-28T17:13:58.919393] [INFO] ======================================================================
+[2026-03-28T17:13:58.919491] [INFO] FULL LIVE EXPERIMENT WITH SEPARATE STAGE MODELS
+[2026-03-28T17:13:58.919525] [INFO] ======================================================================
+[2026-03-28T17:13:58.919552] [INFO] Output directory: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_171358
+[2026-03-28T17:13:58.919577] [INFO] Stage 0 (Ideation): claude-sonnet-4-20250514
+[2026-03-28T17:13:58.919601] [INFO] Stage 2 (Falsifier): ENABLED
+[2026-03-28T17:13:58.919624] [INFO]   Model: claude-sonnet-4-20250514
+[2026-03-28T17:13:58.919650] [INFO]   Max hypotheses: 5
+[2026-03-28T17:13:58.919671] [INFO] 
+[2026-03-28T17:13:58.919695] [INFO] Starting experiment: 10 hypotheses
+[2026-03-28T17:13:58.919718] [INFO] Estimated time: 30-50 minutes
+[2026-03-28T17:13:58.919740] [INFO] 
+[2026-03-28T17:13:58.919767] [INFO] 
+======================================================================
+[2026-03-28T17:13:58.919788] [INFO] HYPOTHESIS 1/10
+[2026-03-28T17:13:58.919811] [INFO] ======================================================================
+[2026-03-28T17:13:58.919852] [INFO] 
+[2026-03-28T17:13:58.919877] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:13:58.919899] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:13:58.919920] [INFO]   Hypothesis #1
+[2026-03-28T17:13:58.919942] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:13:58.919963] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:14:48.259509] [INFO] ✓ Generated hypothesis #1: dynamic-attention-sparsity
+[2026-03-28T17:14:48.260536] [INFO]   Parameter estimate: Explicit count: ~6.8M parameters (base GPT-2 6.5M + 0.3M for sparsity gates, verified <10M)
+[2026-03-28T17:14:48.260636] [INFO]   Novelty: 3 claims
+[2026-03-28T17:14:48.260762] [INFO]   Code: ~231 lines
+[2026-03-28T17:14:48.261048] [INFO]   ✓ Parameter estimate 6.8M is within 10M budget
+[2026-03-28T17:14:48.261110] [INFO]   ✓ Parameter estimate 6.5M is within 10M budget
+[2026-03-28T17:14:48.261146] [INFO]   ✓ Parameter estimate 0.3M is within 10M budget
+[2026-03-28T17:14:48.261182] [INFO]   ✓ Parameter estimate 10.0M is within 10M budget
+[2026-03-28T17:14:48.261327] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:14:48.261761] [ERROR] ✗ Hypothesis #1 failed: 'str' object has no attribute 'get'
+[2026-03-28T17:14:48.261851] [INFO] 
+✓ Hypothesis #1 complete in 49.3s
+[2026-03-28T17:14:48.261892] [INFO]   Verdict: None
+[2026-03-28T17:14:48.263595] [INFO]   [Graph Sync] Created new node: dynamic-attention-sparsity
+[2026-03-28T17:14:48.263962] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:14:51.269013] [INFO] 
+======================================================================
+[2026-03-28T17:14:51.269254] [INFO] HYPOTHESIS 2/10
+[2026-03-28T17:14:51.269491] [INFO] ======================================================================
+[2026-03-28T17:14:51.269582] [INFO] 
+[2026-03-28T17:14:51.269624] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:14:51.269656] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:14:51.269687] [INFO]   Hypothesis #2
+[2026-03-28T17:14:51.269716] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:14:51.269742] [INFO] Calling Anthropic API (Sonnet)...

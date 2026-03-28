@@ -1,0 +1,54 @@
+{
+  "run_id": "h002_5a459764",
+  "hypothesis_number": 2,
+  "start_time": 1774713835.416297,
+  "end_time": 1774713876.196075,
+  "status": "complete",
+  "idea_json": {
+    "theory_id": "differential-attention-routing",
+    "what_and_why": "Most transformer attention is redundant - different heads often learn similar patterns, and many attention weights approach uniform distribution (entropy collapse). This architecture introduces 'Differential Attention Routing' where attention heads are dynamically pruned and merged during forward pass based on their information content divergence. Instead of fixed multi-head attention, we maintain a pool of attention 'kernels' and route tokens through only the most informative subset, determined by measuring KL divergence of attention distributions from uniform. The key insight is that attention entropy is a real-time signal of head utility - low entropy heads are doing useful work, high entropy heads are noise.\n\nThe mechanism works by computing attention weights normally, measuring entropy, then using a learned router to select which heads to actually apply and which to bypass with residual connections. This creates a dynamic, sparse attention pattern that adapts per layer and per token, potentially achieving better efficiency than fixed architectures while maintaining expressiveness. The router itself is trained with a combination of task loss and an entropy-based auxiliary loss that rewards diverse, low-entropy attention patterns.",
+    "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\nfrom torch.utils.data import DataLoader, TensorDataset\n\nclass DifferentialAttentionHead(nn.Module):\n    def __init__(self, d_model, d_k):\n        super().__init__()\n        self.d_k = d_k\n        self.q_proj = nn.Linear(d_model, d_k)\n        self.k_proj = nn.Linear(d_model, d_k)\n        self.v_proj = nn.Linear(d_model, d_k)\n        \n    def forward(self, x):\n        q, k, v = self.q_proj(x), self.k_proj(x), self.v_proj(x)\n        attn_weights = torch.softmax(q @ k.transpose(-2, -1) / math.sqrt(self.d_k), dim=-1)\n        \n        # Compute attention entropy\n        eps = 1e-8\n        entropy = -torch.sum(attn_weights * torch.log(attn_weights + eps), dim=-1).mean()\n        \n        output = attn_weights @ v\n        return output, attn_weights, entropy\n\nclass DifferentialAttentionLayer(nn.Module):\n    def __init__(self, d_model, n_heads, head_pool_size=16):\n        super().__init__()\n        self.d_model = d_model\n        self.n_heads = n_heads\n        self.head_pool_size = head_pool_size\n        self.d_k = d_model // n_heads\n        \n        # Pool of attention heads (more than we'll use)\n        self.head_pool = nn.ModuleList([\n            DifferentialAttentionHead(d_model, self.d_k) \n            for _ in range(head_pool_size)\n        ])\n        \n        # Router network\n        self.router = nn.Sequential(\n            nn.Linear(d_model, head_pool_size),\n            nn.LayerNorm(head_pool_size),\n            nn.ReLU(),\n            nn.Linear(head_pool_size, head_pool_size)\n        )\n        \n        self.output_proj = nn.Linear(d_model, d_model)\n        self.norm = nn.LayerNorm(d_model)\n        \n    def forward(self, x):\n        batch_size, seq_len, d_model = x.shape\n        \n        # Compute routing scores based on input\n        route_scores = self.router(x.mean(dim=1))  # [batch, head_pool_size]\n        \n        # Select top-k heads using Gumbel softmax for differentiability\n        temperature = 0.5\n        gumbel_noise = torch.rand_like(route_scores).log().neg().log().neg()\n        route_logits = (route_scores + gumbel_noise) / temperature\n        route_weights = F.softmax(route_logits, dim=-1)\n        \n        # Get top-k head indices\n        _, top_indices = torch.topk(route_weights, self.n_heads, dim=-1)\n        \n        outputs = []\n        entropies = []\n        \n        for i in range(batch_size):\n            batch_outputs = []\n            batch_entropies = []\n            \n            for head_idx in top_indices[i]:\n                head_out, _, entropy = self.head_pool[head_idx](x[i:i+1])\n                batch_outputs.append(head_out)\n                batch_entropies.append(entropy)\n            \n            outputs.append(torch.cat(batch_outputs, dim=-1))\n            entropies.extend(batch_entropies)\n        \n        # Combine outputs\n        multi_head_out = torch.cat(outputs, dim=0)\n        output = self.output_proj(multi_head_out)\n        \n        # Residual connection and normalization\n        output = self.norm(x + output)\n        \n        avg_entropy = sum(entropies) / len(entropies)\n        return output, avg_entropy\n\nclass DifferentialTransformerBlock(nn.Module):\n    def __init__(self, d_model, n_heads, d_ff):\n        super().__init__()\n        self.attention = DifferentialAttentionLayer(d_model, n_heads)\n        self.feed_forward = nn.Sequential(\n            nn.Linear(d_model, d_ff),\n            nn.ReLU(),\n            nn.Linear(d_ff, d_model)\n        )\n        self.norm = nn.LayerNorm(d_model)\n        \n    def forward(self, x):\n        attn_out, entropy = self.attention(x)\n        ff_out = self.feed_forward(attn_out)\n        output = self.norm(attn_out + ff_out)\n        return output, entropy\n\nclass DifferentialGPT(nn.Module):\n    def __init__(self, vocab_size=1000, d_model=256, n_layers=6, n_heads=8, d_ff=1024, max_seq_len=128):\n        super().__init__()\n        self.d_model = d_model\n        \n        self.token_embedding = nn.Embedding(vocab_size, d_model)\n        self.pos_embedding = nn.Parameter(torch.randn(max_seq_len, d_model))\n        \n        self.blocks = nn.ModuleList([\n            DifferentialTransformerBlock(d_model, n_heads, d_ff)\n            for _ in range(n_layers)\n        ])\n        \n        self.ln_f = nn.LayerNorm(d_model)\n        self.lm_head = nn.Linear(d_model, vocab_size)\n        \n    def forward(self, x):\n        seq_len = x.shape[1]\n        \n        # Embeddings\n        token_emb = self.token_embedding(x)\n        pos_emb = self.pos_embedding[:seq_len]\n        x = token_emb + pos_emb\n        \n        entropies = []\n        for block in self.blocks:\n            x, entropy = block(x)\n            entropies.append(entropy)\n        \n        x = self.ln_f(x)\n        logits = self.lm_head(x)\n        \n        return logits, entropies\n\n# Training script\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\n\n# Create synthetic data\nvocab_size = 1000\nseq_len = 64\nbatch_size = 16\nn_samples = 1000\n\ndata = torch.randint(0, vocab_size, (n_samples, seq_len))\ntargets = torch.roll(data, -1, dims=1)\ndataset = TensorDataset(data, targets)\ndataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)\n\n# Initialize model\nmodel = DifferentialGPT(vocab_size=vocab_size, d_model=256, n_layers=4, n_heads=4, d_ff=512, max_seq_len=seq_len).to(device)\noptimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)\nscheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100)\n\n# Training loop\nmodel.train()\nfor epoch in range(100):\n    total_loss = 0\n    total_entropy_loss = 0\n    \n    for batch_idx, (data_batch, targets_batch) in enumerate(dataloader):\n        data_batch, targets_batch = data_batch.to(device), targets_batch.to(device)\n        \n        optimizer.zero_grad()\n        \n        logits, entropies = model(data_batch)\n        \n        # Language modeling loss\n        lm_loss = F.cross_entropy(logits.reshape(-1, vocab_size), targets_batch.reshape(-1))\n        \n        # Entropy regularization (encourage diverse, low-entropy attention)\n        entropy_loss = sum(entropies) / len(entropies)\n        entropy_regularization = 0.01 * entropy_loss  # Penalize high entropy\n        \n        total_loss_val = lm_loss + entropy_regularization\n        total_loss_val.backward()\n        \n        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)\n        optimizer.step()\n        \n        total_loss += lm_loss.item()\n        total_entropy_loss += entropy_loss.item()\n    \n    scheduler.step()\n    \n    if epoch % 10 == 0:\n        avg_loss = total_loss / len(dataloader)\n        avg_entropy = total_entropy_loss / len(dataloader)\n        print(f'Epoch {epoch}: Loss = {avg_loss:.4f}, Avg Entropy = {avg_entropy:.4f}')\n\nprint('Training completed!')",
+    "parent_architecture": "GPT-2 small",
+    "novelty_claims": [
+      "Dynamic attention head selection based on real-time entropy measurement",
+      "Differentiable routing network that selects optimal attention kernels per forward pass",
+      "Entropy-based auxiliary loss for training attention diversity",
+      "Pool of attention heads larger than active set, enabling specialization",
+      "Per-token adaptive sparsity without fixed sparsity patterns"
+    ],
+    "expected_behavior": "Training should show decreasing language modeling loss with oscillating entropy values that gradually stabilize at low values (indicating focused attention). The router should learn to consistently select different head combinations for different input patterns. We expect faster convergence than baseline GPT due to reduced attention noise, and the entropy regularization should prevent attention collapse while maintaining task performance. Memory usage should be similar to baseline despite larger head pool due to sparse activation."
+  },
+  "stage1_result": {
+    "verdict": "REFUTED",
+    "killed_by": "T2",
+    "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "tags": [],
+    "t2_budget": {
+      "status": "FAIL_FATAL",
+      "test_id": "T2",
+      "estimated_params": 17046016,
+      "estimated_artifact_bytes": 10234393,
+      "budget_remaining_bytes": 6542823,
+      "budget_utilization": 0.6100173592567444,
+      "flops_ratio": 1.0,
+      "estimated_training_seconds": 14843.406974976,
+      "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+      "tags": [],
+      "wall_seconds": 0.022067332989536226,
+      "attn_flops_ratio": 0.6545454545454545,
+      "mlp_flops_ratio": 0.32727272727272727,
+      "embed_flops_ratio": 0.01818181818181818,
+      "architectural_balance_score": 0.0
+    },
+    "t3_compilation": null,
+    "t4_signal": null,
+    "t5_init": null,
+    "t7_microtrain": null
+  },
+  "stage2_input": null,
+  "stage2_result": null,
+  "verdict": "REFUTED",
+  "kill_hypotheses": [],
+  "experiments_run": 0,
+  "error": null
+}

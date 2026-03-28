@@ -16,6 +16,24 @@ def choose_knowledge_dir(explicit: Optional[Path], *, cwd: Path) -> Optional[Pat
     return None
 
 
+def get_working_graph_path(knowledge_dir: Path) -> Path:
+    """Get the path to the working graph (graph.json).
+
+    The working graph is where all falsification results are stored.
+    This is separate from the seed graph which is read-only.
+    """
+    return knowledge_dir / "graph.json"
+
+
+def get_seed_graph_path(knowledge_dir: Path) -> Path:
+    """Get the path to the seed graph (seed_parameter_golf_kg.json).
+
+    The seed graph contains the base knowledge hierarchy and is read-only.
+    It should never be modified by falsification runs.
+    """
+    return knowledge_dir / "seed_parameter_golf_kg.json"
+
+
 @dataclass(frozen=True)
 class KnowledgeContext:
     summary: str
@@ -23,14 +41,89 @@ class KnowledgeContext:
 
 
 def load_knowledge_context(knowledge_dir: Path, *, max_chars: int = 18_000) -> str:
+    """Load knowledge context from the working graph (graph.json).
+
+    The working graph accumulates all falsification results and is the
+    source of truth for what has been tried and what failed. The seed
+    graph (seed_parameter_golf_kg.json) is read-only and provides the
+    base knowledge hierarchy.
+
+    Priority:
+    1. graph.json - Working graph with all falsification results
+    2. outbox/ideator/ - Generated ideas
+    3. outbox/falsifier/ - Falsification outputs
+    4. seed_parameter_golf_kg.json - Base knowledge (read-only)
+    """
     if not knowledge_dir.exists():
         return ""
 
     structured_lines: List[str] = []
     raw_chunks: List[str] = []
 
+    # Priority 1: Working graph (graph.json) - contains falsification results
+    working_graph = knowledge_dir / "graph.json"
+    if working_graph.exists():
+        text = _safe_read_text(working_graph)
+        if text.strip() and text != '{"nodes": {}, "edges": [], "version": "1.0"}':
+            # Parse working graph and summarize nodes with falsification results
+            try:
+                graph = json.loads(text)
+                nodes = graph.get("nodes", {})
+                # Prioritize REFUTED and PASSED nodes - these are most informative
+                for node_id, node in sorted(nodes.items(),
+                    key=lambda x: (0 if x[1].get("status") in ("REFUTED", "STAGE_2_PASSED") else 1)):
+                    status = node.get("status", "UNKNOWN")
+                    idea_id = node.get("idea_id", node_id)
+                    title = node.get("title", "")
+
+                    # Build rich summary for failed/passed ideas
+                    if status in ("REFUTED", "STAGE_2_PASSED", "STAGE_1_PASSED"):
+                        falsification = node.get("falsification", {})
+                        killed_by = falsification.get("killed_by", "")
+                        kill_reason = falsification.get("kill_reason", "")
+                        outcome = falsification.get("outcome", "")
+
+                        # Include metrics if available
+                        metrics = falsification.get("metrics", {})
+                        bpb = metrics.get("bits_per_byte")
+                        loss = metrics.get("loss_at_100")
+
+                        summary_parts = [f"- {idea_id}: {title} [{status}]"]
+                        if killed_by:
+                            summary_parts.append(f"killed_by={killed_by}")
+                        if outcome:
+                            summary_parts.append(f"outcome={outcome}")
+                        if bpb:
+                            summary_parts.append(f"bpb={bpb:.2f}")
+                        if kill_reason:
+                            # Truncate kill reason
+                            reason = kill_reason[:60] + "..." if len(kill_reason) > 60 else kill_reason
+                            summary_parts.append(f"reason='{reason}'")
+
+                        structured_lines.append(" ".join(summary_parts))
+                    else:
+                        # Simple summary for other statuses
+                        structured_lines.append(f"- {idea_id}: {title} [{status}]")
+            except json.JSONDecodeError:
+                pass
+
+    # Priority 2: Seed graph for base knowledge
+    seed_graph = knowledge_dir / "seed_parameter_golf_kg.json"
+    if seed_graph.exists():
+        text = _safe_read_text(seed_graph)
+        parsed = _try_summarize_json("seed_parameter_golf_kg.json", text)
+        if parsed:
+            structured_lines.append("\n## Base Knowledge (Seed Graph)")
+            structured_lines.extend(parsed)
+
+    # Priority 3: Other files (outbox, etc.) - but skip empty graph.json
     for file in _iter_knowledge_files(knowledge_dir):
         rel = file.relative_to(knowledge_dir)
+
+        # Skip files we've already processed
+        if file.name == "graph.json" or file.name == "seed_parameter_golf_kg.json":
+            continue
+
         text = _safe_read_text(file)
         if not text.strip():
             continue
@@ -46,9 +139,9 @@ def load_knowledge_context(knowledge_dir: Path, *, max_chars: int = 18_000) -> s
 
     combined = ""
     if summary:
-        combined += "## Knowledge Graph (structured)\n" + summary + "\n"
+        combined += "## Knowledge Graph (Working Graph with Falsification Results)\n" + summary + "\n"
     if raw:
-        combined += "## Knowledge Graph (raw snippets)\n" + raw + "\n"
+        combined += "## Knowledge Graph (Raw Snippets)\n" + raw + "\n"
 
     if len(combined) <= max_chars:
         return combined.strip()

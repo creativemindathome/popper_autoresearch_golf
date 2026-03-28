@@ -1,0 +1,9 @@
+{
+  "theory_id": "baseline_gpt_test",
+  "what_and_why": "Clean baseline GPT implementation with proper initialization. Standard transformer architecture with LayerNorm, proper weight initialization (std=0.02), and residual connections. Should pass all Stage 1 gates.",
+  "config_delta": {},
+  "proposed_train_gpt": "",
+  "sota_train_gpt": "",
+  "train_gpt_path": "tests/candidates/good_student.py",
+  "theory_type": "architectural"
+}

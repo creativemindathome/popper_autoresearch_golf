@@ -1,0 +1,54 @@
+{
+  "run_id": "h001_90ab25ea",
+  "hypothesis_number": 1,
+  "start_time": 1774713567.5686631,
+  "end_time": 1774713603.743241,
+  "status": "complete",
+  "idea_json": {
+    "theory_id": "adaptive-depth-early-exit",
+    "what_and_why": "Current transformers process every token through all layers equally, wasting computation on 'easy' tokens that could be resolved earlier. This architecture introduces learnable early-exit points at each layer with adaptive routing based on prediction confidence. Each layer has an auxiliary classifier that estimates whether the current representation is sufficient for accurate next-token prediction. Tokens with high confidence scores exit early, while uncertain tokens continue through deeper layers. The key insight is that not all tokens require the same computational depth - common words in predictable contexts need less processing than rare words or complex reasoning steps.\n\nThe mechanism works through confidence-weighted routing: each layer produces both a transformed representation and a confidence score. If confidence exceeds a learned threshold, the token exits with its current representation contributing to the final output. Otherwise, it continues processing. During training, we use a multi-objective loss combining next-token prediction at each exit point with a computational efficiency penalty. This creates natural pressure to exit early when possible while maintaining accuracy. The architecture learns which linguistic patterns can be resolved at shallow depths versus those requiring deep processing.",
+    "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nfrom torch.optim import AdamW\nimport math\n\nclass AdaptiveExitAttention(nn.Module):\n    def __init__(self, d_model, n_heads):\n        super().__init__()\n        self.d_model = d_model\n        self.n_heads = n_heads\n        self.d_k = d_model // n_heads\n        \n        self.q_proj = nn.Linear(d_model, d_model)\n        self.k_proj = nn.Linear(d_model, d_model)\n        self.v_proj = nn.Linear(d_model, d_model)\n        self.out_proj = nn.Linear(d_model, d_model)\n        \n    def forward(self, x):\n        B, T, C = x.shape\n        q = self.q_proj(x).view(B, T, self.n_heads, self.d_k).transpose(1, 2)\n        k = self.k_proj(x).view(B, T, self.n_heads, self.d_k).transpose(1, 2)\n        v = self.v_proj(x).view(B, T, self.n_heads, self.d_k).transpose(1, 2)\n        \n        att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(self.d_k))\n        att = att.masked_fill(torch.tril(torch.ones(T, T)) == 0, float('-inf'))\n        att = F.softmax(att, dim=-1)\n        \n        y = att @ v\n        y = y.transpose(1, 2).contiguous().view(B, T, C)\n        return self.out_proj(y)\n\nclass ExitLayer(nn.Module):\n    def __init__(self, d_model, vocab_size):\n        super().__init__()\n        self.classifier = nn.Linear(d_model, vocab_size)\n        self.confidence = nn.Sequential(\n            nn.Linear(d_model, d_model // 4),\n            nn.ReLU(),\n            nn.Linear(d_model // 4, 1),\n            nn.Sigmoid()\n        )\n        \n    def forward(self, x):\n        logits = self.classifier(x)\n        conf = self.confidence(x)\n        return logits, conf\n\nclass AdaptiveDepthLayer(nn.Module):\n    def __init__(self, d_model, n_heads, vocab_size):\n        super().__init__()\n        self.attn = AdaptiveExitAttention(d_model, n_heads)\n        self.mlp = nn.Sequential(\n            nn.Linear(d_model, 4 * d_model),\n            nn.GELU(),\n            nn.Linear(4 * d_model, d_model)\n        )\n        self.ln1 = nn.LayerNorm(d_model)\n        self.ln2 = nn.LayerNorm(d_model)\n        self.exit_head = ExitLayer(d_model, vocab_size)\n        \n    def forward(self, x):\n        x = x + self.attn(self.ln1(x))\n        x = x + self.mlp(self.ln2(x))\n        logits, confidence = self.exit_head(x)\n        return x, logits, confidence\n\nclass AdaptiveDepthTransformer(nn.Module):\n    def __init__(self, vocab_size=50257, d_model=512, n_heads=8, n_layers=6):\n        super().__init__()\n        self.vocab_size = vocab_size\n        self.d_model = d_model\n        self.n_layers = n_layers\n        \n        self.wte = nn.Embedding(vocab_size, d_model)\n        self.wpe = nn.Embedding(1024, d_model)\n        self.layers = nn.ModuleList([\n            AdaptiveDepthLayer(d_model, n_heads, vocab_size) \n            for _ in range(n_layers)\n        ])\n        self.ln_f = nn.LayerNorm(d_model)\n        self.lm_head = nn.Linear(d_model, vocab_size)\n        \n        # Learnable exit thresholds\n        self.exit_thresholds = nn.Parameter(torch.ones(n_layers) * 0.5)\n        \n    def forward(self, idx, targets=None):\n        B, T = idx.shape\n        pos = torch.arange(0, T, dtype=torch.long, device=idx.device)\n        \n        x = self.wte(idx) + self.wpe(pos)\n        \n        exit_losses = []\n        exit_counts = torch.zeros(self.n_layers, device=idx.device)\n        \n        for i, layer in enumerate(self.layers):\n            x, layer_logits, confidence = layer(x)\n            \n            if targets is not None:\n                # Calculate loss at this exit point\n                exit_loss = F.cross_entropy(layer_logits.view(-1, self.vocab_size), \n                                          targets.view(-1), ignore_index=-1)\n                exit_losses.append(exit_loss)\n                \n                # Count tokens that would exit here\n                would_exit = (confidence.squeeze(-1) > self.exit_thresholds[i]).float()\n                exit_counts[i] = would_exit.sum()\n        \n        # Final layer processing\n        x = self.ln_f(x)\n        final_logits = self.lm_head(x)\n        \n        if targets is not None:\n            # Main loss\n            main_loss = F.cross_entropy(final_logits.view(-1, self.vocab_size), \n                                      targets.view(-1), ignore_index=-1)\n            \n            # Combine losses with decreasing weights for earlier exits\n            total_loss = main_loss\n            for i, exit_loss in enumerate(exit_losses):\n                weight = 0.5 ** (self.n_layers - i)  # Earlier exits get lower weight\n                total_loss += weight * exit_loss\n            \n            # Efficiency penalty - encourage early exits\n            avg_depth = sum(i * count for i, count in enumerate(exit_counts)) / (sum(exit_counts) + 1e-8)\n            efficiency_penalty = 0.1 * avg_depth / self.n_layers\n            total_loss += efficiency_penalty\n            \n            return final_logits, total_loss\n        \n        return final_logits\n\n# Training setup\ndevice = 'cuda' if torch.cuda.is_available() else 'cpu'\nmodel = AdaptiveDepthTransformer().to(device)\noptimizer = AdamW(model.parameters(), lr=1e-4)\n\n# Dummy data for testing\nvocab_size = 50257\nseq_len = 128\nbatch_size = 4\n\nfor step in range(100):\n    # Generate random data\n    x = torch.randint(0, vocab_size, (batch_size, seq_len), device=device)\n    y = torch.randint(0, vocab_size, (batch_size, seq_len), device=device)\n    \n    optimizer.zero_grad()\n    logits, loss = model(x, y)\n    loss.backward()\n    optimizer.step()\n    \n    if step % 20 == 0:\n        print(f'Step {step}, Loss: {loss.item():.4f}')\n        # Print exit threshold evolution\n        thresholds = model.exit_thresholds.data\n        print(f'Exit thresholds: {thresholds.tolist()}')\n\nprint('Training completed successfully!')",
+    "parent_architecture": "GPT-2 small",
+    "novelty_claims": [
+      "Learnable per-layer exit thresholds that adapt during training based on confidence predictions",
+      "Token-level adaptive computation where different tokens can exit at different depths within the same forward pass",
+      "Multi-objective training combining next-token prediction at multiple depths with computational efficiency penalties",
+      "Confidence-based routing mechanism that learns to identify which linguistic patterns require deeper processing",
+      "Architecture that naturally discovers computational complexity hierarchies in language tasks"
+    ],
+    "expected_behavior": "Training should show decreasing loss with exit thresholds automatically adjusting - early layers should develop higher thresholds (requiring more confidence to exit) while later layers have lower thresholds. We expect to see efficiency gains where common tokens exit early (layers 1-3) while complex reasoning tokens use full depth. The multi-exit loss should initially be high but converge as the model learns appropriate exit policies. Exit threshold evolution should stabilize after ~200 steps, indicating learned computational allocation."
+  },
+  "stage1_result": {
+    "verdict": "REFUTED",
+    "killed_by": "T2",
+    "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "tags": [],
+    "t2_budget": {
+      "status": "FAIL_FATAL",
+      "test_id": "T2",
+      "estimated_params": 17046016,
+      "estimated_artifact_bytes": 10233368,
+      "budget_remaining_bytes": 6543848,
+      "budget_utilization": 0.6099562644958496,
+      "flops_ratio": 1.0,
+      "estimated_training_seconds": 14843.406974976,
+      "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+      "tags": [],
+      "wall_seconds": 0.012721166989649646,
+      "attn_flops_ratio": 0.6545454545454545,
+      "mlp_flops_ratio": 0.32727272727272727,
+      "embed_flops_ratio": 0.01818181818181818,
+      "architectural_balance_score": 0.0
+    },
+    "t3_compilation": null,
+    "t4_signal": null,
+    "t5_init": null,
+    "t7_microtrain": null
+  },
+  "stage2_input": null,
+  "stage2_result": null,
+  "verdict": "REFUTED",
+  "kill_hypotheses": [],
+  "experiments_run": 0,
+  "error": null
+}

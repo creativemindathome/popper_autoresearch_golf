@@ -1,0 +1,58 @@
+{
+  "run_id": "h010_1efc49b4",
+  "hypothesis_number": 10,
+  "start_time": 1774715112.1255271,
+  "end_time": 1774715149.021031,
+  "status": "complete",
+  "idea_json": {
+    "theory_id": "temporal-decay-attention",
+    "what_and_why": "This architecture modifies the attention mechanism to include learnable temporal decay factors that exponentially downweight older tokens based on their distance from the current position. Instead of standard positional encodings, each attention head learns a decay rate parameter that creates an exponential attention mask: attention_weight = softmax(QK^T / sqrt(d_k)) * exp(-decay_rate * distance). This creates a form of 'attention memory' where recent tokens have stronger influence, similar to recurrent networks but maintaining parallelizability. The decay rates are initialized small (0.01-0.1) and learned per head, allowing different heads to specialize in different temporal ranges - some focusing on immediate context, others on longer dependencies. This should reduce the quadratic attention complexity's practical impact by naturally sparsifying attention patterns, while the exponential decay provides an inductive bias for sequential data that standard transformers lack. Expected falsification: If temporal structure doesn't matter for the task, decay rates should converge to near-zero (recovering standard attention). If it helps, we should see faster convergence and lower perplexity, especially on tasks with strong temporal dependencies. The decay parameters should show interpretable specialization across heads.",
+    "train_gpt_code": "# Parameter count: ~6.2M parameters (n_embd=384, n_layer=6, n_head=6)\n\nimport torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\n\nclass TemporalDecayAttention(nn.Module):\n    def __init__(self, n_embd, n_head, block_size):\n        super().__init__()\n        assert n_embd % n_head == 0\n        self.n_head = n_head\n        self.n_embd = n_embd\n        self.head_dim = n_embd // n_head\n        \n        self.c_attn = nn.Linear(n_embd, 3 * n_embd, bias=True)\n        self.c_proj = nn.Linear(n_embd, n_embd, bias=True)\n        \n        # Learnable decay rates per head, initialized small\n        self.decay_rates = nn.Parameter(torch.full((n_head,), 0.05))\n        \n        # Precompute distance matrix\n        self.register_buffer('distances', torch.tril(torch.arange(block_size).unsqueeze(0) - torch.arange(block_size).unsqueeze(1)).abs().float())\n        \n    def forward(self, x):\n        B, T, C = x.size()\n        q, k, v = self.c_attn(x).split(self.n_embd, dim=2)\n        \n        q = q.view(B, T, self.n_head, self.head_dim).transpose(1, 2)\n        k = k.view(B, T, self.n_head, self.head_dim).transpose(1, 2)\n        v = v.view(B, T, self.n_head, self.head_dim).transpose(1, 2)\n        \n        # Standard attention scores\n        att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(self.head_dim))\n        \n        # Apply temporal decay mask\n        dist_mask = self.distances[:T, :T].unsqueeze(0).unsqueeze(0)  # 1, 1, T, T\n        decay_mask = torch.exp(-self.decay_rates.view(1, -1, 1, 1) * dist_mask)  # 1, H, T, T\n        \n        # Causal mask\n        att = att.masked_fill(torch.tril(torch.ones(T, T, device=x.device)) == 0, float('-inf'))\n        \n        # Apply softmax then decay\n        att = F.softmax(att, dim=-1)\n        att = att * decay_mask\n        \n        # Renormalize after decay\n        att = att / (att.sum(dim=-1, keepdim=True) + 1e-8)\n        \n        y = att @ v\n        y = y.transpose(1, 2).contiguous().view(B, T, C)\n        return self.c_proj(y)\n\nclass Block(nn.Module):\n    def __init__(self, n_embd, n_head, block_size):\n        super().__init__()\n        self.ln_1 = nn.LayerNorm(n_embd)\n        self.attn = TemporalDecayAttention(n_embd, n_head, block_size)\n        self.ln_2 = nn.LayerNorm(n_embd)\n        self.mlp = nn.ModuleDict(dict(\n            c_fc=nn.Linear(n_embd, 4 * n_embd, bias=True),\n            c_proj=nn.Linear(4 * n_embd, n_embd, bias=True),\n        ))\n        \n    def forward(self, x):\n        x = x + self.attn(self.ln_1(x))\n        mlp_out = self.mlp.c_proj(F.gelu(self.mlp.c_fc(self.ln_2(x))))\n        x = x + mlp_out\n        return x\n\nclass GPT(nn.Module):\n    def __init__(self, vocab_size=50304, n_embd=384, n_layer=6, n_head=6, block_size=1024):\n        super().__init__()\n        self.block_size = block_size\n        self.transformer = nn.ModuleDict(dict(\n            wte=nn.Embedding(vocab_size, n_embd),\n            wpe=nn.Embedding(block_size, n_embd),\n            h=nn.ModuleList([Block(n_embd, n_head, block_size) for _ in range(n_layer)]),\n            ln_f=nn.LayerNorm(n_embd),\n        ))\n        self.lm_head = nn.Linear(n_embd, vocab_size, bias=False)\n        \n        # Weight sharing\n        self.transformer.wte.weight = self.lm_head.weight\n        \n        # Initialize\n        self.apply(self._init_weights)\n        \n    def _init_weights(self, module):\n        if isinstance(module, nn.Linear):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            if module.bias is not None:\n                torch.nn.init.zeros_(module.bias)\n        elif isinstance(module, nn.Embedding):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n        elif isinstance(module, nn.LayerNorm):\n            torch.nn.init.zeros_(module.bias)\n            torch.nn.init.ones_(module.weight)\n            \n    def forward(self, idx, targets=None):\n        B, T = idx.size()\n        pos = torch.arange(0, T, dtype=torch.long, device=idx.device)\n        \n        tok_emb = self.transformer.wte(idx)\n        pos_emb = self.transformer.wpe(pos)\n        x = tok_emb + pos_emb\n        \n        for block in self.transformer.h:\n            x = block(x)\n        x = self.transformer.ln_f(x)\n        \n        if targets is not None:\n            logits = self.lm_head(x)\n            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)\n        else:\n            logits = self.lm_head(x[:, [-1], :])\n            loss = None\n            \n        return logits, loss\n\n# Training setup\nmodel = GPT()\nprint(f\"Model parameters: {sum(p.numel() for p in model.parameters())/1e6:.1f}M\")\n\n# Simple training loop\noptimizer = torch.optim.AdamW(model.parameters(), lr=6e-4, weight_decay=1e-1)\nfor step in range(100):\n    # Dummy data\n    x = torch.randint(0, 50304, (4, 128))\n    targets = torch.randint(0, 50304, (4, 128))\n    \n    logits, loss = model(x, targets)\n    \n    optimizer.zero_grad()\n    loss.backward()\n    optimizer.step()\n    \n    if step % 10 == 0:\n        print(f\"Step {step}: loss = {loss.item():.4f}\")\n        # Print decay rates for analysis\n        for i, block in enumerate(model.transformer.h):\n            rates = block.attn.decay_rates.data.cpu().numpy()\n            print(f\"  Layer {i} decay rates: {rates}\")",
+    "parent_architecture": "GPT-2 small (modified)",
+    "novelty_claims": [
+      "First transformer to use learnable exponential temporal decay in attention weights",
+      "Natural attention sparsification through learned temporal forgetting rather than explicit masking",
+      "Per-head temporal specialization allowing different memory ranges within same layer"
+    ],
+    "expected_behavior": "Initial loss ~10-11 (typical for random init). Should see loss decrease to ~8-9 after 100 steps if temporal patterns exist in data. Success: decay rates should differentiate across heads (some high for local attention, some low for global). Failure: all decay rates converge to near-zero (no temporal benefit) or training instability.",
+    "parameter_estimate": "~6.2M parameters (384*50304 embeddings + 6 layers * attention/FFN weights + 6 decay parameters per layer)",
+    "risk_factors": [
+      "Exponential decay could cause vanishing gradients for long sequences",
+      "Distance matrix memory usage scales O(T\u00b2) with sequence length",
+      "Renormalization after decay might cause training instability"
+    ]
+  },
+  "stage1_result": {
+    "verdict": "REFUTED",
+    "killed_by": "T2",
+    "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "tags": [],
+    "t2_budget": {
+      "status": "FAIL_FATAL",
+      "test_id": "T2",
+      "estimated_params": 17046016,
+      "estimated_artifact_bytes": 10232881,
+      "budget_remaining_bytes": 6544335,
+      "budget_utilization": 0.609927237033844,
+      "flops_ratio": 1.0,
+      "estimated_training_seconds": 14843.406974976,
+      "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+      "tags": [],
+      "wall_seconds": 0.0033851669868454337,
+      "attn_flops_ratio": 0.6545454545454545,
+      "mlp_flops_ratio": 0.32727272727272727,
+      "embed_flops_ratio": 0.01818181818181818,
+      "architectural_balance_score": 0.0
+    },
+    "t3_compilation": null,
+    "t4_signal": null,
+    "t5_init": null,
+    "t7_microtrain": null
+  },
+  "stage2_input": null,
+  "stage2_result": null,
+  "verdict": "REFUTED",
+  "kill_hypotheses": [],
+  "experiments_run": 0,
+  "error": null
+}

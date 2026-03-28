@@ -1,0 +1,262 @@
+{
+  "theory_id": "baseline_gpt_test",
+  "verdict": "REFUTED",
+  "killed_by": "T5",
+  "kill_reason": "56% of weight matrices are rank-deficient (effective rank < 90% of theoretical)",
+  "t2_budget": {
+    "status": "PASS",
+    "test_id": "T2",
+    "estimated_params": 73920,
+    "estimated_artifact_bytes": 87833,
+    "budget_remaining_bytes": 16689383,
+    "budget_utilization": 0.005235254764556885,
+    "flops_ratio": 0.011574074074074073,
+    "estimated_training_seconds": 171.79869184,
+    "kill_reason": null,
+    "tags": [
+      {
+        "tag_id": "T2_unbalanced_architecture",
+        "test_id": "T2",
+        "category": "capacity_pathology",
+        "description": "Attention FLOPs 87.8% vs MLP FLOPs 9.8% (ratio 9.00 outside 0.5-2.0 range)"
+      }
+    ],
+    "wall_seconds": 0.015234000005875714,
+    "attn_flops_ratio": 0.8780487804878049,
+    "mlp_flops_ratio": 0.0975609756097561,
+    "embed_flops_ratio": 0.024390243902439025,
+    "architectural_balance_score": 0.0
+  },
+  "t3_compilation": {
+    "status": "PASS",
+    "test_id": "T3",
+    "actual_params": 16680,
+    "output_shape": [],
+    "has_nan": false,
+    "has_inf": false,
+    "grad_nan": false,
+    "grad_inf": false,
+    "params_no_grad": [],
+    "forward_ms": 1.5374170034192502,
+    "backward_ms": 1.6317919944413006,
+    "gpu_memory": 0,
+    "kill_reason": null,
+    "tags": [],
+    "wall_seconds": 0.014020041009644046,
+    "layer_shapes_consistent": true,
+    "forward_backward_consistent": true,
+    "init_scale_reasonable": true,
+    "construction_diagnostics": {
+      "layer_shapes": {
+        "num_layers": 2,
+        "checks_performed": [
+          "attention_heads",
+          "layer_dimensions"
+        ],
+        "mismatches": [],
+        "embedding_error": "'GPT' object has no attribute 'pos_emb'",
+        "inferred_model_dim": null
+      },
+      "init_scale": {
+        "loss_has_nan": false,
+        "loss_has_inf": false,
+        "loss_mean": 4.156650543212891,
+        "loss_std": NaN,
+        "activations_checked": []
+      },
+      "forward_backward": {
+        "forward_ok": true,
+        "backward_ok": true,
+        "gradients_computed": 22,
+        "total_trainable_params": 22,
+        "params_without_grad": [],
+        "forward_error": null,
+        "backward_error": null,
+        "loss_shape": [],
+        "loss_finite": true
+      }
+    }
+  },
+  "t4_signal": {
+    "status": "PASS",
+    "test_id": "T4",
+    "layer_activation_norms": {
+      "layer_0_attn": 0.0,
+      "layer_0_mlp": 0.0,
+      "layer_1_attn": 0.0,
+      "layer_1_mlp": 0.0
+    },
+    "layer_gradient_norms": {
+      "layer_0_attn": 0.023080317303538322,
+      "layer_0_mlp": 0.030866941437125206,
+      "layer_1_attn": 0.011804950423538685,
+      "layer_1_mlp": 0.012213964946568012
+    },
+    "gradient_norm_ratio": 2.6147455372262756,
+    "gradient_max_layer": "layer_0_mlp",
+    "gradient_min_layer": "layer_1_attn",
+    "output_entropy": 4.158348083496094,
+    "entropy_ratio": 0.99987135972499,
+    "loss_at_init": 4.159853935241699,
+    "kill_reason": null,
+    "tags": [
+      {
+        "tag_id": "T4_dead_neurons",
+        "test_id": "T4",
+        "category": "capacity_pathology",
+        "description": "Dead neuron ratio 100.0% exceeds 10% threshold (worst: layer_0_attn=100.0%, layer_0_mlp=100.0%, layer_1_attn=100.0%)"
+      },
+      {
+        "tag_id": "T4_low_signal_to_noise",
+        "test_id": "T4",
+        "category": "scale_pathology",
+        "description": "Signal-to-noise ratio 0.000 below 0.5 threshold (worst: layer_0_attn=0.000, layer_0_mlp=0.000, layer_1_attn=0.000)"
+      }
+    ],
+    "wall_seconds": 0.005737166997278109,
+    "gradient_flow_health": 1.0,
+    "dead_neuron_ratio": 1.0,
+    "activation_distribution_shift": {},
+    "signal_to_noise_ratio": 0.0,
+    "per_layer_snr": {
+      "layer_0_attn": 0.0,
+      "layer_0_mlp": 0.0,
+      "layer_1_attn": 0.0,
+      "layer_1_mlp": 0.0
+    },
+    "dead_neurons_per_layer": {
+      "layer_0_attn": 1.0,
+      "layer_0_mlp": 1.0,
+      "layer_1_attn": 1.0,
+      "layer_1_mlp": 1.0
+    }
+  },
+  "t5_init": {
+    "status": "FAIL_FATAL",
+    "test_id": "T5",
+    "logit_max": 0.188848614692688,
+    "logit_std": 0.03290175646543503,
+    "effective_ranks": {
+      "skip_weights": 1.0,
+      "tok_emb.weight": 29.869672775268555,
+      "blocks.0.resid_mix": 1.0,
+      "blocks.0.attn.c_q.weight": 24.802671432495117,
+      "blocks.0.attn.c_k.weight": 14.232683181762695,
+      "blocks.0.attn.c_v.weight": 14.72402572631836,
+      "blocks.0.attn.proj.weight": 0.0,
+      "blocks.0.mlp.fc.weight": 29.66167640686035,
+      "blocks.0.mlp.proj.weight": 0.0,
+      "blocks.1.resid_mix": 1.0,
+      "blocks.1.attn.c_q.weight": 25.42426300048828,
+      "blocks.1.attn.c_k.weight": 14.632529258728027,
+      "blocks.1.attn.c_v.weight": 14.637749671936035,
+      "blocks.1.attn.proj.weight": 0.0,
+      "blocks.1.mlp.fc.weight": 29.716350555419922,
+      "blocks.1.mlp.proj.weight": 0.0
+    },
+    "condition_numbers": {
+      "skip_weights": 1.0,
+      "tok_emb.weight": 5.320954266184869,
+      "blocks.0.resid_mix": Infinity,
+      "blocks.0.attn.c_q.weight": 4450.506542841536,
+      "blocks.0.attn.c_k.weight": 6.063294091823505,
+      "blocks.0.attn.c_v.weight": 5.537654830748709,
+      "blocks.0.attn.proj.weight": Infinity,
+      "blocks.0.mlp.fc.weight": 5.154458220640947,
+      "blocks.0.mlp.proj.weight": Infinity,
+      "blocks.1.resid_mix": Infinity,
+      "blocks.1.attn.c_q.weight": 193.7675556280033,
+      "blocks.1.attn.c_k.weight": 5.369897923674191,
+      "blocks.1.attn.c_v.weight": 5.926144631795609,
+      "blocks.1.attn.proj.weight": Infinity,
+      "blocks.1.mlp.fc.weight": 4.742854595685023,
+      "blocks.1.mlp.proj.weight": Infinity
+    },
+    "weight_symmetry": {
+      "tok_emb.weight": 0.006843083538115025,
+      "blocks.0.attn.c_q.weight": 0.010209408588707447,
+      "blocks.0.attn.c_k.weight": -0.02885477989912033,
+      "blocks.0.attn.c_v.weight": 0.015285429544746876,
+      "blocks.0.attn.proj.weight": 0.0,
+      "blocks.0.mlp.fc.weight": 0.0025641820393502712,
+      "blocks.0.mlp.proj.weight": 0.0,
+      "blocks.1.attn.c_q.weight": -0.008343077264726162,
+      "blocks.1.attn.c_k.weight": 0.0020386239048093557,
+      "blocks.1.attn.c_v.weight": 0.009479615837335587,
+      "blocks.1.attn.proj.weight": 0.0,
+      "blocks.1.mlp.fc.weight": -0.003656757529824972,
+      "blocks.1.mlp.proj.weight": 0.0
+    },
+    "kurtosis_mean": 0.8883724971251055,
+    "effective_rank_mean": 12.543851375579834,
+    "weight_spectrum_percentiles": {
+      "p5": 0.48814604452927596,
+      "p25": 0.7150854946521576,
+      "p50": 0.9887934647267684,
+      "p75": 1.2757102134637535,
+      "p95": 1.5268904140568338
+    },
+    "init_symmetry_score": 0.9995718670185082,
+    "capacity_utilization": 0.5621894173929337,
+    "rank_deficiency_ratio": 0.5625,
+    "kill_reason": "56% of weight matrices are rank-deficient (effective rank < 90% of theoretical)",
+    "tags": [
+      {
+        "tag_id": "T5_low_effective_rank",
+        "test_id": "T5",
+        "category": "capacity_pathology",
+        "description": "Effective rank 0.0/32 (0.00%) for blocks.0.attn.proj.weight"
+      },
+      {
+        "tag_id": "T5_high_condition_number",
+        "test_id": "T5",
+        "category": "scale_pathology",
+        "description": "Condition number inf for blocks.0.resid_mix exceeds 1000.0"
+      }
+    ],
+    "wall_seconds": 0.018729709001490846
+  },
+  "t7_microtrain": null,
+  "s2_results": null,
+  "tags": [
+    {
+      "tag_id": "T2_unbalanced_architecture",
+      "test_id": "T2",
+      "category": "capacity_pathology",
+      "description": "Attention FLOPs 87.8% vs MLP FLOPs 9.8% (ratio 9.00 outside 0.5-2.0 range)"
+    },
+    {
+      "tag_id": "T4_dead_neurons",
+      "test_id": "T4",
+      "category": "capacity_pathology",
+      "description": "Dead neuron ratio 100.0% exceeds 10% threshold (worst: layer_0_attn=100.0%, layer_0_mlp=100.0%, layer_1_attn=100.0%)"
+    },
+    {
+      "tag_id": "T4_low_signal_to_noise",
+      "test_id": "T4",
+      "category": "scale_pathology",
+      "description": "Signal-to-noise ratio 0.000 below 0.5 threshold (worst: layer_0_attn=0.000, layer_0_mlp=0.000, layer_1_attn=0.000)"
+    },
+    {
+      "tag_id": "T5_low_effective_rank",
+      "test_id": "T5",
+      "category": "capacity_pathology",
+      "description": "Effective rank 0.0/32 (0.00%) for blocks.0.attn.proj.weight"
+    },
+    {
+      "tag_id": "T5_high_condition_number",
+      "test_id": "T5",
+      "category": "scale_pathology",
+      "description": "Condition number inf for blocks.0.resid_mix exceeds 1000.0"
+    }
+  ],
+  "feedback": {
+    "one_line": "56% of weight matrices are rank-deficient (effective rank < 90% of theoretical)",
+    "stage_reached": 1,
+    "failure_analysis": null,
+    "suggested_directions": [],
+    "key_measurements": {}
+  },
+  "total_wall_seconds": 0.054200172424316406,
+  "total_gpu_seconds": 0.0
+}

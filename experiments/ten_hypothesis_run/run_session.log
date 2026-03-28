@@ -1,0 +1,33 @@
+╔══════════════════════════════════════════════════════════════════╗
+║     FULL LIVE EXPERIMENT - STAGE 2 ANTHROPIC (SONNET)            ║
+║                                                                  ║
+║     Pipeline: Ideator → Stage 1 → Stage 2 → Knowledge Graph     ║
+╚══════════════════════════════════════════════════════════════════╝
+
+Loading environment...
+✓ Environment loaded from .env
+
+Checking API configuration...
+✓ ANTHROPIC_API_KEY configured
+  Key prefix: sk-ant-api03-bW9XMiS...
+
+Creating run directory: live_run_20260328_162815
+
+╔══════════════════════════════════════════════════════════════════╗
+║  RUNNING FULL EXPERIMENT                                         ║
+╚══════════════════════════════════════════════════════════════════╝
+
+This will:
+  1. Generate 10 novel architecture ideas (Anthropic Sonnet)
+  2. Run Stage 1 gates (T2-T7) on each
+  3. Run Stage 2 adversarial falsifier on survivors
+  4. Track knowledge graph evolution
+
+Estimated time: 30-50 minutes
+
+Traceback (most recent call last):
+  File "/Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/run_full_live_experiment.py", line 36, in <module>
+    from falsifier.main import run_falsifier
+ImportError: cannot import name 'run_falsifier' from 'falsifier.main' (/Users/curiousmind/Desktop/null_fellow_hackathon/falsifier/main.py)
+
+✗ Experiment failed - no summary.json found

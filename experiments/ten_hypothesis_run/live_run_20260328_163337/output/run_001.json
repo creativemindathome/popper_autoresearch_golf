@@ -1,0 +1,54 @@
+{
+  "run_id": "h001_cad18f8f",
+  "hypothesis_number": 1,
+  "start_time": 1774712017.8237472,
+  "end_time": 1774712052.5985699,
+  "status": "complete",
+  "idea_json": {
+    "theory_id": "fractal-attention-hierarchy",
+    "what_and_why": "Current transformers treat all sequence positions equally through uniform attention mechanisms, but natural language has inherent hierarchical structure (words->phrases->sentences->paragraphs). This architecture implements 'Fractal Attention' where attention operates at multiple nested scales simultaneously. Instead of a single attention matrix, we use a hierarchy of attention mechanisms that operate at different granularities: fine-grained (token-to-token), medium-grained (phrase-level chunks), and coarse-grained (sentence-level blocks). Each level uses exponentially fewer parameters but captures increasingly global dependencies.\n\nThe key insight is that most attention weights in standard transformers are near-zero and redundant. By enforcing this hierarchical structure, we can dramatically reduce computation while potentially improving long-range modeling. The fractal nature means each attention level uses the same basic mechanism but at different scales, creating emergent hierarchical representations. This could lead to better sample efficiency since the model is forced to learn compositional structure rather than memorizing arbitrary token interactions.",
+    "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\nfrom torch.utils.data import DataLoader, TensorDataset\nimport numpy as np\n\nclass FractalAttention(nn.Module):\n    def __init__(self, d_model, n_heads, chunk_sizes=[1, 4, 16]):\n        super().__init__()\n        self.d_model = d_model\n        self.n_heads = n_heads\n        self.chunk_sizes = chunk_sizes\n        self.head_dim = d_model // n_heads\n        \n        # Separate attention layers for each scale\n        self.scale_attentions = nn.ModuleList([\n            nn.MultiheadAttention(d_model, n_heads // len(chunk_sizes), batch_first=True)\n            for _ in chunk_sizes\n        ])\n        \n        self.scale_weights = nn.Parameter(torch.ones(len(chunk_sizes)))\n        self.output_proj = nn.Linear(d_model, d_model)\n        \n    def forward(self, x, mask=None):\n        batch_size, seq_len, d_model = x.shape\n        outputs = []\n        \n        for i, (chunk_size, attn_layer) in enumerate(zip(self.chunk_sizes, self.scale_attentions)):\n            if chunk_size == 1:\n                # Fine-grained: standard token-level attention\n                out, _ = attn_layer(x, x, x, attn_mask=mask)\n                outputs.append(out)\n            else:\n                # Coarse-grained: chunk-based attention\n                # Pad sequence to be divisible by chunk_size\n                pad_len = (chunk_size - seq_len % chunk_size) % chunk_size\n                if pad_len > 0:\n                    x_padded = F.pad(x, (0, 0, 0, pad_len))\n                else:\n                    x_padded = x\n                    \n                # Reshape to chunks and apply attention\n                chunks = x_padded.view(batch_size, -1, chunk_size * d_model)\n                chunk_repr = chunks.mean(dim=2, keepdim=True).expand(-1, -1, chunk_size * d_model)\n                chunk_repr = chunk_repr.view(batch_size, -1, d_model)\n                \n                out, _ = attn_layer(chunk_repr, chunk_repr, chunk_repr)\n                \n                # Expand back to original sequence length\n                out = out.repeat_interleave(chunk_size, dim=1)[:, :seq_len, :]\n                outputs.append(out)\n        \n        # Weighted combination of scales\n        weights = F.softmax(self.scale_weights, dim=0)\n        combined = sum(w * out for w, out in zip(weights, outputs))\n        return self.output_proj(combined)\n\nclass FractalTransformerBlock(nn.Module):\n    def __init__(self, d_model, n_heads, d_ff, chunk_sizes=[1, 4, 16]):\n        super().__init__()\n        self.attention = FractalAttention(d_model, n_heads, chunk_sizes)\n        self.feed_forward = nn.Sequential(\n            nn.Linear(d_model, d_ff),\n            nn.GELU(),\n            nn.Linear(d_ff, d_model)\n        )\n        self.norm1 = nn.LayerNorm(d_model)\n        self.norm2 = nn.LayerNorm(d_model)\n        \n    def forward(self, x, mask=None):\n        x = x + self.attention(self.norm1(x), mask)\n        x = x + self.feed_forward(self.norm2(x))\n        return x\n\nclass FractalGPT(nn.Module):\n    def __init__(self, vocab_size=1000, d_model=256, n_heads=8, n_layers=4, max_seq_len=128):\n        super().__init__()\n        self.embedding = nn.Embedding(vocab_size, d_model)\n        self.pos_embedding = nn.Parameter(torch.randn(max_seq_len, d_model))\n        \n        # Adaptive chunk sizes based on layer depth\n        self.blocks = nn.ModuleList([\n            FractalTransformerBlock(d_model, n_heads, d_model * 4, \n                                  chunk_sizes=[1, 2**(i+1), 2**(i+2)])\n            for i in range(n_layers)\n        ])\n        \n        self.ln_f = nn.LayerNorm(d_model)\n        self.lm_head = nn.Linear(d_model, vocab_size)\n        \n    def forward(self, x, targets=None):\n        seq_len = x.size(1)\n        pos = torch.arange(0, seq_len, device=x.device)\n        \n        x = self.embedding(x) + self.pos_embedding[:seq_len]\n        \n        for block in self.blocks:\n            x = block(x)\n            \n        x = self.ln_f(x)\n        logits = self.lm_head(x)\n        \n        if targets is not None:\n            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))\n            return logits, loss\n        return logits\n\n# Training setup\ndef generate_synthetic_data(vocab_size=1000, seq_len=64, num_samples=1000):\n    # Create synthetic sequential data with some structure\n    data = torch.randint(0, vocab_size, (num_samples, seq_len))\n    return data\n\ndef train_model():\n    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\n    \n    # Model parameters\n    vocab_size = 1000\n    seq_len = 64\n    batch_size = 16\n    learning_rate = 1e-4\n    num_epochs = 100\n    \n    # Generate data\n    data = generate_synthetic_data(vocab_size, seq_len, 1000)\n    targets = torch.roll(data, -1, dims=1)  # Next token prediction\n    \n    dataset = TensorDataset(data, targets)\n    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)\n    \n    # Initialize model\n    model = FractalGPT(vocab_size=vocab_size, d_model=256, n_heads=8, n_layers=4, max_seq_len=seq_len)\n    model = model.to(device)\n    \n    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)\n    \n    print(f\"Model parameters: {sum(p.numel() for p in model.parameters()):,}\")\n    \n    model.train()\n    for epoch in range(num_epochs):\n        total_loss = 0\n        for batch_idx, (batch_data, batch_targets) in enumerate(dataloader):\n            batch_data, batch_targets = batch_data.to(device), batch_targets.to(device)\n            \n            optimizer.zero_grad()\n            logits, loss = model(batch_data, batch_targets)\n            loss.backward()\n            optimizer.step()\n            \n            total_loss += loss.item()\n            \n        avg_loss = total_loss / len(dataloader)\n        if epoch % 10 == 0:\n            print(f\"Epoch {epoch}, Loss: {avg_loss:.4f}\")\n    \n    print(\"Training completed\")\n    return model\n\nif __name__ == \"__main__\":\n    model = train_model()",
+    "parent_architecture": "GPT-2 small",
+    "novelty_claims": [
+      "Multi-scale fractal attention mechanism that operates simultaneously at token, phrase, and sentence levels",
+      "Adaptive chunk sizes that increase with layer depth, creating emergent hierarchical representations",
+      "Learnable weighting system that balances attention across different temporal scales",
+      "Dramatic parameter reduction through scale-specific attention heads instead of uniform full attention",
+      "Built-in inductive bias for compositional language structure without explicit parsing"
+    ],
+    "expected_behavior": "Training should show faster initial convergence due to built-in hierarchical bias, followed by a distinctive multi-phase learning pattern as different scales activate. Loss curves should exhibit smoother descent compared to standard transformers, with potential for better generalization on structured text. The model should show improved efficiency metrics (lower FLOPs per forward pass) while maintaining or improving perplexity. Scale weights should evolve during training, potentially showing task-dependent preferences for different granularities."
+  },
+  "stage1_result": {
+    "verdict": "REFUTED",
+    "killed_by": "T2",
+    "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "tags": [],
+    "t2_budget": {
+      "status": "FAIL_FATAL",
+      "test_id": "T2",
+      "estimated_params": 17046016,
+      "estimated_artifact_bytes": 10233594,
+      "budget_remaining_bytes": 6543622,
+      "budget_utilization": 0.6099697351455688,
+      "flops_ratio": 1.0,
+      "estimated_training_seconds": 14843.406974976,
+      "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+      "tags": [],
+      "wall_seconds": 0.007724167007836513,
+      "attn_flops_ratio": 0.6545454545454545,
+      "mlp_flops_ratio": 0.32727272727272727,
+      "embed_flops_ratio": 0.01818181818181818,
+      "architectural_balance_score": 0.0
+    },
+    "t3_compilation": null,
+    "t4_signal": null,
+    "t5_init": null,
+    "t7_microtrain": null
+  },
+  "stage2_input": null,
+  "stage2_result": null,
+  "verdict": "REFUTED",
+  "kill_hypotheses": [],
+  "experiments_run": 0,
+  "error": null
+}

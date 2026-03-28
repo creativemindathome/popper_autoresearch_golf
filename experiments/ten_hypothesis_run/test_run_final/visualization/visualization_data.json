@@ -1,0 +1,69 @@
+{
+  "timeline": [
+    {
+      "time": 0.00045990943908691406,
+      "hypothesis": 1,
+      "event": "start",
+      "theory_id": "adaptive-depth-transformer"
+    },
+    {
+      "time": 35.994043827056885,
+      "hypothesis": 1,
+      "event": "complete",
+      "verdict": null,
+      "status": "failed",
+      "stage1_verdict": null,
+      "stage2_verdict": null
+    }
+  ],
+  "evolution": [
+    {
+      "frame": 0,
+      "timestamp": 35.981324911117554,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    }
+  ],
+  "start_time": 1774711915.254059,
+  "runs": [
+    {
+      "run_id": "h001_c5da960c",
+      "hypothesis_number": 1,
+      "start_time": 1774711915.254519,
+      "end_time": 1774711951.248103,
+      "status": "failed",
+      "idea_json": {
+        "theory_id": "adaptive-depth-transformer",
+        "what_and_why": "Traditional transformers process all tokens through every layer uniformly, wasting computation on tokens that could be adequately processed with fewer layers. This architecture introduces 'confidence gates' at each layer that dynamically decide whether each token needs further processing or can exit early. The key insight is that different tokens in a sequence require different computational depths - simple function words like 'the' or 'and' likely need minimal processing, while complex content words benefit from deep computation.\n\nThe mechanism works by adding lightweight confidence predictors after each transformer layer that output a scalar confidence score for each token. When a token's confidence exceeds a learned threshold, it bypasses subsequent layers and its representation is cached. During attention computation, early-exit tokens still participate as keys/values but don't update their own representations. This creates a variable-depth processing pattern that should dramatically reduce FLOPs while maintaining quality, as the model learns to allocate computation where it's most needed.",
+        "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\nfrom dataclasses import dataclass\n\n@dataclass\nclass Config:\n    vocab_size: int = 1000\n    n_embd: int = 256\n    n_head: int = 8\n    n_layer: int = 6\n    block_size: int = 128\n    dropout: float = 0.1\n    confidence_threshold: float = 0.8\n\nclass ConfidenceGate(nn.Module):\n    def __init__(self, n_embd):\n        super().__init__()\n        self.gate = nn.Sequential(\n            nn.Linear(n_embd, n_embd // 4),\n            nn.GELU(),\n            nn.Linear(n_embd // 4, 1),\n            nn.Sigmoid()\n        )\n    \n    def forward(self, x):\n        return self.gate(x).squeeze(-1)  # [B, T]\n\nclass AdaptiveAttention(nn.Module):\n    def __init__(self, config):\n        super().__init__()\n        self.n_head = config.n_head\n        self.n_embd = config.n_embd\n        self.head_dim = config.n_embd // config.n_head\n        \n        self.c_attn = nn.Linear(config.n_embd, 3 * config.n_embd)\n        self.c_proj = nn.Linear(config.n_embd, config.n_embd)\n        self.dropout = nn.Dropout(config.dropout)\n        \n    def forward(self, x, active_mask):\n        B, T, C = x.size()\n        \n        # Compute Q, K, V for all tokens\n        qkv = self.c_attn(x)\n        q, k, v = qkv.split(self.n_embd, dim=2)\n        \n        # Reshape for multi-head attention\n        q = q.view(B, T, self.n_head, self.head_dim).transpose(1, 2)\n        k = k.view(B, T, self.n_head, self.head_dim).transpose(1, 2)\n        v = v.view(B, T, self.n_head, self.head_dim).transpose(1, 2)\n        \n        # Scaled dot-product attention\n        att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(self.head_dim))\n        att = F.softmax(att, dim=-1)\n        att = self.dropout(att)\n        \n        y = att @ v\n        y = y.transpose(1, 2).contiguous().view(B, T, C)\n        \n        # Only update active tokens\n        y_proj = self.c_proj(y)\n        active_mask_expanded = active_mask.unsqueeze(-1).expand_as(x)\n        return torch.where(active_mask_expanded, y_proj, torch.zeros_like(y_proj))\n\nclass AdaptiveMLP(nn.Module):\n    def __init__(self, config):\n        super().__init__()\n        self.c_fc = nn.Linear(config.n_embd, 4 * config.n_embd)\n        self.gelu = nn.GELU()\n        self.c_proj = nn.Linear(4 * config.n_embd, config.n_embd)\n        self.dropout = nn.Dropout(config.dropout)\n        \n    def forward(self, x, active_mask):\n        x_active = self.c_fc(x)\n        x_active = self.gelu(x_active)\n        x_active = self.c_proj(x_active)\n        x_active = self.dropout(x_active)\n        \n        active_mask_expanded = active_mask.unsqueeze(-1).expand_as(x)\n        return torch.where(active_mask_expanded, x_active, torch.zeros_like(x_active))\n\nclass AdaptiveBlock(nn.Module):\n    def __init__(self, config):\n        super().__init__()\n        self.ln_1 = nn.LayerNorm(config.n_embd)\n        self.attn = AdaptiveAttention(config)\n        self.ln_2 = nn.LayerNorm(config.n_embd)\n        self.mlp = AdaptiveMLP(config)\n        self.confidence_gate = ConfidenceGate(config.n_embd)\n        \n    def forward(self, x, active_tokens, threshold):\n        # Only process active tokens\n        attn_out = self.attn(self.ln_1(x), active_tokens)\n        x = x + attn_out\n        \n        mlp_out = self.mlp(self.ln_2(x), active_tokens)\n        x = x + mlp_out\n        \n        # Update confidence and active status\n        confidence = self.confidence_gate(x)\n        new_exits = (confidence > threshold) & active_tokens\n        still_active = active_tokens & ~new_exits\n        \n        return x, still_active, confidence\n\nclass AdaptiveDepthTransformer(nn.Module):\n    def __init__(self, config):\n        super().__init__()\n        self.config = config\n        \n        self.wte = nn.Embedding(config.vocab_size, config.n_embd)\n        self.wpe = nn.Embedding(config.block_size, config.n_embd)\n        self.drop = nn.Dropout(config.dropout)\n        \n        self.blocks = nn.ModuleList([AdaptiveBlock(config) for _ in range(config.n_layer)])\n        self.ln_f = nn.LayerNorm(config.n_embd)\n        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)\n        \n        # Learnable threshold\n        self.threshold = nn.Parameter(torch.tensor(config.confidence_threshold))\n        \n    def forward(self, idx, targets=None):\n        B, T = idx.size()\n        \n        # Token and position embeddings\n        pos = torch.arange(0, T, dtype=torch.long, device=idx.device).unsqueeze(0)\n        tok_emb = self.wte(idx)\n        pos_emb = self.wpe(pos)\n        x = self.drop(tok_emb + pos_emb)\n        \n        # All tokens start as active\n        active_tokens = torch.ones(B, T, dtype=torch.bool, device=idx.device)\n        confidence_scores = []\n        \n        # Pass through blocks\n        for block in self.blocks:\n            x, active_tokens, confidence = block(x, active_tokens, torch.sigmoid(self.threshold))\n            confidence_scores.append(confidence)\n        \n        x = self.ln_f(x)\n        logits = self.lm_head(x)\n        \n        loss = None\n        if targets is not None:\n            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))\n            \n            # Add efficiency bonus - reward early exits\n            avg_depth = sum(active.float().mean() for active in confidence_scores) / len(confidence_scores)\n            efficiency_bonus = -0.01 * avg_depth  # Encourage early exits\n            loss = loss + efficiency_bonus\n            \n        return logits, loss\n\n# Training setup\nconfig = Config()\nmodel = AdaptiveDepthTransformer(config)\noptimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)\n\n# Synthetic data for testing\ntorch.manual_seed(42)\ndata = torch.randint(0, config.vocab_size, (1000, config.block_size))\n\n# Training loop\nmodel.train()\nfor step in range(100):\n    batch_idx = torch.randint(0, len(data) - 1, (4,))\n    x = data[batch_idx]\n    y = data[batch_idx + 1]\n    \n    logits, loss = model(x, y)\n    \n    optimizer.zero_grad()\n    loss.backward()\n    optimizer.step()\n    \n    if step % 20 == 0:\n        print(f'Step {step}, Loss: {loss.item():.4f}, Threshold: {torch.sigmoid(model.threshold).item():.3f}')",
+        "parent_architecture": "GPT-2 small",
+        "novelty_claims": [
+          "Dynamic per-token depth adaptation using confidence gates",
+          "Learnable confidence threshold that adapts during training",
+          "Efficiency-aware loss function that rewards early token exits",
+          "Variable computational depth while maintaining attention participation",
+          "Automatic compute allocation based on token complexity"
+        ],
+        "expected_behavior": "We should see the loss decrease while the learned threshold parameter adapts to find optimal early-exit points. Training curves should show initial high loss as the model learns, followed by stabilization at a lower loss with reduced average processing depth. The model should learn to exit simple tokens early while processing complex tokens through more layers, leading to significant FLOP reduction without major quality degradation."
+      },
+      "stage1_result": null,
+      "stage2_input": null,
+      "stage2_result": null,
+      "verdict": null,
+      "kill_hypotheses": [],
+      "experiments_run": 0,
+      "error": "'FalsifierOutput' object has no attribute 'summary'"
+    }
+  ],
+  "stage2_config": {
+    "enabled": true,
+    "model": "claude-sonnet-4-20250514",
+    "max_hypotheses": 5,
+    "max_tokens": 4000,
+    "temperature": 0.7
+  }
+}

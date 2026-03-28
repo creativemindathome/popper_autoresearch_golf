@@ -1,0 +1,151 @@
+digraph ExecutiveKG {
+  graph [bgcolor="#ffffff", fontname="SF Pro Display,Inter,Helvetica",
+         fontsize=28, labelloc="t", labeljust="center",
+         nodesep=0.8, ranksep=2.5, splines="ortho",
+         overlap="scale", pad=2.0, margin=0,
+         fontcolor="#111827", rankdir=TB];
+  node [fontname="SF Pro Display,Inter,Helvetica", shape=box,
+        style="rounded,filled", penwidth=2,
+        fontcolor="#111827", margin="0.25,0.15"];
+  edge [color="#e5e7eb", arrowsize=0.7, penwidth=2,
+        dir="forward", arrowhead="normal"];
+
+  label=<<FONT POINT-SIZE="32" FACE="SF Pro Display,Inter,Helvetica"><B>Parameter Golf: Knowledge Architecture</B></FONT>>;
+
+  subgraph cluster_data {
+    label=<<FONT POINT-SIZE="18" COLOR="#2563eb"><B>Data Pipeline</B></FONT>>;
+    style="rounded,filled";
+    fillcolor="#eff6ff";
+    color="#2563eb40";
+    penwidth=2;
+
+    "node_root_data_pipeline" [label=<<B>Data Pipeline</B>>, fillcolor="#2563eb", fontcolor="#ffffff", width=3.0, height=0.8, fontsize=14, penwidth=3];
+    "node_data_sources" [label="Data Sources", fillcolor="#3b82f6", fontcolor="#ffffff", width=2.8, height=0.6, fontsize=11, penwidth=2];
+    "node_root_data_pipeline" -> "node_data_sources" [color="#2563eb60"];
+    "node_data_source_web_text" [label="Web Text", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_sources" -> "node_data_source_web_text" [color="#3b82f640", penwidth=1];
+    "node_data_source_code" [label="Code", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_sources" -> "node_data_source_code" [color="#3b82f640", penwidth=1];
+    "node_data_source_books" [label="Books / Long-Form", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_sources" -> "node_data_source_books" [color="#3b82f640", penwidth=1];
+    "node_data_source_synthetic" [label="Synthetic / Generated Data", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_sources" -> "node_data_source_synthetic" [color="#3b82f640", penwidth=1];
+    "node_data_cleaning" [label="Cleaning &amp; Filtering", fillcolor="#3b82f6", fontcolor="#ffffff", width=2.8, height=0.6, fontsize=11, penwidth=2];
+    "node_root_data_pipeline" -> "node_data_cleaning" [color="#2563eb60"];
+    "node_data_dedup" [label="Deduplication", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_cleaning" -> "node_data_dedup" [color="#3b82f640", penwidth=1];
+    "node_data_language_id" [label="Language ID Filter", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_cleaning" -> "node_data_language_id" [color="#3b82f640", penwidth=1];
+    "node_data_quality_filter" [label="Quality Scoring Filter", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_cleaning" -> "node_data_quality_filter" [color="#3b82f640", penwidth=1];
+    "node_data_toxicity_filter" [label="Safety / Toxicity Filter", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_cleaning" -> "node_data_toxicity_filter" [color="#3b82f640", penwidth=1];
+    "node_data_tokenization" [label="Tokenization", fillcolor="#3b82f6", fontcolor="#ffffff", width=2.8, height=0.6, fontsize=11, penwidth=2];
+    "node_root_data_pipeline" -> "node_data_tokenization" [color="#2563eb60"];
+    "node_tokenizer_bpe" [label="BPE (Subword)", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_tokenization" -> "node_tokenizer_bpe" [color="#3b82f640", penwidth=1];
+    "node_tokenizer_unigram" [label="Unigram (SentencePiece)", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_tokenization" -> "node_tokenizer_unigram" [color="#3b82f640", penwidth=1];
+    "node_tokenizer_bytelevel_bpe" [label="Byte-level BPE", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_tokenization" -> "node_tokenizer_bytelevel_bpe" [color="#3b82f640", penwidth=1];
+    "node_tokenizer_character" [label="Character-level", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_tokenization" -> "node_tokenizer_character" [color="#3b82f640", penwidth=1];
+    "node_data_sequence_construction" [label="Sequence Construction", fillcolor="#3b82f6", fontcolor="#ffffff", width=2.8, height=0.6, fontsize=11, penwidth=2];
+    "node_root_data_pipeline" -> "node_data_sequence_construction" [color="#2563eb60"];
+    "node_sequence_packing" [label="Packing Strategy", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_sequence_construction" -> "node_sequence_packing" [color="#3b82f640", penwidth=1];
+    "node_context_length" [label="Context Length", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_sequence_construction" -> "node_context_length" [color="#3b82f640", penwidth=1];
+    "node_data_sampling_batching" [label="Sampling &amp; Batching", fillcolor="#3b82f6", fontcolor="#ffffff", width=2.8, height=0.6, fontsize=11, penwidth=2];
+    "node_root_data_pipeline" -> "node_data_sampling_batching" [color="#2563eb60"];
+    "node_batching_random" [label="Random Sampling", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_sampling_batching" -> "node_batching_random" [color="#3b82f640", penwidth=1];
+    "node_batching_length_bucketed" [label="Length-bucketed Batching", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_sampling_batching" -> "node_batching_length_bucketed" [color="#3b82f640", penwidth=1];
+    "node_data_augmentation" [label="Data Augmentation", fillcolor="#3b82f6", fontcolor="#ffffff", width=2.8, height=0.6, fontsize=11, penwidth=2];
+    "node_root_data_pipeline" -> "node_data_augmentation" [color="#2563eb60"];
+    "node_aug_span_corruption" [label="Span Corruption / Masking", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_augmentation" -> "node_aug_span_corruption" [color="#3b82f640", penwidth=1];
+    "node_aug_token_dropout" [label="Token Dropout", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_augmentation" -> "node_aug_token_dropout" [color="#3b82f640", penwidth=1];
+    "node_aug_contrastive_crop" [label="Contrastive Cropping", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_augmentation" -> "node_aug_contrastive_crop" [color="#3b82f640", penwidth=1];
+    "node_data_curriculum_mixing" [label="Curriculum &amp; Mixing", fillcolor="#3b82f6", fontcolor="#ffffff", width=2.8, height=0.6, fontsize=11, penwidth=2];
+    "node_root_data_pipeline" -> "node_data_curriculum_mixing" [color="#2563eb60"];
+    "node_curriculum_length" [label="Length Curriculum", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_curriculum_mixing" -> "node_curriculum_length" [color="#3b82f640", penwidth=1];
+    "node_mix_dataset_sampling" [label="Dataset Mixing Weights", fillcolor="#dbeafe", fontcolor="#2563eb", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_data_curriculum_mixing" -> "node_mix_dataset_sampling" [color="#3b82f640", penwidth=1];
+  }
+
+  subgraph cluster_nn {
+    label=<<FONT POINT-SIZE="18" COLOR="#dc2626"><B>Neural Network</B></FONT>>;
+    style="rounded,filled";
+    fillcolor="#fef2f2";
+    color="#dc262640";
+    penwidth=2;
+
+    "node_root_neural_network" [label=<<B>Neural Network</B>>, fillcolor="#dc2626", fontcolor="#ffffff", width=3.0, height=0.8, fontsize=14, penwidth=3];
+    "node_nn_embeddings" [label="Embeddings", fillcolor="#ef4444", fontcolor="#ffffff", width=2.8, height=0.6, fontsize=11, penwidth=2];
+    "node_root_neural_network" -> "node_nn_embeddings" [color="#dc262660"];
+    "node_nn_embedding_strategy" [label="Token Embedding Strategy", fillcolor="#fee2e2", fontcolor="#dc2626", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_nn_embeddings" -> "node_nn_embedding_strategy" [color="#ef444440", penwidth=1];
+    "node_nn_positional_encoding" [label="Positional Encoding", fillcolor="#fee2e2", fontcolor="#dc2626", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_nn_embeddings" -> "node_nn_positional_encoding" [color="#ef444440", penwidth=1];
+    "node_nn_transformer" [label="Transformer Backbone", fillcolor="#ef4444", fontcolor="#ffffff", width=2.8, height=0.6, fontsize=11, penwidth=2];
+    "node_root_neural_network" -> "node_nn_transformer" [color="#dc262660"];
+    "node_transformer_block" [label="Transformer Block", fillcolor="#fee2e2", fontcolor="#dc2626", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_nn_transformer" -> "node_transformer_block" [color="#ef444440", penwidth=1];
+    "node_nn_output_head" [label="Output Head", fillcolor="#ef4444", fontcolor="#ffffff", width=2.8, height=0.6, fontsize=11, penwidth=2];
+    "node_root_neural_network" -> "node_nn_output_head" [color="#dc262660"];
+    "node_head_strategy" [label="LM Head Strategy", fillcolor="#fee2e2", fontcolor="#dc2626", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_nn_output_head" -> "node_head_strategy" [color="#ef444440", penwidth=1];
+  }
+
+  subgraph cluster_train {
+    label=<<FONT POINT-SIZE="18" COLOR="#16a34a"><B>Training &amp; Evaluation</B></FONT>>;
+    style="rounded,filled";
+    fillcolor="#f0fdf4";
+    color="#16a34a40";
+    penwidth=2;
+
+    "node_root_training_eval" [label=<<B>Training &amp;amp; Evaluation</B>>, fillcolor="#16a34a", fontcolor="#ffffff", width=3.0, height=0.8, fontsize=14, penwidth=3];
+    "node_train_loss" [label="Loss Function", fillcolor="#22c55e", fontcolor="#ffffff", width=2.8, height=0.6, fontsize=11, penwidth=2];
+    "node_root_training_eval" -> "node_train_loss" [color="#16a34a60"];
+    "node_loss_cross_entropy" [label="Cross-Entropy", fillcolor="#dcfce7", fontcolor="#16a34a", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_train_loss" -> "node_loss_cross_entropy" [color="#22c55e40", penwidth=1];
+    "node_loss_label_smoothing" [label="Label Smoothing", fillcolor="#dcfce7", fontcolor="#16a34a", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_train_loss" -> "node_loss_label_smoothing" [color="#22c55e40", penwidth=1];
+    "node_loss_z_loss" [label="Z-loss / Logit Penalty", fillcolor="#dcfce7", fontcolor="#16a34a", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_train_loss" -> "node_loss_z_loss" [color="#22c55e40", penwidth=1];
+    "node_train_optimizer" [label="Optimizer &amp; State", fillcolor="#22c55e", fontcolor="#ffffff", width=2.8, height=0.6, fontsize=11, penwidth=2];
+    "node_root_training_eval" -> "node_train_optimizer" [color="#16a34a60"];
+    "node_optimizer_state_strategy" [label="Optimizer State Strategy", fillcolor="#dcfce7", fontcolor="#16a34a", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_train_optimizer" -> "node_optimizer_state_strategy" [color="#22c55e40", penwidth=1];
+    "node_train_precision" [label="Numerical Precision", fillcolor="#22c55e", fontcolor="#ffffff", width=2.8, height=0.6, fontsize=11, penwidth=2];
+    "node_root_training_eval" -> "node_train_precision" [color="#16a34a60"];
+    "node_precision_fp32" [label="FP32 Training", fillcolor="#dcfce7", fontcolor="#16a34a", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_train_precision" -> "node_precision_fp32" [color="#22c55e40", penwidth=1];
+    "node_precision_fp16_bf16" [label="FP16/BF16 Mixed Precision", fillcolor="#dcfce7", fontcolor="#16a34a", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_train_precision" -> "node_precision_fp16_bf16" [color="#22c55e40", penwidth=1];
+    "node_precision_fp8" [label="FP8 Activations (Advanced)", fillcolor="#dcfce7", fontcolor="#16a34a", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_train_precision" -> "node_precision_fp8" [color="#22c55e40", penwidth=1];
+    "node_train_activation_storage" [label="Activation Storage Strategy", fillcolor="#22c55e", fontcolor="#ffffff", width=2.8, height=0.6, fontsize=11, penwidth=2];
+    "node_root_training_eval" -> "node_train_activation_storage" [color="#16a34a60"];
+    "node_activations_store_all" [label="Store All Activations", fillcolor="#dcfce7", fontcolor="#16a34a", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_train_activation_storage" -> "node_activations_store_all" [color="#22c55e40", penwidth=1];
+    "node_activations_checkpoint" [label="Gradient Checkpointing", fillcolor="#dcfce7", fontcolor="#16a34a", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_train_activation_storage" -> "node_activations_checkpoint" [color="#22c55e40", penwidth=1];
+    "node_train_evaluation" [label="Evaluation Harness", fillcolor="#22c55e", fontcolor="#ffffff", width=2.8, height=0.6, fontsize=11, penwidth=2];
+    "node_root_training_eval" -> "node_train_evaluation" [color="#16a34a60"];
+    "node_eval_param_golf" [label="OpenAI Parameter Golf Benchmark", fillcolor="#dcfce7", fontcolor="#16a34a", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_train_evaluation" -> "node_eval_param_golf" [color="#22c55e40", penwidth=1];
+    "node_train_budget_accounting" [label="Budget Accounting", fillcolor="#22c55e", fontcolor="#ffffff", width=2.8, height=0.6, fontsize=11, penwidth=2];
+    "node_root_training_eval" -> "node_train_budget_accounting" [color="#16a34a60"];
+    "node_budget_parameters" [label="Parameter Counter", fillcolor="#dcfce7", fontcolor="#16a34a", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_train_budget_accounting" -> "node_budget_parameters" [color="#22c55e40", penwidth=1];
+    "node_budget_memory" [label="Peak Memory Estimator", fillcolor="#dcfce7", fontcolor="#16a34a", width=2.6, height=0.4, fontsize=9, penwidth=1];
+    "node_train_budget_accounting" -> "node_budget_memory" [color="#22c55e40", penwidth=1];
+  }
+
+}

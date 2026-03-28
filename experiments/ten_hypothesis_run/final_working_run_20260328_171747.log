@@ -1,0 +1,413 @@
+======================================================================
+FULL LIVE EXPERIMENT
+======================================================================
+Output: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_171748
+Hypotheses: 10
+Stage 2: ENABLED
+  Model: claude-sonnet-4-20250514
+
+[2026-03-28T17:17:48.369981] [INFO] ======================================================================
+[2026-03-28T17:17:48.370096] [INFO] FULL LIVE EXPERIMENT WITH SEPARATE STAGE MODELS
+[2026-03-28T17:17:48.370128] [INFO] ======================================================================
+[2026-03-28T17:17:48.370155] [INFO] Output directory: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_171748
+[2026-03-28T17:17:48.370179] [INFO] Stage 0 (Ideation): claude-sonnet-4-20250514
+[2026-03-28T17:17:48.370203] [INFO] Stage 2 (Falsifier): ENABLED
+[2026-03-28T17:17:48.370226] [INFO]   Model: claude-sonnet-4-20250514
+[2026-03-28T17:17:48.370248] [INFO]   Max hypotheses: 5
+[2026-03-28T17:17:48.370270] [INFO] 
+[2026-03-28T17:17:48.370292] [INFO] Starting experiment: 10 hypotheses
+[2026-03-28T17:17:48.370314] [INFO] Estimated time: 30-50 minutes
+[2026-03-28T17:17:48.370335] [INFO] 
+[2026-03-28T17:17:48.370356] [INFO] 
+======================================================================
+[2026-03-28T17:17:48.370378] [INFO] HYPOTHESIS 1/10
+[2026-03-28T17:17:48.370398] [INFO] ======================================================================
+[2026-03-28T17:17:48.370450] [INFO] 
+[2026-03-28T17:17:48.370472] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:17:48.370494] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:17:48.370516] [INFO]   Hypothesis #1
+[2026-03-28T17:17:48.370537] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:17:48.370561] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:18:32.106858] [INFO] ✓ Generated hypothesis #1: dynamic-depth-routing
+[2026-03-28T17:18:32.107962] [INFO]   Parameter estimate: Explicit count: ~6.8M parameters (verified <10M limit). Base transformer: 6.8M, routing modules: 8*(384*1+1) = 3K additional
+[2026-03-28T17:18:32.108108] [INFO]   Novelty: 3 claims
+[2026-03-28T17:18:32.108285] [INFO]   Code: ~197 lines
+[2026-03-28T17:18:32.108522] [INFO]   ✓ Parameter estimate 6.8M is within 10M budget
+[2026-03-28T17:18:32.108614] [INFO]   ✓ Parameter estimate 10.0M is within 10M budget
+[2026-03-28T17:18:32.108688] [INFO]   ✓ Parameter estimate 6.8M is within 10M budget
+[2026-03-28T17:18:32.108931] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:18:32.110049] [INFO] 
+[2026-03-28T17:18:32.110128] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:18:32.110183] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:18:32.110235] [INFO]   Theory: dynamic-depth-routing
+[2026-03-28T17:18:32.110310] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:18:32.110918] [INFO] Running T2 Budget check...
+[2026-03-28T17:18:32.110967] [INFO] Running T3 Compilation check...
+[2026-03-28T17:18:32.111012] [INFO] Running T4 Signal check...
+[2026-03-28T17:18:32.111058] [INFO] Running T5 Init check...
+[2026-03-28T17:18:32.111103] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:18:32.122066] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:18:32.122540] [INFO] 
+✓ Hypothesis #1 complete in 43.8s
+[2026-03-28T17:18:32.122585] [INFO]   Verdict: REFUTED
+[2026-03-28T17:18:32.124008] [INFO]   [Graph Sync] Created new node: dynamic-depth-routing
+[2026-03-28T17:18:32.124318] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:18:35.129421] [INFO] 
+======================================================================
+[2026-03-28T17:18:35.130944] [INFO] HYPOTHESIS 2/10
+[2026-03-28T17:18:35.131488] [INFO] ======================================================================
+[2026-03-28T17:18:35.132167] [INFO] 
+[2026-03-28T17:18:35.132544] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:18:35.132885] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:18:35.133195] [INFO]   Hypothesis #2
+[2026-03-28T17:18:35.133496] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:18:35.133807] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:19:29.763596] [INFO] ✓ Generated hypothesis #2: sparse-expert-attention
+[2026-03-28T17:19:29.764700] [INFO]   Parameter estimate: Exact count: ~9.8M parameters (verified <10M through reduced vocab_size=10K, n_embd=256, n_layer=6)
+[2026-03-28T17:19:29.764803] [INFO]   Novelty: 3 claims
+[2026-03-28T17:19:29.764880] [INFO]   Code: ~213 lines
+[2026-03-28T17:19:29.764938] [INFO]   ✓ Parameter estimate 9.8M is within 10M budget
+[2026-03-28T17:19:29.764977] [INFO]   ✓ Parameter estimate 10.0M is within 10M budget
+[2026-03-28T17:19:29.765040] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:19:29.765716] [INFO] 
+[2026-03-28T17:19:29.765760] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:19:29.765793] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:19:29.765823] [INFO]   Theory: sparse-expert-attention
+[2026-03-28T17:19:29.765859] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:19:29.766171] [INFO] Running T2 Budget check...
+[2026-03-28T17:19:29.766201] [INFO] Running T3 Compilation check...
+[2026-03-28T17:19:29.766233] [INFO] Running T4 Signal check...
+[2026-03-28T17:19:29.766266] [INFO] Running T5 Init check...
+[2026-03-28T17:19:29.766294] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:19:29.777298] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:19:29.777709] [INFO] 
+✓ Hypothesis #2 complete in 54.6s
+[2026-03-28T17:19:29.777745] [INFO]   Verdict: REFUTED
+[2026-03-28T17:19:29.779099] [INFO]   [Graph Sync] Updated existing node: sparse-expert-attention
+[2026-03-28T17:19:29.779522] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:19:32.780561] [INFO] 
+======================================================================
+[2026-03-28T17:19:32.780869] [INFO] HYPOTHESIS 3/10
+[2026-03-28T17:19:32.781160] [INFO] ======================================================================
+[2026-03-28T17:19:32.781234] [INFO] 
+[2026-03-28T17:19:32.781272] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:19:32.781333] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:19:32.781380] [INFO]   Hypothesis #3
+[2026-03-28T17:19:32.781437] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:19:32.781501] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:20:14.902494] [INFO] ✓ Generated hypothesis #3: rotary-cascade-attention
+[2026-03-28T17:20:14.904359] [INFO]   Parameter estimate: ~6.8M parameters (n_embd=384, n_layer=6, n_head=4, vocab=16384)
+[2026-03-28T17:20:14.904460] [INFO]   Novelty: 3 claims
+[2026-03-28T17:20:14.904656] [INFO]   Code: ~187 lines
+[2026-03-28T17:20:14.904778] [INFO]   ✓ Parameter estimate 6.8M is within 10M budget
+[2026-03-28T17:20:14.904898] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:20:14.906120] [INFO] 
+[2026-03-28T17:20:14.906204] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:20:14.906274] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:20:14.906333] [INFO]   Theory: rotary-cascade-attention
+[2026-03-28T17:20:14.906392] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:20:14.906996] [INFO] Running T2 Budget check...
+[2026-03-28T17:20:14.907057] [INFO] Running T3 Compilation check...
+[2026-03-28T17:20:14.907113] [INFO] Running T4 Signal check...
+[2026-03-28T17:20:14.907170] [INFO] Running T5 Init check...
+[2026-03-28T17:20:14.907224] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:20:14.939371] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:20:14.939922] [INFO] 
+✓ Hypothesis #3 complete in 42.2s
+[2026-03-28T17:20:14.939972] [INFO]   Verdict: REFUTED
+[2026-03-28T17:20:14.941401] [INFO]   [Graph Sync] Created new node: rotary-cascade-attention
+[2026-03-28T17:20:14.941715] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:20:17.946083] [INFO] 
+======================================================================
+[2026-03-28T17:20:17.946271] [INFO] HYPOTHESIS 4/10
+[2026-03-28T17:20:17.946322] [INFO] ======================================================================
+[2026-03-28T17:20:17.946382] [INFO] 
+[2026-03-28T17:20:17.946419] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:20:17.946463] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:20:17.946534] [INFO]   Hypothesis #4
+[2026-03-28T17:20:17.946592] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:20:17.946650] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:20:58.129672] [INFO] ✓ Generated hypothesis #4: sparse-mixture-attention
+[2026-03-28T17:20:58.130381] [INFO]   Parameter estimate: ~8.2M parameters: Base model 6.5M + sparse mask parameters (6 heads × 1024² × 4 bytes ≈ 1.7M)
+[2026-03-28T17:20:58.130820] [INFO]   Novelty: 3 claims
+[2026-03-28T17:20:58.130957] [INFO]   Code: ~176 lines
+[2026-03-28T17:20:58.131922] [INFO]   ✓ Parameter estimate 8.2M is within 10M budget
+[2026-03-28T17:20:58.132001] [INFO]   ✓ Parameter estimate 6.5M is within 10M budget
+[2026-03-28T17:20:58.132069] [INFO]   ✓ Parameter estimate 1.7M is within 10M budget
+[2026-03-28T17:20:58.132182] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:20:58.133288] [INFO] 
+[2026-03-28T17:20:58.133476] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:20:58.133575] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:20:58.133654] [INFO]   Theory: sparse-mixture-attention
+[2026-03-28T17:20:58.133726] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:20:58.134816] [INFO] Running T2 Budget check...
+[2026-03-28T17:20:58.134895] [INFO] Running T3 Compilation check...
+[2026-03-28T17:20:58.135049] [INFO] Running T4 Signal check...
+[2026-03-28T17:20:58.135275] [INFO] Running T5 Init check...
+[2026-03-28T17:20:58.135370] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:20:58.141885] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:20:58.143205] [INFO] 
+✓ Hypothesis #4 complete in 40.2s
+[2026-03-28T17:20:58.143350] [INFO]   Verdict: REFUTED
+[2026-03-28T17:20:58.145274] [INFO]   [Graph Sync] Created new node: sparse-mixture-attention
+[2026-03-28T17:20:58.145717] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:21:01.147991] [INFO] 
+======================================================================
+[2026-03-28T17:21:01.148419] [INFO] HYPOTHESIS 5/10
+[2026-03-28T17:21:01.148615] [INFO] ======================================================================
+[2026-03-28T17:21:01.148903] [INFO] 
+[2026-03-28T17:21:01.149045] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:21:01.149194] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:21:01.149310] [INFO]   Hypothesis #5
+[2026-03-28T17:21:01.149374] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:21:01.149421] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:21:46.347519] [INFO] ✓ Generated hypothesis #5: spiral-attention-mixer
+[2026-03-28T17:21:46.349749] [INFO]   Parameter estimate: Explicit count: ~8.2M parameters (verified <10M limit). Breakdown: embeddings 16.1M→reduced by using 320 dim instead of 384, attention layers ~4.8M, FFN ~3.0M, norms ~0.4M
+[2026-03-28T17:21:46.349986] [INFO]   Novelty: 3 claims
+[2026-03-28T17:21:46.350264] [INFO]   Code: ~182 lines
+[2026-03-28T17:21:46.350409] [INFO]   ✓ Parameter estimate 8.2M is within 10M budget
+[2026-03-28T17:21:46.350537] [INFO]   ✓ Parameter estimate 10.0M is within 10M budget
+[2026-03-28T17:21:46.350670] [INFO]   ⚠️️ WARNING: Parameter estimate 16.1M exceeds 10M budget - will likely be KILLED by T2
+[2026-03-28T17:21:46.350774] [INFO]   ✓ Parameter estimate 4.8M is within 10M budget
+[2026-03-28T17:21:46.350872] [INFO]   ✓ Parameter estimate 3.0M is within 10M budget
+[2026-03-28T17:21:46.351025] [INFO]   ✓ Parameter estimate 0.4M is within 10M budget
+[2026-03-28T17:21:46.351221] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:21:46.352612] [INFO] 
+[2026-03-28T17:21:46.352734] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:21:46.352848] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:21:46.352947] [INFO]   Theory: spiral-attention-mixer
+[2026-03-28T17:21:46.353043] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:21:46.353926] [INFO] Running T2 Budget check...
+[2026-03-28T17:21:46.354101] [INFO] Running T3 Compilation check...
+[2026-03-28T17:21:46.354202] [INFO] Running T4 Signal check...
+[2026-03-28T17:21:46.354267] [INFO] Running T5 Init check...
+[2026-03-28T17:21:46.354322] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:21:46.360150] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:21:46.360725] [INFO] 
+✓ Hypothesis #5 complete in 45.2s
+[2026-03-28T17:21:46.360788] [INFO]   Verdict: REFUTED
+[2026-03-28T17:21:46.363117] [INFO]   [Graph Sync] Created new node: spiral-attention-mixer
+[2026-03-28T17:21:46.363657] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:21:49.367375] [INFO] 
+======================================================================
+[2026-03-28T17:21:49.368862] [INFO] HYPOTHESIS 6/10
+[2026-03-28T17:21:49.369393] [INFO] ======================================================================
+[2026-03-28T17:21:49.370027] [INFO] 
+[2026-03-28T17:21:49.370475] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:21:49.370842] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:21:49.371210] [INFO]   Hypothesis #6
+[2026-03-28T17:21:49.371730] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:21:49.372205] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:22:40.204466] [INFO] ✓ Generated hypothesis #6: adaptive-sparse-attention
+[2026-03-28T17:22:40.205003] [INFO]   Parameter estimate: Explicit count: ~8.2M parameters (wte: 6.3M, blocks: 1.8M, extras: 0.1M, verified <10M)
+[2026-03-28T17:22:40.205081] [INFO]   Novelty: 3 claims
+[2026-03-28T17:22:40.205142] [INFO]   Code: ~211 lines
+[2026-03-28T17:22:40.205195] [INFO]   ✓ Parameter estimate 8.2M is within 10M budget
+[2026-03-28T17:22:40.205231] [INFO]   ✓ Parameter estimate 6.3M is within 10M budget
+[2026-03-28T17:22:40.205262] [INFO]   ✓ Parameter estimate 1.8M is within 10M budget
+[2026-03-28T17:22:40.205291] [INFO]   ✓ Parameter estimate 0.1M is within 10M budget
+[2026-03-28T17:22:40.205318] [INFO]   ✓ Parameter estimate 10.0M is within 10M budget
+[2026-03-28T17:22:40.205376] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:22:40.206023] [INFO] 
+[2026-03-28T17:22:40.206073] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:22:40.206110] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:22:40.206141] [INFO]   Theory: adaptive-sparse-attention
+[2026-03-28T17:22:40.206171] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:22:40.206516] [INFO] Running T2 Budget check...
+[2026-03-28T17:22:40.206543] [INFO] Running T3 Compilation check...
+[2026-03-28T17:22:40.206571] [INFO] Running T4 Signal check...
+[2026-03-28T17:22:40.206604] [INFO] Running T5 Init check...
+[2026-03-28T17:22:40.206631] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:22:40.210104] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:22:40.210348] [INFO] 
+✓ Hypothesis #6 complete in 50.8s
+[2026-03-28T17:22:40.210381] [INFO]   Verdict: REFUTED
+[2026-03-28T17:22:40.211666] [INFO]   [Graph Sync] Created new node: adaptive-sparse-attention
+[2026-03-28T17:22:40.211917] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:22:43.213503] [INFO] 
+======================================================================
+[2026-03-28T17:22:43.213836] [INFO] HYPOTHESIS 7/10
+[2026-03-28T17:22:43.214142] [INFO] ======================================================================
+[2026-03-28T17:22:43.214299] [INFO] 
+[2026-03-28T17:22:43.214346] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:22:43.214385] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:22:43.214419] [INFO]   Hypothesis #7
+[2026-03-28T17:22:43.214453] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:22:43.214504] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:23:23.491564] [INFO] ✓ Generated hypothesis #7: dynamic-sparse-attention-heads
+[2026-03-28T17:23:23.493009] [INFO]   Parameter estimate: Explicit count: ~8.2M parameters (6.5M base + 1.7M gating networks, verified <10M)
+[2026-03-28T17:23:23.493547] [INFO]   Novelty: 3 claims
+[2026-03-28T17:23:23.493742] [INFO]   Code: ~163 lines
+[2026-03-28T17:23:23.493869] [INFO]   ✓ Parameter estimate 8.2M is within 10M budget
+[2026-03-28T17:23:23.493955] [INFO]   ✓ Parameter estimate 6.5M is within 10M budget
+[2026-03-28T17:23:23.494033] [INFO]   ✓ Parameter estimate 1.7M is within 10M budget
+[2026-03-28T17:23:23.494121] [INFO]   ✓ Parameter estimate 10.0M is within 10M budget
+[2026-03-28T17:23:23.494289] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:23:23.495573] [INFO] 
+[2026-03-28T17:23:23.495666] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:23:23.495739] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:23:23.495861] [INFO]   Theory: dynamic-sparse-attention-heads
+[2026-03-28T17:23:23.496014] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:23:23.496887] [INFO] Running T2 Budget check...
+[2026-03-28T17:23:23.496963] [INFO] Running T3 Compilation check...
+[2026-03-28T17:23:23.497027] [INFO] Running T4 Signal check...
+[2026-03-28T17:23:23.497085] [INFO] Running T5 Init check...
+[2026-03-28T17:23:23.497139] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:23:23.503361] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:23:23.503895] [INFO] 
+✓ Hypothesis #7 complete in 40.3s
+[2026-03-28T17:23:23.503950] [INFO]   Verdict: REFUTED
+[2026-03-28T17:23:23.506204] [INFO]   [Graph Sync] Created new node: dynamic-sparse-attention-heads
+[2026-03-28T17:23:23.506673] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:23:26.508086] [INFO] 
+======================================================================
+[2026-03-28T17:23:26.508314] [INFO] HYPOTHESIS 8/10
+[2026-03-28T17:23:26.508560] [INFO] ======================================================================
+[2026-03-28T17:23:26.508631] [INFO] 
+[2026-03-28T17:23:26.508662] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:23:26.508706] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:23:26.508741] [INFO]   Hypothesis #8
+[2026-03-28T17:23:26.508773] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:23:26.508805] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:24:20.880263] [INFO] ✓ Generated hypothesis #8: rotary-sparse-attention-8
+[2026-03-28T17:24:20.881791] [INFO]   Parameter estimate: ~6.2M parameters: embeddings(2.56M) + 8×(attn_proj(1.57M) + route_weights(1K) + MLP(2.1M)) + norms(16K) = 6.2M total
+[2026-03-28T17:24:20.881913] [INFO]   Novelty: 3 claims
+[2026-03-28T17:24:20.882180] [INFO]   Code: ~251 lines
+[2026-03-28T17:24:20.882291] [INFO]   ✓ Parameter estimate 6.2M is within 10M budget
+[2026-03-28T17:24:20.882349] [INFO]   ✓ Parameter estimate 2.56M is within 10M budget
+[2026-03-28T17:24:20.882400] [INFO]   ✓ Parameter estimate 1.57M is within 10M budget
+[2026-03-28T17:24:20.882446] [INFO]   ✓ Parameter estimate 2.1M is within 10M budget
+[2026-03-28T17:24:20.882548] [INFO]   ✓ Parameter estimate 6.2M is within 10M budget
+[2026-03-28T17:24:20.882652] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:24:20.883554] [INFO] 
+[2026-03-28T17:24:20.883628] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:24:20.883674] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:24:20.883736] [INFO]   Theory: rotary-sparse-attention-8
+[2026-03-28T17:24:20.883787] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:24:20.884159] [INFO] Running T2 Budget check...
+[2026-03-28T17:24:20.884203] [INFO] Running T3 Compilation check...
+[2026-03-28T17:24:20.884261] [INFO] Running T4 Signal check...
+[2026-03-28T17:24:20.884321] [INFO] Running T5 Init check...
+[2026-03-28T17:24:20.884372] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:24:20.889520] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:24:20.890037] [INFO] 
+✓ Hypothesis #8 complete in 54.4s
+[2026-03-28T17:24:20.890087] [INFO]   Verdict: REFUTED
+[2026-03-28T17:24:20.891659] [INFO]   [Graph Sync] Created new node: rotary-sparse-attention-8
+[2026-03-28T17:24:20.892302] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:24:23.894809] [INFO] 
+======================================================================
+[2026-03-28T17:24:23.895056] [INFO] HYPOTHESIS 9/10
+[2026-03-28T17:24:23.895331] [INFO] ======================================================================
+[2026-03-28T17:24:23.895430] [INFO] 
+[2026-03-28T17:24:23.895469] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:24:23.895527] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:24:23.895585] [INFO]   Hypothesis #9
+[2026-03-28T17:24:23.895640] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:24:23.895694] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:25:09.112111] [INFO] ✓ Generated hypothesis #9: gradient-weighted-sparse-attention
+[2026-03-28T17:25:09.112540] [INFO]   Parameter estimate: Explicit count: ~8.2M parameters (verified <10M). Breakdown: 6.3M embedding (16K vocab * 384), 1.8M attention/MLP weights across 6 layers, 0.1M norms and biases.
+[2026-03-28T17:25:09.112805] [INFO]   Novelty: 3 claims
+[2026-03-28T17:25:09.112876] [INFO]   Code: ~194 lines
+[2026-03-28T17:25:09.112932] [INFO]   ✓ Parameter estimate 8.2M is within 10M budget
+[2026-03-28T17:25:09.112970] [INFO]   ✓ Parameter estimate 10.0M is within 10M budget
+[2026-03-28T17:25:09.113026] [INFO]   ✓ Parameter estimate 6.3M is within 10M budget
+[2026-03-28T17:25:09.113087] [INFO]   ✓ Parameter estimate 1.8M is within 10M budget
+[2026-03-28T17:25:09.113178] [INFO]   ✓ Parameter estimate 0.1M is within 10M budget
+[2026-03-28T17:25:09.113274] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:25:09.113847] [INFO] 
+[2026-03-28T17:25:09.113898] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:25:09.113943] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:25:09.114001] [INFO]   Theory: gradient-weighted-sparse-attention
+[2026-03-28T17:25:09.114056] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:25:09.114506] [INFO] Running T2 Budget check...
+[2026-03-28T17:25:09.114613] [INFO] Running T3 Compilation check...
+[2026-03-28T17:25:09.114665] [INFO] Running T4 Signal check...
+[2026-03-28T17:25:09.114725] [INFO] Running T5 Init check...
+[2026-03-28T17:25:09.114778] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:25:09.119306] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:25:09.119728] [INFO] 
+✓ Hypothesis #9 complete in 45.2s
+[2026-03-28T17:25:09.119768] [INFO]   Verdict: REFUTED
+[2026-03-28T17:25:09.121234] [INFO]   [Graph Sync] Created new node: gradient-weighted-sparse-attention
+[2026-03-28T17:25:09.121545] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:25:12.124914] [INFO] 
+======================================================================
+[2026-03-28T17:25:12.125156] [INFO] HYPOTHESIS 10/10
+[2026-03-28T17:25:12.125449] [INFO] ======================================================================
+[2026-03-28T17:25:12.125530] [INFO] 
+[2026-03-28T17:25:12.125571] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:25:12.125634] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:25:12.125696] [INFO]   Hypothesis #10
+[2026-03-28T17:25:12.125757] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:25:12.125818] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:25:49.013843] [INFO] ✓ Generated hypothesis #10: temporal-decay-attention
+[2026-03-28T17:25:49.015010] [INFO]   Parameter estimate: ~6.2M parameters (384*50304 embeddings + 6 layers * attention/FFN weights + 6 decay parameters per layer)
+[2026-03-28T17:25:49.015089] [INFO]   Novelty: 3 claims
+[2026-03-28T17:25:49.015159] [INFO]   Code: ~143 lines
+[2026-03-28T17:25:49.015224] [INFO]   ✓ Parameter estimate 6.2M is within 10M budget
+[2026-03-28T17:25:49.015290] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:25:49.016066] [INFO] 
+[2026-03-28T17:25:49.016112] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:25:49.016154] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:25:49.016196] [INFO]   Theory: temporal-decay-attention
+[2026-03-28T17:25:49.016249] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:25:49.016589] [INFO] Running T2 Budget check...
+[2026-03-28T17:25:49.016638] [INFO] Running T3 Compilation check...
+[2026-03-28T17:25:49.016678] [INFO] Running T4 Signal check...
+[2026-03-28T17:25:49.016719] [INFO] Running T5 Init check...
+[2026-03-28T17:25:49.016772] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:25:49.020456] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:25:49.021035] [INFO] 
+✓ Hypothesis #10 complete in 36.9s
+[2026-03-28T17:25:49.021096] [INFO]   Verdict: REFUTED
+[2026-03-28T17:25:49.022600] [INFO]   [Graph Sync] Created new node: temporal-decay-attention
+[2026-03-28T17:25:49.022903] [INFO] 
+[2026-03-28T17:25:49.022950] [INFO] ======================================================================
+[2026-03-28T17:25:49.022998] [INFO] FINAL SUMMARY
+[2026-03-28T17:25:49.023041] [INFO] ======================================================================
+[2026-03-28T17:25:49.023091] [INFO] 
+[2026-03-28T17:25:49.023127] [INFO] STATISTICS:
+[2026-03-28T17:25:49.023161] [INFO]   Total time: 8.0 minutes
+[2026-03-28T17:25:49.023194] [INFO]   Completed: 10/10
+[2026-03-28T17:25:49.023224] [INFO]   Failed: 0/10
+[2026-03-28T17:25:49.023303] [INFO] 
+[2026-03-28T17:25:49.023348] [INFO] PIPELINE RESULTS:
+[2026-03-28T17:25:49.023392] [INFO]   Generated: 10
+[2026-03-28T17:25:49.023433] [INFO]   Stage 1 Passed: 0 / 10
+[2026-03-28T17:25:49.023504] [INFO]   Stage 1 Killed: 10 / 10
+[2026-03-28T17:25:49.023538] [INFO]   Stage 2 Triggered: 0
+[2026-03-28T17:25:49.023567] [INFO]   Stage 2 Passed: 0 / 0
+[2026-03-28T17:25:49.023593] [INFO]   Stage 2 Killed: 0 / 0
+[2026-03-28T17:25:49.023616] [INFO] 
+[2026-03-28T17:25:49.023639] [INFO] VERDICT BREAKDOWN:
+[2026-03-28T17:25:49.023662] [INFO]   REFUTED: 10
+[2026-03-28T17:25:49.023783] [INFO] 
+[2026-03-28T17:25:49.023814] [INFO] ✓ Summary saved to: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_171748/summary.json
+[2026-03-28T17:25:49.023852] [INFO] 
+[2026-03-28T17:25:49.023879] [INFO] Generating visualization data...
+[2026-03-28T17:25:49.024943] [INFO] ✓ Visualization data saved to: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_171748/visualization/visualization_data.json
+[2026-03-28T17:25:49.024981] [INFO]   - Timeline: 20 events
+[2026-03-28T17:25:49.025006] [INFO]   - Evolution frames: 20
+[2026-03-28T17:25:49.025030] [INFO]   - Stage 2 enabled: True
+
+======================================================================
+✓ EXPERIMENT COMPLETE
+======================================================================
+
+Results: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_171748
+
+Next steps:
+  1. View summary: cat /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_171748/summary.json
+  2. Generate frames: python3 visualization/generate_frames.py --viz-data /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_171748/visualization/visualization_data.json --output /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_171748/visualization/frames
+  3. Assemble video: python3 visualization/assemble_clip.py --frames /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_171748/visualization/frames --output /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_171748/evolution_timelapse.mp4
+  4. View HTML: open /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_171748/viewer.html

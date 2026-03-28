@@ -1,0 +1,54 @@
+{
+  "run_id": "h003_6a420b32",
+  "hypothesis_number": 3,
+  "start_time": 1774713879.2017229,
+  "end_time": 1774713917.507296,
+  "status": "complete",
+  "idea_json": {
+    "theory_id": "gradient-guided-sparse-attention",
+    "what_and_why": "Current sparse attention patterns (local, random, strided) are fixed and don't adapt to what the model is actually learning. This architecture introduces 'gradient-guided sparsity' where attention patterns evolve based on gradient magnitudes during training. The key insight is that tokens with high gradient magnitudes during backpropagation are informationally important and should receive more attention bandwidth in future forward passes. We maintain a running exponential average of gradient magnitudes per position and use this to dynamically route attention connections.\n\nThe mechanism works by computing a 'gradient importance score' for each token position based on recent gradient history. During attention computation, we use these scores to create adaptive sparse patterns - high-importance tokens get dense attention while low-importance regions use sparser patterns. This creates a feedback loop where the model's own learning signal guides its attention allocation, potentially discovering more efficient information pathways than hand-designed patterns.",
+    "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.optim as optim\nimport math\nfrom torch.nn import functional as F\n\nclass GradientGuidedAttention(nn.Module):\n    def __init__(self, d_model, n_heads, seq_len, sparsity_ratio=0.3):\n        super().__init__()\n        self.d_model = d_model\n        self.n_heads = n_heads\n        self.seq_len = seq_len\n        self.head_dim = d_model // n_heads\n        self.sparsity_ratio = sparsity_ratio\n        \n        self.q_proj = nn.Linear(d_model, d_model, bias=False)\n        self.k_proj = nn.Linear(d_model, d_model, bias=False)\n        self.v_proj = nn.Linear(d_model, d_model, bias=False)\n        self.out_proj = nn.Linear(d_model, d_model, bias=False)\n        \n        # Gradient importance tracking\n        self.register_buffer('grad_importance', torch.ones(seq_len))\n        self.importance_decay = 0.95\n        self.grad_scale = 100.0\n        \n    def update_importance_scores(self, x_grad):\n        if x_grad is not None:\n            # Compute gradient magnitude per position\n            pos_grad_mag = torch.norm(x_grad, dim=-1).mean(0)  # [seq_len]\n            # Update exponential moving average\n            self.grad_importance = self.importance_decay * self.grad_importance + \\\n                                 (1 - self.importance_decay) * pos_grad_mag.detach()\n    \n    def create_sparse_mask(self, seq_len, batch_size):\n        # Create attention mask based on gradient importance\n        importance_probs = F.softmax(self.grad_importance[:seq_len] * self.grad_scale, dim=0)\n        \n        # Each position gets attention based on importance\n        keep_prob = 1 - self.sparsity_ratio\n        base_connections = int(seq_len * keep_prob)\n        \n        mask = torch.zeros(seq_len, seq_len, device=self.grad_importance.device)\n        \n        for i in range(seq_len):\n            # Always attend to self and local neighbors\n            mask[i, max(0, i-1):min(seq_len, i+2)] = 1\n            \n            # Add importance-weighted random connections\n            n_extra = max(0, base_connections - 3)  # minus local connections\n            if n_extra > 0:\n                # Sample based on importance scores\n                candidates = torch.arange(seq_len, device=mask.device)\n                weights = importance_probs.clone()\n                weights[max(0, i-1):min(seq_len, i+2)] = 0  # exclude already connected\n                \n                if weights.sum() > 0:\n                    selected = torch.multinomial(weights, min(n_extra, (weights > 0).sum()), replacement=False)\n                    mask[i, selected] = 1\n        \n        return mask.unsqueeze(0).expand(batch_size, -1, -1)\n    \n    def forward(self, x):\n        B, T, C = x.shape\n        \n        q = self.q_proj(x).view(B, T, self.n_heads, self.head_dim).transpose(1, 2)\n        k = self.k_proj(x).view(B, T, self.n_heads, self.head_dim).transpose(1, 2)\n        v = self.v_proj(x).view(B, T, self.n_heads, self.head_dim).transpose(1, 2)\n        \n        # Compute attention scores\n        scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.head_dim)\n        \n        # Apply gradient-guided sparse mask\n        sparse_mask = self.create_sparse_mask(T, B)\n        scores = scores.masked_fill(sparse_mask.unsqueeze(1) == 0, float('-inf'))\n        \n        # Causal mask\n        causal_mask = torch.triu(torch.ones(T, T, device=x.device), diagonal=1).bool()\n        scores = scores.masked_fill(causal_mask.unsqueeze(0).unsqueeze(0), float('-inf'))\n        \n        attn = F.softmax(scores, dim=-1)\n        out = torch.matmul(attn, v)\n        \n        out = out.transpose(1, 2).contiguous().view(B, T, C)\n        return self.out_proj(out)\n\nclass GradientGuidedTransformerBlock(nn.Module):\n    def __init__(self, d_model, n_heads, seq_len):\n        super().__init__()\n        self.attn = GradientGuidedAttention(d_model, n_heads, seq_len)\n        self.mlp = nn.Sequential(\n            nn.Linear(d_model, 4 * d_model),\n            nn.GELU(),\n            nn.Linear(4 * d_model, d_model)\n        )\n        self.ln1 = nn.LayerNorm(d_model)\n        self.ln2 = nn.LayerNorm(d_model)\n        \n    def forward(self, x):\n        x_norm = self.ln1(x)\n        x = x + self.attn(x_norm)\n        x = x + self.mlp(self.ln2(x))\n        return x\n\nclass GradientGuidedGPT(nn.Module):\n    def __init__(self, vocab_size=50257, d_model=384, n_heads=6, n_layers=6, seq_len=256):\n        super().__init__()\n        self.seq_len = seq_len\n        self.tok_emb = nn.Embedding(vocab_size, d_model)\n        self.pos_emb = nn.Embedding(seq_len, d_model)\n        self.blocks = nn.ModuleList([GradientGuidedTransformerBlock(d_model, n_heads, seq_len) for _ in range(n_layers)])\n        self.ln_f = nn.LayerNorm(d_model)\n        self.head = nn.Linear(d_model, vocab_size, bias=False)\n        \n    def forward(self, x):\n        B, T = x.shape\n        pos = torch.arange(T, device=x.device)\n        \n        x = self.tok_emb(x) + self.pos_emb(pos)\n        \n        for block in self.blocks:\n            x = block(x)\n            \n        x = self.ln_f(x)\n        return self.head(x)\n    \n    def update_gradient_importance(self):\n        # Update importance scores in all attention layers\n        for block in self.blocks:\n            if hasattr(block.attn.tok_emb, 'grad') and block.attn.tok_emb.grad is not None:\n                block.attn.update_importance_scores(block.attn.tok_emb.grad)\n\n# Training code\ndevice = 'cuda' if torch.cuda.is_available() else 'cpu'\nmodel = GradientGuidedGPT().to(device)\noptimizer = optim.AdamW(model.parameters(), lr=3e-4, weight_decay=0.1)\n\n# Dummy data for micro-training\nseq_len = 256\nbatch_size = 4\nnum_steps = 1000\n\nlosses = []\nfor step in range(num_steps):\n    # Generate random data\n    x = torch.randint(0, 50257, (batch_size, seq_len), device=device)\n    y = torch.cat([x[:, 1:], torch.randint(0, 50257, (batch_size, 1), device=device)], dim=1)\n    \n    optimizer.zero_grad()\n    logits = model(x)\n    loss = F.cross_entropy(logits.view(-1, logits.size(-1)), y.view(-1))\n    loss.backward()\n    \n    # Update gradient importance scores\n    model.update_gradient_importance()\n    \n    optimizer.step()\n    losses.append(loss.item())\n    \n    if step % 100 == 0:\n        print(f'Step {step}, Loss: {loss.item():.4f}')\n\nprint(f'Final loss: {losses[-1]:.4f}, Improvement: {losses[0] - losses[-1]:.4f}')",
+    "parent_architecture": "GPT-2 small with sparse attention",
+    "novelty_claims": [
+      "Gradient-magnitude-driven attention sparsity patterns that adapt during training",
+      "Exponential moving average tracking of positional gradient importance",
+      "Feedback loop between backpropagation signals and forward pass attention routing",
+      "Dynamic sparse masks based on learned token importance rather than fixed patterns",
+      "Self-organizing attention connectivity guided by optimization dynamics"
+    ],
+    "expected_behavior": "Training should show initial high loss as the model learns baseline patterns, followed by accelerated convergence as gradient-guided sparsity identifies important connections. Loss curves should be smoother than fixed sparse attention due to adaptive routing. Attention patterns should evolve from random to structured, with high-gradient positions receiving more attention bandwidth. The model should achieve similar or better performance than dense attention while using significantly fewer attention operations."
+  },
+  "stage1_result": {
+    "verdict": "REFUTED",
+    "killed_by": "T2",
+    "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "tags": [],
+    "t2_budget": {
+      "status": "FAIL_FATAL",
+      "test_id": "T2",
+      "estimated_params": 17046016,
+      "estimated_artifact_bytes": 10233953,
+      "budget_remaining_bytes": 6543263,
+      "budget_utilization": 0.6099911332130432,
+      "flops_ratio": 1.0,
+      "estimated_training_seconds": 14843.406974976,
+      "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+      "tags": [],
+      "wall_seconds": 0.0362294579972513,
+      "attn_flops_ratio": 0.6545454545454545,
+      "mlp_flops_ratio": 0.32727272727272727,
+      "embed_flops_ratio": 0.01818181818181818,
+      "architectural_balance_score": 0.0
+    },
+    "t3_compilation": null,
+    "t4_signal": null,
+    "t5_init": null,
+    "t7_microtrain": null
+  },
+  "stage2_input": null,
+  "stage2_result": null,
+  "verdict": "REFUTED",
+  "kill_hypotheses": [],
+  "experiments_run": 0,
+  "error": null
+}

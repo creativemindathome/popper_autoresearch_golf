@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Graph Evolution Viewer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: #16213e;
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #0f3460;
+        }
+        h1 { font-size: 1.5rem; color: #e94560; }
+        .subtitle { color: #888; font-size: 0.9rem; margin-top: 0.25rem; }
+        .container {
+            flex: 1;
+            display: flex;
+            padding: 1rem;
+            gap: 1rem;
+        }
+        .viewer {
+            flex: 2;
+            background: #0f3460;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .viewer img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: none;
+        }
+        .viewer img.active { display: block; }
+        .controls {
+            flex: 1;
+            background: #16213e;
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .control-group {
+            background: #1a1a2e;
+            padding: 1rem;
+            border-radius: 6px;
+        }
+        .control-group h3 {
+            color: #e94560;
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        button {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+        button:hover { background: #ff6b6b; }
+        button.secondary {
+            background: #0f3460;
+        }
+        button.secondary:hover { background: #1a4a7a; }
+        .slider-container {
+            margin-top: 0.5rem;
+        }
+        input[type="range"] {
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+        .frame-info {
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+        .stat {
+            background: #0f3460;
+            padding: 0.75rem;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #e94560;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 0.25rem;
+        }
+        .instructions {
+            background: #1a1a2e;
+            padding: 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+        .instructions code {
+            background: #0f3460;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            color: #e94560;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🔬 Knowledge Graph Evolution</h1>
+        <div class="subtitle">10 Hypothesis Experiment - 2 Hour Time-lapse</div>
+    </header>
+
+    <div class="container">
+        <div class="viewer">
+    <img src="visualization/frames/frame_00000.png" alt="Frame 0" data-frame="0">
+    <img src="visualization/frames/frame_00001.png" alt="Frame 1" data-frame="1">
+    <img src="visualization/frames/frame_00002.png" alt="Frame 2" data-frame="2">
+    <img src="visualization/frames/frame_00003.png" alt="Frame 3" data-frame="3">
+    <img src="visualization/frames/frame_00004.png" alt="Frame 4" data-frame="4">
+    <img src="visualization/frames/frame_00005.png" alt="Frame 5" data-frame="5">
+    <img src="visualization/frames/frame_00006.png" alt="Frame 6" data-frame="6">
+    <img src="visualization/frames/frame_00007.png" alt="Frame 7" data-frame="7">
+    <img src="visualization/frames/frame_00008.png" alt="Frame 8" data-frame="8">
+    <img src="visualization/frames/frame_00009.png" alt="Frame 9" data-frame="9">
+    <img src="visualization/frames/frame_00010.png" alt="Frame 10" data-frame="10">
+    <img src="visualization/frames/frame_00011.png" alt="Frame 11" data-frame="11">
+    <img src="visualization/frames/frame_00012.png" alt="Frame 12" data-frame="12">
+    <img src="visualization/frames/frame_00013.png" alt="Frame 13" data-frame="13">
+    <img src="visualization/frames/frame_00014.png" alt="Frame 14" data-frame="14">
+    <img src="visualization/frames/frame_00015.png" alt="Frame 15" data-frame="15">
+    <img src="visualization/frames/frame_00016.png" alt="Frame 16" data-frame="16">
+    <img src="visualization/frames/frame_00017.png" alt="Frame 17" data-frame="17">
+    <img src="visualization/frames/frame_00018.png" alt="Frame 18" data-frame="18">
+    <img src="visualization/frames/frame_00019.png" alt="Frame 19" data-frame="19">
+    <img src="visualization/frames/frame_00020.png" alt="Frame 20" data-frame="20">
+    <img src="visualization/frames/frame_00021.png" alt="Frame 21" data-frame="21">
+    <img src="visualization/frames/frame_00022.png" alt="Frame 22" data-frame="22">
+    <img src="visualization/frames/frame_00023.png" alt="Frame 23" data-frame="23">
+    <img src="visualization/frames/frame_00024.png" alt="Frame 24" data-frame="24">
+    <img src="visualization/frames/frame_00025.png" alt="Frame 25" data-frame="25">
+    <img src="visualization/frames/frame_00026.png" alt="Frame 26" data-frame="26">
+    <img src="visualization/frames/frame_00027.png" alt="Frame 27" data-frame="27">
+    <img src="visualization/frames/frame_00028.png" alt="Frame 28" data-frame="28">
+    <img src="visualization/frames/frame_00029.png" alt="Frame 29" data-frame="29">
+    <img src="visualization/frames/frame_00030.png" alt="Frame 30" data-frame="30">
+    <img src="visualization/frames/frame_00031.png" alt="Frame 31" data-frame="31">
+    <img src="visualization/frames/frame_00032.png" alt="Frame 32" data-frame="32">
+    <img src="visualization/frames/frame_00033.png" alt="Frame 33" data-frame="33">
+    <img src="visualization/frames/frame_00034.png" alt="Frame 34" data-frame="34">
+    <img src="visualization/frames/frame_00035.png" alt="Frame 35" data-frame="35">
+    <img src="visualization/frames/frame_00036.png" alt="Frame 36" data-frame="36">
+    <img src="visualization/frames/frame_00037.png" alt="Frame 37" data-frame="37">
+    <img src="visualization/frames/frame_00038.png" alt="Frame 38" data-frame="38">
+    <img src="visualization/frames/frame_00039.png" alt="Frame 39" data-frame="39">
+    <img src="visualization/frames/frame_00040.png" alt="Frame 40" data-frame="40">
+    <img src="visualization/frames/frame_00041.png" alt="Frame 41" data-frame="41">
+    <img src="visualization/frames/frame_00042.png" alt="Frame 42" data-frame="42">
+    <img src="visualization/frames/frame_00043.png" alt="Frame 43" data-frame="43">
+    <img src="visualization/frames/frame_00044.png" alt="Frame 44" data-frame="44">
+    <img src="visualization/frames/frame_00045.png" alt="Frame 45" data-frame="45">
+    <img src="visualization/frames/frame_00046.png" alt="Frame 46" data-frame="46">
+    <img src="visualization/frames/frame_00047.png" alt="Frame 47" data-frame="47">
+    <img src="visualization/frames/frame_00048.png" alt="Frame 48" data-frame="48">
+    <img src="visualization/frames/frame_00049.png" alt="Frame 49" data-frame="49">
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <h3>Playback</h3>
+                <button id="playBtn">▶ Play</button>
+                <button id="pauseBtn" class="secondary" style="display:none">⏸ Pause</button>
+                <div class="slider-container">
+                    <label>Frame: <span id="frameNum">0</span> / 50</label>
+                    <input type="range" id="frameSlider" min="0" max="49" value="0">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Statistics</h3>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value" id="totalIdeas">-</div>
+                        <div class="stat-label">Total Ideas</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="approved">-</div>
+                        <div class="stat-label">Approved</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="falsified">-</div>
+                        <div class="stat-label">Falsified</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="passed">-</div>
+                        <div class="stat-label">Passed</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Export</h3>
+                <button id="exportScriptBtn" class="secondary">📹 Generate Video Script</button>
+            </div>
+
+            <div class="instructions">
+                <strong>Instructions:</strong><br><br>
+                Use the slider or Play button to navigate through the evolution.<br><br>
+                To create a video, click "Generate Video Script" and run the command in your terminal.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const images = document.querySelectorAll('.viewer img');
+        const slider = document.getElementById('frameSlider');
+        const frameNum = document.getElementById('frameNum');
+        const playBtn = document.getElementById('playBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+
+        let currentFrame = 0;
+        let isPlaying = false;
+        let playInterval;
+
+        function showFrame(n) {
+            images.forEach((img, i) => {
+                img.classList.toggle('active', i === n);
+            });
+            currentFrame = n;
+            slider.value = n;
+            frameNum.textContent = n;
+
+            // Update stats from metadata (would need to be populated)
+            updateStats(n);
+        }
+
+        function updateStats(frame) {
+            // This would be populated with actual data
+            document.getElementById('totalIdeas').textContent = Math.floor(frame / 10);
+        }
+
+        slider.addEventListener('input', (e) => {
+            showFrame(parseInt(e.target.value));
+        });
+
+        playBtn.addEventListener('click', () => {
+            isPlaying = true;
+            playBtn.style.display = 'none';
+            pauseBtn.style.display = 'block';
+
+            playInterval = setInterval(() => {
+                let next = currentFrame + 1;
+                if (next >= images.length) next = 0;
+                showFrame(next);
+            }, 100);  // 10 fps playback
+        });
+
+        pauseBtn.addEventListener('click', () => {
+            isPlaying = false;
+            clearInterval(playInterval);
+            playBtn.style.display = 'block';
+            pauseBtn.style.display = 'none';
+        });
+
+        document.getElementById('exportScriptBtn').addEventListener('click', () => {
+            alert('Run this command in the terminal to create the video:\n\n' +
+                  'bash assemble_video.sh');
+        });
+
+        // Show first frame
+        showFrame(0);
+    </script>
+</body>
+</html>

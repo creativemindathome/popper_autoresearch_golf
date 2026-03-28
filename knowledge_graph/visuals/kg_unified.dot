@@ -1,0 +1,291 @@
+digraph KnowledgeGraph {
+  graph [rankdir=TB, bgcolor="white", fontname="Helvetica",
+         fontsize=14, labelloc="t", labeljust="center",
+         nodesep=0.25, ranksep=0.6, splines="true",
+         overlap="scalexy", pad=0.5, bgcolor="#fafafa"];
+  node [fontname="Helvetica", fontsize=9, shape=circle,
+        fixedsize=true, style="filled", penwidth=1.5];
+  edge [color="#64748b", arrowsize=0.7, penwidth=1.2,
+        dir="forward", arrowhead="normal"];
+
+  label=<<B>Parameter Golf Knowledge Graph</B>>;
+
+  subgraph cluster_data {
+    label=<<B>Data Pipeline</B>>;
+    style="rounded,filled";
+    fillcolor="#f1f5f9";
+    color="#3b82f6";
+    penwidth=2;
+
+    "node_root_data_pipeline" [width=0.6, height=0.6, fillcolor="#3b82f6", penwidth=3, xlabel="Data Pipeline" fontcolor="#334155" fontsize=11];
+    { rank=same; "node_root_data_pipeline"; }
+
+    "node_data_sources" [width=0.4, height=0.4, fillcolor="#60a5fa", penwidth=2, xlabel="Data Sources" fontcolor="#334155" fontsize=9];
+    "node_data_cleaning" [width=0.4, height=0.4, fillcolor="#60a5fa", penwidth=2, xlabel="Cleaning & Filtering" fontcolor="#334155" fontsize=9];
+    "node_data_tokenization" [width=0.4, height=0.4, fillcolor="#bfdbfe", penwidth=2, xlabel="Tokenization" fontcolor="#334155" fontsize=9];
+    "node_data_sequence_construction" [width=0.4, height=0.4, fillcolor="#60a5fa", penwidth=2, xlabel="Sequence Construction" fontcolor="#334155" fontsize=9];
+    "node_data_sampling_batching" [width=0.4, height=0.4, fillcolor="#60a5fa", penwidth=2, xlabel="Sampling & Batching" fontcolor="#334155" fontsize=9];
+    "node_data_augmentation" [width=0.4, height=0.4, fillcolor="#93c5fd", penwidth=2, xlabel="Data Augmentation" fontcolor="#334155" fontsize=9];
+    "node_data_curriculum_mixing" [width=0.4, height=0.4, fillcolor="#bfdbfe", penwidth=2, xlabel="Curriculum & Mixing" fontcolor="#334155" fontsize=9];
+    { rank=same; "node_data_sources"; "node_data_cleaning"; "node_data_tokenization"; "node_data_sequence_construction"; "node_data_sampling_batching"; "node_data_augmentation"; "node_data_curriculum_mixing"; }
+
+    "node_data_source_web_text" [width=0.25, height=0.25, fillcolor="#a5b4fc", penwidth=1.5, tooltip="Web Text"];
+    "node_data_source_code" [width=0.25, height=0.25, fillcolor="#c7d2fe", penwidth=1.5, tooltip="Code"];
+    "node_data_source_books" [width=0.25, height=0.25, fillcolor="#a5b4fc", penwidth=1.5, tooltip="Books / Long-Form"];
+    "node_data_source_synthetic" [width=0.25, height=0.25, fillcolor="#a5b4fc", penwidth=1.5, tooltip="Synthetic / Generated Data"];
+    "node_data_dedup" [width=0.25, height=0.25, fillcolor="#818cf8", penwidth=1.5, tooltip="Deduplication"];
+    "node_data_language_id" [width=0.25, height=0.25, fillcolor="#818cf8", penwidth=1.5, tooltip="Language ID Filter"];
+    "node_data_quality_filter" [width=0.25, height=0.25, fillcolor="#818cf8", penwidth=1.5, tooltip="Quality Scoring Filter"];
+    "node_data_toxicity_filter" [width=0.25, height=0.25, fillcolor="#c7d2fe", penwidth=1.5, tooltip="Safety / Toxicity Filter"];
+    "node_tokenizer_bpe" [width=0.25, height=0.25, fillcolor="#c7d2fe", penwidth=1.5, tooltip="BPE (Subword)"];
+    "node_tokenizer_unigram" [width=0.25, height=0.25, fillcolor="#a5b4fc", penwidth=1.5, tooltip="Unigram (SentencePiece)"];
+    "node_tokenizer_bytelevel_bpe" [width=0.25, height=0.25, fillcolor="#a5b4fc", penwidth=1.5, tooltip="Byte-level BPE"];
+    "node_tokenizer_character" [width=0.25, height=0.25, fillcolor="#a5b4fc", penwidth=1.5, tooltip="Character-level"];
+    "node_sequence_packing" [width=0.4, height=0.4, fillcolor="#60a5fa", penwidth=2, xlabel="Packing Strategy" fontcolor="#334155" fontsize=9];
+    "node_context_length" [width=0.4, height=0.4, fillcolor="#60a5fa", penwidth=2, xlabel="Context Length" fontcolor="#334155" fontsize=9];
+    "node_batching_random" [width=0.25, height=0.25, fillcolor="#818cf8", penwidth=1.5, tooltip="Random Sampling"];
+    "node_batching_length_bucketed" [width=0.25, height=0.25, fillcolor="#c7d2fe", penwidth=1.5, tooltip="Length-bucketed Batching"];
+    "node_aug_span_corruption" [width=0.25, height=0.25, fillcolor="#a5b4fc", penwidth=1.5, tooltip="Span Corruption / Masking"];
+    "node_aug_token_dropout" [width=0.25, height=0.25, fillcolor="#c7d2fe", penwidth=1.5, tooltip="Token Dropout"];
+    "node_aug_contrastive_crop" [width=0.25, height=0.25, fillcolor="#c7d2fe", penwidth=1.5, tooltip="Contrastive Cropping"];
+    "node_curriculum_length" [width=0.25, height=0.25, fillcolor="#a5b4fc", penwidth=1.5, tooltip="Length Curriculum"];
+    "node_mix_dataset_sampling" [width=0.25, height=0.25, fillcolor="#818cf8", penwidth=1.5, tooltip="Dataset Mixing Weights"];
+    { rank=same; "node_data_source_web_text"; "node_data_source_code"; "node_data_source_books"; "node_data_source_synthetic"; "node_data_dedup"; "node_data_language_id"; "node_data_quality_filter"; "node_data_toxicity_filter"; "node_tokenizer_bpe"; "node_tokenizer_unigram"; "node_tokenizer_bytelevel_bpe"; "node_tokenizer_character"; "node_sequence_packing"; "node_context_length"; "node_batching_random"; "node_batching_length_bucketed"; "node_aug_span_corruption"; "node_aug_token_dropout"; "node_aug_contrastive_crop"; "node_curriculum_length"; "node_mix_dataset_sampling"; }
+
+    "node_packing_concat_fixed" [width=0.25, height=0.25, fillcolor="#c7d2fe", penwidth=1.5, tooltip="Fixed Concat + Padding"];
+    "node_packing_dynamic" [width=0.25, height=0.25, fillcolor="#a5b4fc", penwidth=1.5, tooltip="Dynamic Packing"];
+    "node_context_256" [width=0.25, height=0.25, fillcolor="#c7d2fe", penwidth=1.5, tooltip="256 Tokens"];
+    "node_context_512" [width=0.25, height=0.25, fillcolor="#c7d2fe", penwidth=1.5, tooltip="512 Tokens"];
+    "node_context_1024" [width=0.25, height=0.25, fillcolor="#c7d2fe", penwidth=1.5, tooltip="1024 Tokens"];
+    { rank=same; "node_packing_concat_fixed"; "node_packing_dynamic"; "node_context_256"; "node_context_512"; "node_context_1024"; }
+
+  }
+
+  subgraph cluster_nn {
+    label=<<B>Neural Network</B>>;
+    style="rounded,filled";
+    fillcolor="#f1f5f9";
+    color="#ef4444";
+    penwidth=2;
+
+    "node_root_neural_network" [width=0.6, height=0.6, fillcolor="#ef4444", penwidth=3, xlabel="Neural Network" fontcolor="#334155" fontsize=11];
+    { rank=same; "node_root_neural_network"; }
+
+    "node_nn_embeddings" [width=0.4, height=0.4, fillcolor="#fecaca", penwidth=2, xlabel="Embeddings" fontcolor="#334155" fontsize=9];
+    "node_nn_transformer" [width=0.4, height=0.4, fillcolor="#f87171", penwidth=2, xlabel="Transformer Backbone" fontcolor="#334155" fontsize=9];
+    "node_nn_output_head" [width=0.4, height=0.4, fillcolor="#fca5a5", penwidth=2, xlabel="Output Head" fontcolor="#334155" fontsize=9];
+    { rank=same; "node_nn_embeddings"; "node_nn_transformer"; "node_nn_output_head"; }
+
+    "node_nn_embedding_strategy" [width=0.4, height=0.4, fillcolor="#fca5a5", penwidth=2, xlabel="Token Embedding Strategy" fontcolor="#334155" fontsize=9];
+    "node_nn_positional_encoding" [width=0.4, height=0.4, fillcolor="#fecaca", penwidth=2, xlabel="Positional Encoding" fontcolor="#334155" fontsize=9];
+    "node_transformer_block" [width=0.4, height=0.4, fillcolor="#fecaca", penwidth=2, xlabel="Transformer Block" fontcolor="#334155" fontsize=9];
+    "node_head_strategy" [width=0.4, height=0.4, fillcolor="#fecaca", penwidth=2, xlabel="LM Head Strategy" fontcolor="#334155" fontsize=9];
+    { rank=same; "node_nn_embedding_strategy"; "node_nn_positional_encoding"; "node_transformer_block"; "node_head_strategy"; }
+
+    "node_embed_full" [width=0.25, height=0.25, fillcolor="#fdba74", penwidth=1.5, tooltip="Full Embedding Matrix"];
+    "node_embed_factorized" [width=0.25, height=0.25, fillcolor="#fed7aa", penwidth=1.5, tooltip="Factorized Embeddings"];
+    "node_embed_hashing" [width=0.25, height=0.25, fillcolor="#fb923c", penwidth=1.5, tooltip="Hashed / Shared Embeddings"];
+    "node_pos_rope" [width=0.25, height=0.25, fillcolor="#fb923c", penwidth=1.5, tooltip="RoPE (Rotary)"];
+    "node_pos_alibi" [width=0.25, height=0.25, fillcolor="#fed7aa", penwidth=1.5, tooltip="ALiBi (Linear Bias)"];
+    "node_pos_absolute" [width=0.25, height=0.25, fillcolor="#fb923c", penwidth=1.5, tooltip="Learned Absolute Positions"];
+    "node_transformer_attention" [width=0.4, height=0.4, fillcolor="#fca5a5", penwidth=2, xlabel="Attention" fontcolor="#334155" fontsize=9];
+    "node_transformer_mlp" [width=0.4, height=0.4, fillcolor="#fca5a5", penwidth=2, xlabel="Feed-Forward Network (MLP)" fontcolor="#334155" fontsize=9];
+    "node_transformer_norm" [width=0.4, height=0.4, fillcolor="#fecaca", penwidth=2, xlabel="Normalization" fontcolor="#334155" fontsize=9];
+    "node_transformer_residual" [width=0.25, height=0.25, fillcolor="#fdba74", penwidth=1.5, tooltip="Residual Connections"];
+    "node_transformer_dropout" [width=0.25, height=0.25, fillcolor="#fed7aa", penwidth=1.5, tooltip="Dropout"];
+    "node_head_untied" [width=0.25, height=0.25, fillcolor="#fb923c", penwidth=1.5, tooltip="Untied Linear LM Head"];
+    "node_head_weight_tied" [width=0.25, height=0.25, fillcolor="#fb923c", penwidth=1.5, tooltip="Weight-tied Head (Reuse Embeddings)"];
+    "node_head_adaptive_softmax" [width=0.25, height=0.25, fillcolor="#fed7aa", penwidth=1.5, tooltip="Adaptive / Factorized Softmax"];
+    { rank=same; "node_embed_full"; "node_embed_factorized"; "node_embed_hashing"; "node_pos_rope"; "node_pos_alibi"; "node_pos_absolute"; "node_transformer_attention"; "node_transformer_mlp"; "node_transformer_norm"; "node_transformer_residual"; "node_transformer_dropout"; "node_head_untied"; "node_head_weight_tied"; "node_head_adaptive_softmax"; }
+
+    "node_attn_projections" [width=0.4, height=0.4, fillcolor="#f87171", penwidth=2, xlabel="Attention Projections" fontcolor="#334155" fontsize=9];
+    "node_attn_compute" [width=0.4, height=0.4, fillcolor="#f87171", penwidth=2, xlabel="Attention Computation" fontcolor="#334155" fontsize=9];
+    "node_attn_kv_cache" [width=0.4, height=0.4, fillcolor="#f87171", penwidth=2, xlabel="KV Cache Strategy (Inference)" fontcolor="#334155" fontsize=9];
+    "node_mlp_variant" [width=0.4, height=0.4, fillcolor="#fca5a5", penwidth=2, xlabel="MLP Variant" fontcolor="#334155" fontsize=9];
+    "node_norm_layernorm" [width=0.25, height=0.25, fillcolor="#fb923c", penwidth=1.5, tooltip="LayerNorm"];
+    "node_norm_rmsnorm" [width=0.25, height=0.25, fillcolor="#fdba74", penwidth=1.5, tooltip="RMSNorm"];
+    { rank=same; "node_attn_projections"; "node_attn_compute"; "node_attn_kv_cache"; "node_mlp_variant"; "node_norm_layernorm"; "node_norm_rmsnorm"; }
+
+    "node_attn_query_proj" [width=0.25, height=0.25, fillcolor="#fb923c", penwidth=1.5, tooltip="Query Projection"];
+    "node_attn_key_proj" [width=0.4, height=0.4, fillcolor="#f87171", penwidth=2, xlabel="Key Projection" fontcolor="#334155" fontsize=9];
+    "node_attn_value_proj" [width=0.4, height=0.4, fillcolor="#fecaca", penwidth=2, xlabel="Value Projection" fontcolor="#334155" fontsize=9];
+    "node_attn_output_proj" [width=0.25, height=0.25, fillcolor="#fb923c", penwidth=1.5, tooltip="Output Projection"];
+    "node_attn_softmax_impl" [width=0.4, height=0.4, fillcolor="#f87171", penwidth=2, xlabel="Softmax Attention Implementation" fontcolor="#334155" fontsize=9];
+    "node_kv_cache_none" [width=0.25, height=0.25, fillcolor="#fdba74", penwidth=1.5, tooltip="No KV Cache (Recompute)"];
+    "node_kv_cache_fp16" [width=0.25, height=0.25, fillcolor="#fdba74", penwidth=1.5, tooltip="FP16/BF16 KV Cache"];
+    "node_kv_cache_int8" [width=0.25, height=0.25, fillcolor="#fed7aa", penwidth=1.5, tooltip="INT8 KV Cache"];
+    "node_mlp_dense_fnn" [width=0.25, height=0.25, fillcolor="#fdba74", penwidth=1.5, tooltip="Dense FFN (ReLU/GELU)"];
+    "node_mlp_swiglu" [width=0.25, height=0.25, fillcolor="#fb923c", penwidth=1.5, tooltip="SwiGLU (Gated MLP)"];
+    "node_mlp_low_rank" [width=0.25, height=0.25, fillcolor="#fdba74", penwidth=1.5, tooltip="Low-rank / Factorized MLP"];
+    "node_mlp_moe" [width=0.25, height=0.25, fillcolor="#fb923c", penwidth=1.5, tooltip="Mixture-of-Experts (Sparse)"];
+    { rank=same; "node_attn_query_proj"; "node_attn_key_proj"; "node_attn_value_proj"; "node_attn_output_proj"; "node_attn_softmax_impl"; "node_kv_cache_none"; "node_kv_cache_fp16"; "node_kv_cache_int8"; "node_mlp_dense_fnn"; "node_mlp_swiglu"; "node_mlp_low_rank"; "node_mlp_moe"; }
+
+    "node_attn_key_per_head" [width=0.25, height=0.25, fillcolor="#fb923c", penwidth=1.5, tooltip="Per-head Keys (MHA-style)"];
+    "node_attn_key_shared" [width=0.25, height=0.25, fillcolor="#fdba74", penwidth=1.5, tooltip="Shared Keys (GQA/MQA-style)"];
+    "node_attn_value_per_head" [width=0.25, height=0.25, fillcolor="#fb923c", penwidth=1.5, tooltip="Per-head Values (MHA-style)"];
+    "node_attn_value_shared" [width=0.25, height=0.25, fillcolor="#fdba74", penwidth=1.5, tooltip="Shared Values (GQA/MQA-style)"];
+    "node_attn_softmax_naive" [width=0.25, height=0.25, fillcolor="#fb923c", penwidth=1.5, tooltip="Naive / Standard Softmax"];
+    "node_attn_softmax_flash" [width=0.25, height=0.25, fillcolor="#fb923c", penwidth=1.5, tooltip="FlashAttention-style (Tiled)"];
+    { rank=same; "node_attn_key_per_head"; "node_attn_key_shared"; "node_attn_value_per_head"; "node_attn_value_shared"; "node_attn_softmax_naive"; "node_attn_softmax_flash"; }
+
+  }
+
+  subgraph cluster_train {
+    label=<<B>Training &amp; Evaluation</B>>;
+    style="rounded,filled";
+    fillcolor="#f1f5f9";
+    color="#22c55e";
+    penwidth=2;
+
+    "node_root_training_eval" [width=0.6, height=0.6, fillcolor="#22c55e", penwidth=3, xlabel="Training & Evaluation" fontcolor="#334155" fontsize=11];
+    { rank=same; "node_root_training_eval"; }
+
+    "node_train_loss" [width=0.4, height=0.4, fillcolor="#bbf7d0", penwidth=2, xlabel="Loss Function" fontcolor="#334155" fontsize=9];
+    "node_train_optimizer" [width=0.4, height=0.4, fillcolor="#86efac", penwidth=2, xlabel="Optimizer & State" fontcolor="#334155" fontsize=9];
+    "node_train_precision" [width=0.4, height=0.4, fillcolor="#4ade80", penwidth=2, xlabel="Numerical Precision" fontcolor="#334155" fontsize=9];
+    "node_train_activation_storage" [width=0.4, height=0.4, fillcolor="#bbf7d0", penwidth=2, xlabel="Activation Storage Strategy" fontcolor="#334155" fontsize=9];
+    "node_train_evaluation" [width=0.4, height=0.4, fillcolor="#bbf7d0", penwidth=2, xlabel="Evaluation Harness" fontcolor="#334155" fontsize=9];
+    "node_train_budget_accounting" [width=0.4, height=0.4, fillcolor="#4ade80", penwidth=2, xlabel="Budget Accounting" fontcolor="#334155" fontsize=9];
+    { rank=same; "node_train_loss"; "node_train_optimizer"; "node_train_precision"; "node_train_activation_storage"; "node_train_evaluation"; "node_train_budget_accounting"; }
+
+    "node_loss_cross_entropy" [width=0.25, height=0.25, fillcolor="#c084fc", penwidth=1.5, tooltip="Cross-Entropy"];
+    "node_loss_label_smoothing" [width=0.25, height=0.25, fillcolor="#c084fc", penwidth=1.5, tooltip="Label Smoothing"];
+    "node_loss_z_loss" [width=0.25, height=0.25, fillcolor="#c084fc", penwidth=1.5, tooltip="Z-loss / Logit Penalty"];
+    "node_optimizer_state_strategy" [width=0.4, height=0.4, fillcolor="#4ade80", penwidth=2, xlabel="Optimizer State Strategy" fontcolor="#334155" fontsize=9];
+    "node_precision_fp32" [width=0.25, height=0.25, fillcolor="#c084fc", penwidth=1.5, tooltip="FP32 Training"];
+    "node_precision_fp16_bf16" [width=0.25, height=0.25, fillcolor="#d8b4fe", penwidth=1.5, tooltip="FP16/BF16 Mixed Precision"];
+    "node_precision_fp8" [width=0.25, height=0.25, fillcolor="#e9d5ff", penwidth=1.5, tooltip="FP8 Activations (Advanced)"];
+    "node_activations_store_all" [width=0.25, height=0.25, fillcolor="#c084fc", penwidth=1.5, tooltip="Store All Activations"];
+    "node_activations_checkpoint" [width=0.25, height=0.25, fillcolor="#c084fc", penwidth=1.5, tooltip="Gradient Checkpointing"];
+    "node_eval_param_golf" [width=0.25, height=0.25, fillcolor="#d8b4fe", penwidth=1.5, tooltip="OpenAI Parameter Golf Benchmark"];
+    "node_budget_parameters" [width=0.25, height=0.25, fillcolor="#c084fc", penwidth=1.5, tooltip="Parameter Counter"];
+    "node_budget_memory" [width=0.25, height=0.25, fillcolor="#e9d5ff", penwidth=1.5, tooltip="Peak Memory Estimator"];
+    { rank=same; "node_loss_cross_entropy"; "node_loss_label_smoothing"; "node_loss_z_loss"; "node_optimizer_state_strategy"; "node_precision_fp32"; "node_precision_fp16_bf16"; "node_precision_fp8"; "node_activations_store_all"; "node_activations_checkpoint"; "node_eval_param_golf"; "node_budget_parameters"; "node_budget_memory"; }
+
+    "node_opt_adamw_fp32_state" [width=0.25, height=0.25, fillcolor="#d8b4fe", penwidth=1.5, tooltip="AdamW (FP32 moments)"];
+    "node_opt_adamw_8bit_state" [width=0.25, height=0.25, fillcolor="#c084fc", penwidth=1.5, tooltip="AdamW (8-bit moments)"];
+    "node_opt_adafactor" [width=0.25, height=0.25, fillcolor="#c084fc", penwidth=1.5, tooltip="Adafactor (Factorized)"];
+    "node_opt_sgd_momentum" [width=0.25, height=0.25, fillcolor="#c084fc", penwidth=1.5, tooltip="SGD + Momentum"];
+    { rank=same; "node_opt_adamw_fp32_state"; "node_opt_adamw_8bit_state"; "node_opt_adafactor"; "node_opt_sgd_momentum"; }
+
+  }
+
+  "node_root_data_pipeline" -> "node_data_sources" [color="#64748b55", penwidth=1];
+  "node_data_sources" -> "node_data_source_web_text" [color="#64748b55", penwidth=1];
+  "node_data_sources" -> "node_data_source_code" [color="#64748b55", penwidth=1];
+  "node_data_sources" -> "node_data_source_books" [color="#64748b55", penwidth=1];
+  "node_data_sources" -> "node_data_source_synthetic" [color="#64748b55", penwidth=1];
+  "node_root_data_pipeline" -> "node_data_cleaning" [color="#64748b55", penwidth=1];
+  "node_data_cleaning" -> "node_data_dedup" [color="#64748b55", penwidth=1];
+  "node_data_cleaning" -> "node_data_language_id" [color="#64748b55", penwidth=1];
+  "node_data_cleaning" -> "node_data_quality_filter" [color="#64748b55", penwidth=1];
+  "node_data_cleaning" -> "node_data_toxicity_filter" [color="#64748b55", penwidth=1];
+  "node_root_data_pipeline" -> "node_data_tokenization" [color="#64748b55", penwidth=1];
+  "node_data_tokenization" -> "node_tokenizer_bpe" [color="#64748b55", penwidth=1];
+  "node_data_tokenization" -> "node_tokenizer_unigram" [color="#64748b55", penwidth=1];
+  "node_data_tokenization" -> "node_tokenizer_bytelevel_bpe" [color="#64748b55", penwidth=1];
+  "node_data_tokenization" -> "node_tokenizer_character" [color="#64748b55", penwidth=1];
+  "node_root_data_pipeline" -> "node_data_sequence_construction" [color="#64748b55", penwidth=1];
+  "node_data_sequence_construction" -> "node_sequence_packing" [color="#64748b55", penwidth=1];
+  "node_sequence_packing" -> "node_packing_concat_fixed" [color="#64748b55", penwidth=1];
+  "node_sequence_packing" -> "node_packing_dynamic" [color="#64748b55", penwidth=1];
+  "node_data_sequence_construction" -> "node_context_length" [color="#64748b55", penwidth=1];
+  "node_context_length" -> "node_context_256" [color="#64748b55", penwidth=1];
+  "node_context_length" -> "node_context_512" [color="#64748b55", penwidth=1];
+  "node_context_length" -> "node_context_1024" [color="#64748b55", penwidth=1];
+  "node_root_data_pipeline" -> "node_data_sampling_batching" [color="#64748b55", penwidth=1];
+  "node_data_sampling_batching" -> "node_batching_random" [color="#64748b55", penwidth=1];
+  "node_data_sampling_batching" -> "node_batching_length_bucketed" [color="#64748b55", penwidth=1];
+  "node_root_data_pipeline" -> "node_data_augmentation" [color="#64748b55", penwidth=1];
+  "node_data_augmentation" -> "node_aug_span_corruption" [color="#64748b55", penwidth=1];
+  "node_data_augmentation" -> "node_aug_token_dropout" [color="#64748b55", penwidth=1];
+  "node_data_augmentation" -> "node_aug_contrastive_crop" [color="#64748b55", penwidth=1];
+  "node_root_data_pipeline" -> "node_data_curriculum_mixing" [color="#64748b55", penwidth=1];
+  "node_data_curriculum_mixing" -> "node_curriculum_length" [color="#64748b55", penwidth=1];
+  "node_data_curriculum_mixing" -> "node_mix_dataset_sampling" [color="#64748b55", penwidth=1];
+  "node_root_neural_network" -> "node_nn_embeddings" [color="#64748b55", penwidth=1];
+  "node_nn_embeddings" -> "node_nn_embedding_strategy" [color="#64748b55", penwidth=1];
+  "node_nn_embedding_strategy" -> "node_embed_full" [color="#64748b55", penwidth=1];
+  "node_nn_embedding_strategy" -> "node_embed_factorized" [color="#64748b55", penwidth=1];
+  "node_nn_embedding_strategy" -> "node_embed_hashing" [color="#64748b55", penwidth=1];
+  "node_nn_embeddings" -> "node_nn_positional_encoding" [color="#64748b55", penwidth=1];
+  "node_nn_positional_encoding" -> "node_pos_rope" [color="#64748b55", penwidth=1];
+  "node_nn_positional_encoding" -> "node_pos_alibi" [color="#64748b55", penwidth=1];
+  "node_nn_positional_encoding" -> "node_pos_absolute" [color="#64748b55", penwidth=1];
+  "node_root_neural_network" -> "node_nn_transformer" [color="#64748b55", penwidth=1];
+  "node_nn_transformer" -> "node_transformer_block" [color="#64748b55", penwidth=1];
+  "node_transformer_block" -> "node_transformer_attention" [color="#64748b55", penwidth=1];
+  "node_transformer_attention" -> "node_attn_projections" [color="#64748b55", penwidth=1];
+  "node_attn_projections" -> "node_attn_query_proj" [color="#64748b55", penwidth=1];
+  "node_attn_projections" -> "node_attn_key_proj" [color="#64748b55", penwidth=1];
+  "node_attn_key_proj" -> "node_attn_key_per_head" [color="#64748b55", penwidth=1];
+  "node_attn_key_proj" -> "node_attn_key_shared" [color="#64748b55", penwidth=1];
+  "node_attn_projections" -> "node_attn_value_proj" [color="#64748b55", penwidth=1];
+  "node_attn_value_proj" -> "node_attn_value_per_head" [color="#64748b55", penwidth=1];
+  "node_attn_value_proj" -> "node_attn_value_shared" [color="#64748b55", penwidth=1];
+  "node_attn_projections" -> "node_attn_output_proj" [color="#64748b55", penwidth=1];
+  "node_transformer_attention" -> "node_attn_compute" [color="#64748b55", penwidth=1];
+  "node_attn_compute" -> "node_attn_softmax_impl" [color="#64748b55", penwidth=1];
+  "node_attn_softmax_impl" -> "node_attn_softmax_naive" [color="#64748b55", penwidth=1];
+  "node_attn_softmax_impl" -> "node_attn_softmax_flash" [color="#64748b55", penwidth=1];
+  "node_transformer_attention" -> "node_attn_kv_cache" [color="#64748b55", penwidth=1];
+  "node_attn_kv_cache" -> "node_kv_cache_none" [color="#64748b55", penwidth=1];
+  "node_attn_kv_cache" -> "node_kv_cache_fp16" [color="#64748b55", penwidth=1];
+  "node_attn_kv_cache" -> "node_kv_cache_int8" [color="#64748b55", penwidth=1];
+  "node_transformer_block" -> "node_transformer_mlp" [color="#64748b55", penwidth=1];
+  "node_transformer_mlp" -> "node_mlp_variant" [color="#64748b55", penwidth=1];
+  "node_mlp_variant" -> "node_mlp_dense_fnn" [color="#64748b55", penwidth=1];
+  "node_mlp_variant" -> "node_mlp_swiglu" [color="#64748b55", penwidth=1];
+  "node_mlp_variant" -> "node_mlp_low_rank" [color="#64748b55", penwidth=1];
+  "node_mlp_variant" -> "node_mlp_moe" [color="#64748b55", penwidth=1];
+  "node_transformer_block" -> "node_transformer_norm" [color="#64748b55", penwidth=1];
+  "node_transformer_norm" -> "node_norm_layernorm" [color="#64748b55", penwidth=1];
+  "node_transformer_norm" -> "node_norm_rmsnorm" [color="#64748b55", penwidth=1];
+  "node_transformer_block" -> "node_transformer_residual" [color="#64748b55", penwidth=1];
+  "node_transformer_block" -> "node_transformer_dropout" [color="#64748b55", penwidth=1];
+  "node_root_neural_network" -> "node_nn_output_head" [color="#64748b55", penwidth=1];
+  "node_nn_output_head" -> "node_head_strategy" [color="#64748b55", penwidth=1];
+  "node_head_strategy" -> "node_head_untied" [color="#64748b55", penwidth=1];
+  "node_head_strategy" -> "node_head_weight_tied" [color="#64748b55", penwidth=1];
+  "node_head_strategy" -> "node_head_adaptive_softmax" [color="#64748b55", penwidth=1];
+  "node_root_training_eval" -> "node_train_loss" [color="#64748b55", penwidth=1];
+  "node_train_loss" -> "node_loss_cross_entropy" [color="#64748b55", penwidth=1];
+  "node_train_loss" -> "node_loss_label_smoothing" [color="#64748b55", penwidth=1];
+  "node_train_loss" -> "node_loss_z_loss" [color="#64748b55", penwidth=1];
+  "node_root_training_eval" -> "node_train_optimizer" [color="#64748b55", penwidth=1];
+  "node_train_optimizer" -> "node_optimizer_state_strategy" [color="#64748b55", penwidth=1];
+  "node_optimizer_state_strategy" -> "node_opt_adamw_fp32_state" [color="#64748b55", penwidth=1];
+  "node_optimizer_state_strategy" -> "node_opt_adamw_8bit_state" [color="#64748b55", penwidth=1];
+  "node_optimizer_state_strategy" -> "node_opt_adafactor" [color="#64748b55", penwidth=1];
+  "node_optimizer_state_strategy" -> "node_opt_sgd_momentum" [color="#64748b55", penwidth=1];
+  "node_root_training_eval" -> "node_train_precision" [color="#64748b55", penwidth=1];
+  "node_train_precision" -> "node_precision_fp32" [color="#64748b55", penwidth=1];
+  "node_train_precision" -> "node_precision_fp16_bf16" [color="#64748b55", penwidth=1];
+  "node_train_precision" -> "node_precision_fp8" [color="#64748b55", penwidth=1];
+  "node_root_training_eval" -> "node_train_activation_storage" [color="#64748b55", penwidth=1];
+  "node_train_activation_storage" -> "node_activations_store_all" [color="#64748b55", penwidth=1];
+  "node_train_activation_storage" -> "node_activations_checkpoint" [color="#64748b55", penwidth=1];
+  "node_root_training_eval" -> "node_train_evaluation" [color="#64748b55", penwidth=1];
+  "node_train_evaluation" -> "node_eval_param_golf" [color="#64748b55", penwidth=1];
+  "node_root_training_eval" -> "node_train_budget_accounting" [color="#64748b55", penwidth=1];
+  "node_train_budget_accounting" -> "node_budget_parameters" [color="#64748b55", penwidth=1];
+  "node_train_budget_accounting" -> "node_budget_memory" [color="#64748b55", penwidth=1];
+
+  // Legend
+  subgraph cluster_legend {
+    label="Legend";
+    style="rounded";
+    fillcolor="white";
+    color="#94a3b8";
+    node [shape=box, style=filled, fontsize=8, width=0.3, height=0.2];
+    edge [style=invis];
+
+    "legend_root" [label="Root", fillcolor="#ef4444", shape=circle, width=0.3];
+    "legend_branch" [label="Branch", fillcolor="#f87171", shape=circle, width=0.25];
+    "legend_leaf" [label="Leaf", fillcolor="#fb923c", shape=circle, width=0.15];
+    "legend_hyp" [label="Hypothesis", fillcolor="#fbbf24", style=dashed, shape=ellipse];
+    "legend_verified" [label="Verified", fillcolor="#10b981", shape=box, style=rounded];
+    "legend_refuted" [label="Refuted", fillcolor="#ef4444", style=dashed, shape=diamond];
+    "legend_root" -> "legend_branch" -> "legend_leaf" -> "legend_hyp" -> "legend_verified" -> "legend_refuted";
+  }
+}

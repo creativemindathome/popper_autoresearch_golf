@@ -1,0 +1,158 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-03-28T17:09:55",
+  "total_hypotheses": 10,
+  "verdict_summary": {
+    "REFUTED": 8,
+    "UNKNOWN": 2,
+    "VERIFIED": 0
+  },
+  "patterns_identified": [
+    "All attention-related modifications failed T2 Budget check",
+    "Sparse attention variants consistently exceed parameter budget",
+    "Gradient-based attention modifications are too compute-heavy"
+  ],
+  "hypotheses": [
+    {
+      "number": 1,
+      "id": "entropy-guided-sparse-attention",
+      "title": "Entropy Guided Sparse Attention",
+      "verdict": "REFUTED",
+      "killed_by": "T2",
+      "reason": "Budget check failed",
+      "time_seconds": 35.2,
+      "category": "attention",
+      "keywords": ["sparse", "attention", "entropy"],
+      "failure_pattern": "sparse_attention_budget"
+    },
+    {
+      "number": 2,
+      "id": "differential-attention-routing",
+      "title": "Differential Attention Routing",
+      "verdict": "REFUTED",
+      "killed_by": "T2",
+      "reason": "Budget check failed",
+      "time_seconds": 40.8,
+      "category": "attention",
+      "keywords": ["attention", "routing", "differential"],
+      "failure_pattern": "attention_mechanism_budget"
+    },
+    {
+      "number": 3,
+      "id": "gradient-guided-sparse-attention",
+      "title": "Gradient Guided Sparse Attention",
+      "verdict": "REFUTED",
+      "killed_by": "T2",
+      "reason": "Budget check failed",
+      "time_seconds": 38.3,
+      "category": "attention",
+      "keywords": ["sparse", "attention", "gradient"],
+      "failure_pattern": "sparse_attention_budget"
+    },
+    {
+      "number": 4,
+      "id": "fourier-attention-gates",
+      "title": "Fourier Attention Gates",
+      "verdict": "REFUTED",
+      "killed_by": "T2",
+      "reason": "Budget check failed",
+      "time_seconds": 32.2,
+      "category": "attention",
+      "keywords": ["attention", "fourier", "gates"],
+      "failure_pattern": "attention_mechanism_budget"
+    },
+    {
+      "number": 5,
+      "id": "temporal-depth-modulation",
+      "title": "Temporal Depth Modulation",
+      "verdict": "REFUTED",
+      "killed_by": "T2",
+      "reason": "Budget check failed",
+      "time_seconds": 36.8,
+      "category": "architecture",
+      "keywords": ["temporal", "depth", "modulation"],
+      "failure_pattern": "architecture_depth_budget"
+    },
+    {
+      "number": 6,
+      "id": "adaptive-sparse-moe-6",
+      "title": "Adaptive Sparse MoE",
+      "verdict": "REFUTED",
+      "killed_by": "T2",
+      "reason": "Budget check failed",
+      "time_seconds": 39.9,
+      "category": "mlp",
+      "keywords": ["sparse", "moe", "adaptive"],
+      "failure_pattern": "sparse_moe_budget"
+    },
+    {
+      "number": 7,
+      "id": "gradient-informed-attention-v7",
+      "title": "Gradient Informed Attention",
+      "verdict": "REFUTED",
+      "killed_by": "T2",
+      "reason": "Budget check failed",
+      "time_seconds": 41.7,
+      "category": "attention",
+      "keywords": ["attention", "gradient", "informed"],
+      "failure_pattern": "attention_mechanism_budget"
+    },
+    {
+      "number": 8,
+      "id": "gradient-conditioned-attention-v8",
+      "title": "Gradient Conditioned Attention",
+      "verdict": "REFUTED",
+      "killed_by": "T2",
+      "reason": "Budget check failed",
+      "time_seconds": 37.9,
+      "category": "attention",
+      "keywords": ["attention", "gradient", "conditioned"],
+      "failure_pattern": "attention_mechanism_budget"
+    },
+    {
+      "number": 9,
+      "id": "spiral-attention-h9",
+      "title": "Spiral Attention",
+      "verdict": "UNKNOWN",
+      "killed_by": null,
+      "reason": "Error: 'str' object has no attribute 'get'",
+      "time_seconds": 28.7,
+      "category": "attention",
+      "keywords": ["attention", "spiral"],
+      "failure_pattern": "pipeline_error"
+    },
+    {
+      "number": 10,
+      "id": "fractal-depth-transformer",
+      "title": "Fractal Depth Transformer",
+      "verdict": "UNKNOWN",
+      "killed_by": null,
+      "reason": "Error: 'str' object has no attribute 'get'",
+      "time_seconds": 40.2,
+      "category": "architecture",
+      "keywords": ["fractal", "depth", "transformer"],
+      "failure_pattern": "pipeline_error"
+    }
+  ],
+  "avoid_patterns": [
+    {
+      "pattern": "sparse_attention_budget",
+      "description": "Any sparse attention mechanism that adds parameters to attention",
+      "examples": ["entropy-guided-sparse-attention", "gradient-guided-sparse-attention"],
+      "count": 3
+    },
+    {
+      "pattern": "attention_mechanism_budget",
+      "description": "Attention modifications that increase compute/parameters",
+      "examples": ["differential-attention-routing", "fourier-attention-gates", "gradient-informed-attention-v7", "gradient-conditioned-attention-v8"],
+      "count": 4
+    }
+  ],
+  "suggested_pivots": [
+    "Try data pipeline optimizations instead of architecture changes",
+    "Focus on training efficiency rather than model complexity",
+    "Consider quantization and precision improvements",
+    "Explore optimizer improvements (Adafactor, 8-bit Adam)",
+    "Look at activation checkpointing strategies"
+  ]
+}

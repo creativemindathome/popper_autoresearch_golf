@@ -1,0 +1,83 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-03-28T16:17:49Z",
+  "experiment_dir": "experiments/ten_hypothesis_run/live_run_20260328_170317",
+  "total_hypotheses": 10,
+  "verdict_summary": {
+    "REFUTED": 8,
+    "VERIFIED": 0,
+    "UNKNOWN": 2
+  },
+  "hypotheses": [
+    {
+      "id": "hyp_1",
+      "hypothesis_num": 1,
+      "verdict": "REFUTED",
+      "time": 35.239917039871216,
+      "killed_by": "REFUTED"
+    },
+    {
+      "id": "hyp_2",
+      "hypothesis_num": 2,
+      "verdict": "REFUTED",
+      "time": 79.0252411365509,
+      "killed_by": "REFUTED"
+    },
+    {
+      "id": "hyp_3",
+      "hypothesis_num": 3,
+      "verdict": "REFUTED",
+      "time": 120.3364622592926,
+      "killed_by": "REFUTED"
+    },
+    {
+      "id": "hyp_4",
+      "hypothesis_num": 4,
+      "verdict": "REFUTED",
+      "time": 155.5047402381897,
+      "killed_by": "REFUTED"
+    },
+    {
+      "id": "hyp_5",
+      "hypothesis_num": 5,
+      "verdict": "REFUTED",
+      "time": 194.35168313980103,
+      "killed_by": "REFUTED"
+    },
+    {
+      "id": "hyp_6",
+      "hypothesis_num": 6,
+      "verdict": "REFUTED",
+      "time": 237.27754020690918,
+      "killed_by": "REFUTED"
+    },
+    {
+      "id": "hyp_7",
+      "hypothesis_num": 7,
+      "verdict": "REFUTED",
+      "time": 282.00499415397644,
+      "killed_by": "REFUTED"
+    },
+    {
+      "id": "hyp_8",
+      "hypothesis_num": 8,
+      "verdict": "REFUTED",
+      "time": 322.95991230010986,
+      "killed_by": "REFUTED"
+    },
+    {
+      "id": "hyp_9",
+      "hypothesis_num": 9,
+      "verdict": null,
+      "time": 354.6557581424713,
+      "killed_by": null
+    },
+    {
+      "id": "hyp_10",
+      "hypothesis_num": 10,
+      "verdict": null,
+      "time": 397.8293192386627,
+      "killed_by": null
+    }
+  ]
+}

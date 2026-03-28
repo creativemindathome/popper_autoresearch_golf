@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Graph Evolution - Simple</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        h1 { color: #e94560; margin-bottom: 0.5rem; }
+        .subtitle { color: #888; margin-bottom: 2rem; }
+        .container {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        .stage {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 1.5rem;
+            min-width: 300px;
+            flex: 1;
+            border: 2px solid transparent;
+        }
+        .stage.active { border-color: #e94560; }
+        .stage h2 {
+            color: #e94560;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        .node {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid #339af0;
+        }
+        .node.killed {
+            border-left-color: #ff6b6b;
+            opacity: 0.7;
+        }
+        .node.passed {
+            border-left-color: #51cf66;
+        }
+        .node-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .node-status {
+            font-size: 0.85rem;
+            color: #888;
+        }
+        .controls {
+            margin-top: 2rem;
+            text-align: center;
+        }
+        button {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin: 0 0.5rem;
+        }
+        button:hover { background: #ff6b6b; }
+        button:disabled { background: #666; cursor: not-allowed; }
+        .progress {
+            margin-top: 2rem;
+            background: #16213e;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        .timeline {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        input[type="range"] {
+            flex: 1;
+            height: 8px;
+            -webkit-appearance: none;
+            background: #0f3460;
+            border-radius: 4px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e94560;
+            cursor: pointer;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .stat-box {
+            background: #16213e;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #e94560;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔬 Knowledge Graph Evolution</h1>
+    <div class="subtitle">Simple visualization of hypothesis falsification pipeline</div>
+
+    <div class="container">
+        <div class="stage" id="stage-generate">
+            <h2>Stage 0: Generated</h2>
+            <div id="nodes-generate"></div>
+        </div>
+        <div class="stage" id="stage-running">
+            <h2>Stage 1: Running</h2>
+            <div id="nodes-running"></div>
+        </div>
+        <div class="stage" id="stage-passed">
+            <h2>Stage 1: Passed</h2>
+            <div id="nodes-passed"></div>
+        </div>
+        <div class="stage" id="stage-killed">
+            <h2>Killed (Falsified)</h2>
+            <div id="nodes-killed"></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="btn-prev" onclick="prevStep()">← Previous</button>
+        <button id="btn-play" onclick="togglePlay()">▶ Play</button>
+        <button id="btn-next" onclick="nextStep()">Next →</button>
+        <button id="btn-reset" onclick="reset()">↺ Reset</button>
+    </div>
+
+    <div class="progress">
+        <div class="timeline">
+            <span>00:00</span>
+            <input type="range" id="slider" min="0" max="4" value="0" oninput="goToStep(this.value)">
+            <span id="time-display">00:00</span>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="stat-box">
+            <div class="stat-value" id="stat-total">0</div>
+            <div class="stat-label">Total Generated</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="stat-running">0</div>
+            <div class="stat-label">Stage 1 Running</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="stat-passed">0</div>
+            <div class="stat-label">Stage 1 Passed</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="stat-killed">0</div>
+            <div class="stat-label">Killed</div>
+        </div>
+    </div>
+
+    <script>
+        // Experiment data
+        const experimentData = {
+            steps: [
+                { time: 0, total: 0, running: 0, passed: 0, killed: 0, events: [] },
+                { time: 33, total: 1, running: 0, passed: 0, killed: 1, events: [
+                    { type: 'generate', id: 'gradient-sculpted-attention', num: 1 },
+                    { type: 'kill', id: 'gradient-sculpted-attention', reason: 'T2 Budget: 45M params (limit 10M)' }
+                ]},
+                { time: 36, total: 2, running: 0, passed: 0, killed: 1, events: [
+                    { type: 'generate', id: 'dynamic-width-ensemble', num: 2 }
+                ]},
+                { time: 79, total: 2, running: 0, passed: 0, killed: 2, events: [
+                    { type: 'kill', id: 'dynamic-width-ensemble', reason: 'T2 Budget: 52M params (limit 10M)' }
+                ]},
+                { time: 79, total: 2, running: 0, passed: 0, killed: 2, events: [] }
+            ],
+            nodes: {
+                'gradient-sculpted-attention': { 
+                    num: 1, 
+                    name: 'gradient-sculpted-attention',
+                    killReason: 'T2 Budget: 45M params (limit 10M)',
+                    killTime: 33
+                },
+                'dynamic-width-ensemble': { 
+                    num: 2, 
+                    name: 'dynamic-width-ensemble',
+                    killReason: 'T2 Budget: 52M params (limit 10M)',
+                    killTime: 79
+                }
+            }
+        };
+
+        let currentStep = 0;
+        let isPlaying = false;
+        let playInterval;
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function getNodeStatus(id, step) {
+            const node = experimentData.nodes[id];
+            const stepData = experimentData.steps[step];
+            
+            // Check if node has been generated by this step
+            let generated = false;
+            let killed = false;
+            
+            for (let i = 0; i <= step; i++) {
+                const s = experimentData.steps[i];
+                for (const e of s.events) {
+                    if (e.type === 'generate' && e.id === id) generated = true;
+                    if (e.type === 'kill' && e.id === id) killed = true;
+                }
+            }
+            
+            if (!generated) return 'hidden';
+            if (killed) return 'killed';
+            return 'running';
+        }
+
+        function render() {
+            const step = experimentData.steps[currentStep];
+            
+            // Update stats
+            document.getElementById('stat-total').textContent = step.total;
+            document.getElementById('stat-running').textContent = step.running;
+            document.getElementById('stat-passed').textContent = step.passed;
+            document.getElementById('stat-killed').textContent = step.killed;
+            
+            // Update slider
+            document.getElementById('slider').value = currentStep;
+            document.getElementById('time-display').textContent = formatTime(step.time);
+            
+            // Clear all containers
+            ['generate', 'running', 'passed', 'killed'].forEach(stage => {
+                document.getElementById(`nodes-${stage}`).innerHTML = '';
+            });
+            
+            // Render nodes
+            Object.values(experimentData.nodes).forEach(node => {
+                const status = getNodeStatus(node.name, currentStep);
+                if (status === 'hidden') return;
+                
+                const div = document.createElement('div');
+                div.className = `node ${status}`;
+                div.innerHTML = `
+                    <div class="node-title">H${node.num}: ${node.name}</div>
+                    <div class="node-status">${status === 'killed' ? '❌ ' + node.killReason : status === 'running' ? '🔄 Stage 1 Running' : '⏳ Pending'}</div>
+                `;
+                
+                const containerId = status === 'killed' ? 'nodes-killed' : 
+                                   status === 'running' ? 'nodes-running' : 
+                                   status === 'passed' ? 'nodes-passed' : 'nodes-generate';
+                document.getElementById(containerId).appendChild(div);
+            });
+            
+            // Update button states
+            document.getElementById('btn-prev').disabled = currentStep === 0;
+            document.getElementById('btn-next').disabled = currentStep === experimentData.steps.length - 1;
+            document.getElementById('btn-play').textContent = isPlaying ? '⏸ Pause' : '▶ Play';
+        }
+
+        function nextStep() {
+            if (currentStep < experimentData.steps.length - 1) {
+                currentStep++;
+                render();
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                render();
+            }
+        }
+
+        function goToStep(step) {
+            currentStep = parseInt(step);
+            render();
+        }
+
+        function togglePlay() {
+            if (isPlaying) {
+                clearInterval(playInterval);
+                isPlaying = false;
+            } else {
+                isPlaying = true;
+                playInterval = setInterval(() => {
+                    if (currentStep < experimentData.steps.length - 1) {
+                        currentStep++;
+                        render();
+                    } else {
+                        clearInterval(playInterval);
+                        isPlaying = false;
+                        render();
+                    }
+                }, 1500);
+            }
+            render();
+        }
+
+        function reset() {
+            clearInterval(playInterval);
+            isPlaying = false;
+            currentStep = 0;
+            render();
+        }
+
+        // Initial render
+        render();
+    </script>
+</body>
+</html>

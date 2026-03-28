@@ -1,0 +1,141 @@
+digraph KGWithDeadEnds {
+  graph [bgcolor="#fafafa", fontname="Helvetica",
+         fontsize=18, labelloc="t", labeljust="center",
+         nodesep=0.5, ranksep=1.2, pad=1.5];
+  node [fontname="Helvetica", shape=box, style="rounded,filled", penwidth=2];
+  edge [color="#94a3b8", arrowsize=0.7, penwidth=1.5];
+
+  label="Knowledge Graph: Tried, Failed, and Untested";
+
+  "node_root_data_pipeline" [label="Data Pipeline", fillcolor="#2563eb", fontcolor="white", width=2.5, height=0.8, fontsize=12, penwidth=3];
+  "node_data_sources" [label="Data Sources", fillcolor="#60a5fa", fontcolor="white", width=2.0, height=0.5, fontsize=10];
+  "node_root_data_pipeline" -> "node_data_sources";
+  "node_data_source_web_text" [label="Web Text", fillcolor="#bfdbfe", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_data_sources" -> "node_data_source_web_text";
+  "node_data_source_code" [label="Code", fillcolor="#bfdbfe", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_data_sources" -> "node_data_source_code";
+  "node_data_source_books" [label="Books / Long-Form", fillcolor="#bfdbfe", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_data_sources" -> "node_data_source_books";
+  "node_data_cleaning" [label="Cleaning & Filtering", fillcolor="#60a5fa", fontcolor="white", width=2.0, height=0.5, fontsize=10];
+  "node_root_data_pipeline" -> "node_data_cleaning";
+  "node_data_dedup" [label="Deduplication", fillcolor="#bfdbfe", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_data_cleaning" -> "node_data_dedup";
+  "node_data_language_id" [label="Language ID Filter", fillcolor="#bfdbfe", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_data_cleaning" -> "node_data_language_id";
+  "node_data_quality_filter" [label="Quality Scoring Filter", fillcolor="#bfdbfe", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_data_cleaning" -> "node_data_quality_filter";
+  "node_data_tokenization" [label="Tokenization", fillcolor="#60a5fa", fontcolor="white", width=2.0, height=0.5, fontsize=10];
+  "node_root_data_pipeline" -> "node_data_tokenization";
+  "node_tokenizer_bpe" [label="BPE (Subword)", fillcolor="#bfdbfe", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_data_tokenization" -> "node_tokenizer_bpe";
+  "node_tokenizer_unigram" [label="Unigram (SentencePiece)", fillcolor="#bfdbfe", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_data_tokenization" -> "node_tokenizer_unigram";
+  "node_tokenizer_bytelevel_bpe" [label="Byte-level BPE", fillcolor="#bfdbfe", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_data_tokenization" -> "node_tokenizer_bytelevel_bpe";
+  "node_data_sequence_construction" [label="Sequence Construction", fillcolor="#60a5fa", fontcolor="white", width=2.0, height=0.5, fontsize=10];
+  "node_root_data_pipeline" -> "node_data_sequence_construction";
+  "node_sequence_packing" [label="Packing Strategy", fillcolor="#bfdbfe", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_data_sequence_construction" -> "node_sequence_packing";
+  "node_context_length" [label="Context Length", fillcolor="#bfdbfe", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_data_sequence_construction" -> "node_context_length";
+  "node_data_sampling_batching" [label="Sampling & Batching", fillcolor="#60a5fa", fontcolor="white", width=2.0, height=0.5, fontsize=10];
+  "node_root_data_pipeline" -> "node_data_sampling_batching";
+  "node_batching_random" [label="Random Sampling", fillcolor="#bfdbfe", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_data_sampling_batching" -> "node_batching_random";
+  "node_batching_length_bucketed" [label="Length-bucketed Batching", fillcolor="#bfdbfe", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_data_sampling_batching" -> "node_batching_length_bucketed";
+  "node_data_augmentation" [label="Data Augmentation", fillcolor="#60a5fa", fontcolor="white", width=2.0, height=0.5, fontsize=10];
+  "node_root_data_pipeline" -> "node_data_augmentation";
+  "node_aug_span_corruption" [label="Span Corruption / Masking", fillcolor="#bfdbfe", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_data_augmentation" -> "node_aug_span_corruption";
+  "node_aug_token_dropout" [label="Token Dropout", fillcolor="#bfdbfe", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_data_augmentation" -> "node_aug_token_dropout";
+  "node_aug_contrastive_crop" [label="Contrastive Cropping", fillcolor="#bfdbfe", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_data_augmentation" -> "node_aug_contrastive_crop";
+  "node_root_neural_network" [label="Neural Network\n(8 refuted)", fillcolor="#dc262680", fontcolor="white", width=2.5, height=0.8, fontsize=12, penwidth=3];
+  "node_nn_embeddings" [label="Embeddings", fillcolor="#f87171", fontcolor="white", width=2.0, height=0.5, fontsize=10];
+  "node_root_neural_network" -> "node_nn_embeddings";
+  "node_nn_embedding_strategy" [label="Token Embedding Strategy", fillcolor="#fecaca", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_nn_embeddings" -> "node_nn_embedding_strategy";
+  "node_nn_positional_encoding" [label="Positional Encoding", fillcolor="#fecaca", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_nn_embeddings" -> "node_nn_positional_encoding";
+  "node_nn_transformer" [label="Transformer Backbone", fillcolor="#f87171", fontcolor="white", width=2.0, height=0.5, fontsize=10];
+  "node_root_neural_network" -> "node_nn_transformer";
+  "node_transformer_block" [label="Transformer Block", fillcolor="#fecaca", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_nn_transformer" -> "node_transformer_block";
+  "node_nn_output_head" [label="Output Head", fillcolor="#f87171", fontcolor="white", width=2.0, height=0.5, fontsize=10];
+  "node_root_neural_network" -> "node_nn_output_head";
+  "node_head_strategy" [label="LM Head Strategy", fillcolor="#fecaca", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_nn_output_head" -> "node_head_strategy";
+  "node_root_training_eval" [label="Training & Evaluation", fillcolor="#16a34a", fontcolor="white", width=2.5, height=0.8, fontsize=12, penwidth=3];
+  "node_train_loss" [label="Loss Function", fillcolor="#4ade80", fontcolor="white", width=2.0, height=0.5, fontsize=10];
+  "node_root_training_eval" -> "node_train_loss";
+  "node_loss_cross_entropy" [label="Cross-Entropy", fillcolor="#bbf7d0", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_train_loss" -> "node_loss_cross_entropy";
+  "node_loss_label_smoothing" [label="Label Smoothing", fillcolor="#bbf7d0", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_train_loss" -> "node_loss_label_smoothing";
+  "node_loss_z_loss" [label="Z-loss / Logit Penalty", fillcolor="#bbf7d0", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_train_loss" -> "node_loss_z_loss";
+  "node_train_optimizer" [label="Optimizer & State", fillcolor="#4ade80", fontcolor="white", width=2.0, height=0.5, fontsize=10];
+  "node_root_training_eval" -> "node_train_optimizer";
+  "node_optimizer_state_strategy" [label="Optimizer State Strategy", fillcolor="#bbf7d0", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_train_optimizer" -> "node_optimizer_state_strategy";
+  "node_train_precision" [label="Numerical Precision", fillcolor="#4ade80", fontcolor="white", width=2.0, height=0.5, fontsize=10];
+  "node_root_training_eval" -> "node_train_precision";
+  "node_precision_fp32" [label="FP32 Training", fillcolor="#bbf7d0", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_train_precision" -> "node_precision_fp32";
+  "node_precision_fp16_bf16" [label="FP16/BF16 Mixed Precision", fillcolor="#bbf7d0", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_train_precision" -> "node_precision_fp16_bf16";
+  "node_precision_fp8" [label="FP8 Activations (Advanced)", fillcolor="#bbf7d0", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_train_precision" -> "node_precision_fp8";
+  "node_train_activation_storage" [label="Activation Storage Strategy", fillcolor="#4ade80", fontcolor="white", width=2.0, height=0.5, fontsize=10];
+  "node_root_training_eval" -> "node_train_activation_storage";
+  "node_activations_store_all" [label="Store All Activations", fillcolor="#bbf7d0", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_train_activation_storage" -> "node_activations_store_all";
+  "node_activations_checkpoint" [label="Gradient Checkpointing", fillcolor="#bbf7d0", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_train_activation_storage" -> "node_activations_checkpoint";
+  "node_train_evaluation" [label="Evaluation Harness", fillcolor="#4ade80", fontcolor="white", width=2.0, height=0.5, fontsize=10];
+  "node_root_training_eval" -> "node_train_evaluation";
+  "node_eval_param_golf" [label="OpenAI Parameter Golf Benchmark", fillcolor="#bbf7d0", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_train_evaluation" -> "node_eval_param_golf";
+  "node_train_budget_accounting" [label="Budget Accounting", fillcolor="#4ade80", fontcolor="white", width=2.0, height=0.5, fontsize=10];
+  "node_root_training_eval" -> "node_train_budget_accounting";
+  "node_budget_parameters" [label="Parameter Counter", fillcolor="#bbf7d0", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_train_budget_accounting" -> "node_budget_parameters";
+  "node_budget_memory" [label="Peak Memory Estimator", fillcolor="#bbf7d0", fontcolor="#1f2937", width=1.8, height=0.35, fontsize=8];
+  "node_train_budget_accounting" -> "node_budget_memory";
+
+  // Refuted Hypotheses (Dead Ends)
+  "dead_entropy-guided-sparse-attention" [label="✗ entropy guided spars", fillcolor="#7f1d1d", fontcolor="white", width=1.5, height=0.4, fontsize=9, shape="box", style="rounded,filled,dashed", penwidth=2];
+  "dead_entropy-guided-sparse-attention" -> "node_root_neural_network" [color="#7f1d1d60", style="dashed"];
+  "dead_differential-attention-routing" [label="✗ differential attenti", fillcolor="#7f1d1d", fontcolor="white", width=1.5, height=0.4, fontsize=9, shape="box", style="rounded,filled,dashed", penwidth=2];
+  "dead_differential-attention-routing" -> "node_root_neural_network" [color="#7f1d1d60", style="dashed"];
+  "dead_gradient-guided-sparse-attention" [label="✗ gradient guided spar", fillcolor="#7f1d1d", fontcolor="white", width=1.5, height=0.4, fontsize=9, shape="box", style="rounded,filled,dashed", penwidth=2];
+  "dead_gradient-guided-sparse-attention" -> "node_root_neural_network" [color="#7f1d1d60", style="dashed"];
+  "dead_fourier-attention-gates" [label="✗ fourier attention ga", fillcolor="#7f1d1d", fontcolor="white", width=1.5, height=0.4, fontsize=9, shape="box", style="rounded,filled,dashed", penwidth=2];
+  "dead_fourier-attention-gates" -> "node_root_neural_network" [color="#7f1d1d60", style="dashed"];
+  "dead_temporal-depth-modulation" [label="✗ temporal depth modul", fillcolor="#7f1d1d", fontcolor="white", width=1.5, height=0.4, fontsize=9, shape="box", style="rounded,filled,dashed", penwidth=2];
+  "dead_temporal-depth-modulation" -> "node_root_neural_network" [color="#7f1d1d60", style="dashed"];
+  "dead_adaptive-sparse-moe-6" [label="✗ adaptive sparse moe ", fillcolor="#7f1d1d", fontcolor="white", width=1.5, height=0.4, fontsize=9, shape="box", style="rounded,filled,dashed", penwidth=2];
+  "dead_adaptive-sparse-moe-6" -> "node_root_neural_network" [color="#7f1d1d60", style="dashed"];
+  "dead_gradient-informed-attention-v7" [label="✗ gradient informed at", fillcolor="#7f1d1d", fontcolor="white", width=1.5, height=0.4, fontsize=9, shape="box", style="rounded,filled,dashed", penwidth=2];
+  "dead_gradient-informed-attention-v7" -> "node_root_neural_network" [color="#7f1d1d60", style="dashed"];
+  "dead_gradient-conditioned-attention-v8" [label="✗ gradient conditioned", fillcolor="#7f1d1d", fontcolor="white", width=1.5, height=0.4, fontsize=9, shape="box", style="rounded,filled,dashed", penwidth=2];
+  "dead_gradient-conditioned-attention-v8" -> "node_root_neural_network" [color="#7f1d1d60", style="dashed"];
+
+  // Legend
+  subgraph cluster_legend {
+    label="Legend";
+    style="rounded";
+    fillcolor="white";
+    color="#9ca3af";
+    node [shape=box, width=0.3, height=0.2, fontsize=8];
+    edge [style=invis];
+
+    "leg_root" [label="Root", fillcolor="#dc2626", fontcolor="white"];
+    "leg_branch" [label="Branch", fillcolor="#f87171", fontcolor="white"];
+    "leg_leaf" [label="Leaf", fillcolor="#fecaca", fontcolor="#1f2937"];
+    "leg_dead" [label="✗ Dead End", fillcolor="#7f1d1d", fontcolor="white", style="dashed"];
+    "leg_root" -> "leg_branch" -> "leg_leaf" -> "leg_dead";
+  }
+}

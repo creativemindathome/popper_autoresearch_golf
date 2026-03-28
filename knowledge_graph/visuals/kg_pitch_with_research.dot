@@ -1,0 +1,310 @@
+digraph KG {
+  graph [bgcolor="#fafbfc", fontname="Helvetica Neue",
+         fontsize=18, labelloc="t", labeljust="center",
+         nodesep=0.35, ranksep=1.0, splines="true",
+         overlap="prism", overlap_scaling=-10, pad=1.0,
+         margin=0, fontcolor="#1a1a2e"];
+  node [fontname="Helvetica Neue", shape=circle,
+        fixedsize=true, style="filled", penwidth=1.5,
+        fontcolor="#1a1a2e"];
+  edge [color="#94a3b8", arrowsize=0.6, penwidth=1.0,
+        dir="forward", arrowhead="normal"];
+
+  label=<<FONT POINT-SIZE="20"><B>Parameter Golf: Knowledge + Active Research</B></FONT>>;
+
+  subgraph cluster_data {
+    label=<<B><FONT POINT-SIZE="14" COLOR="#332288">Data Pipeline</FONT></B>>;
+    style="rounded,filled";
+    fillcolor="#fafbfc";
+    color="#33228840";
+    penwidth=1;
+    fontname="Helvetica Neue";
+
+    // Level 0
+    "node_root_data_pipeline" [width=0.5, height=0.5, fillcolor="#332288", color="#33228880", penwidth=3, label="Data Pipeline", fontsize=11, tooltip="Data Pipeline"];
+    { rank=same; "node_root_data_pipeline"; }
+
+    // Level 1
+    "node_data_sources" [width=0.35, height=0.35, fillcolor="#88CCEE", color="#88CCEE80", penwidth=2, label="Data Sources", fontsize=9, tooltip="Data Sources"];
+    "node_data_cleaning" [width=0.35, height=0.35, fillcolor="#6699CC", color="#6699CC80", penwidth=2, label="Cleaning & Filtering", fontsize=9, tooltip="Cleaning & Filtering"];
+    "node_data_tokenization" [width=0.35, height=0.35, fillcolor="#6699CC", color="#6699CC80", penwidth=2, label="Tokenization", fontsize=9, tooltip="Tokenization"];
+    "node_data_sequence_construction" [width=0.35, height=0.35, fillcolor="#6699CC", color="#6699CC80", penwidth=2, label="Sequence Construct..", fontsize=9, tooltip="Sequence Construction"];
+    "node_data_sampling_batching" [width=0.35, height=0.35, fillcolor="#88CCEE", color="#88CCEE80", penwidth=2, label="Sampling & Batching", fontsize=9, tooltip="Sampling & Batching"];
+    "node_data_augmentation" [width=0.35, height=0.35, fillcolor="#44AA99", color="#44AA9980", penwidth=2, label="Data Augmentation", fontsize=9, tooltip="Data Augmentation"];
+    "node_data_curriculum_mixing" [width=0.35, height=0.35, fillcolor="#6699CC", color="#6699CC80", penwidth=2, label="Curriculum & Mixing", fontsize=9, tooltip="Curriculum & Mixing"];
+    { rank=same; "node_data_sources"; "node_data_cleaning"; "node_data_tokenization"; "node_data_sequence_construction"; "node_data_sampling_batching"; "node_data_augmentation"; "node_data_curriculum_mixing"; }
+
+    // Level 2
+    "node_data_source_web_text" [width=0.18, height=0.18, fillcolor="#D4E6F1", color="#D4E6F180", penwidth=1, label="Web Text", fontsize=7, tooltip="Web Text"];
+    "node_data_source_code" [width=0.18, height=0.18, fillcolor="#CCEEFF", color="#CCEEFF80", penwidth=1, label="Code", fontsize=7, tooltip="Code"];
+    "node_data_source_books" [width=0.18, height=0.18, fillcolor="#CCEEFF", color="#CCEEFF80", penwidth=1, label="Books / Long-Form", fontsize=7, tooltip="Books / Long-Form"];
+    "node_data_source_synthetic" [width=0.18, height=0.18, fillcolor="#CCEEFF", color="#CCEEFF80", penwidth=1, label="Synthetic / Genera..", fontsize=7, tooltip="Synthetic / Generated Data"];
+    "node_data_dedup" [width=0.18, height=0.18, fillcolor="#CCEEFF", color="#CCEEFF80", penwidth=1, label="Deduplication", fontsize=7, tooltip="Deduplication"];
+    "node_data_language_id" [width=0.18, height=0.18, fillcolor="#CCEEFF", color="#CCEEFF80", penwidth=1, label="Language ID Filter", fontsize=7, tooltip="Language ID Filter"];
+    "node_data_quality_filter" [width=0.18, height=0.18, fillcolor="#CCEEFF", color="#CCEEFF80", penwidth=1, label="Quality Scoring Fi..", fontsize=7, tooltip="Quality Scoring Filter"];
+    "node_data_toxicity_filter" [width=0.18, height=0.18, fillcolor="#E8F4F8", color="#E8F4F880", penwidth=1, label="Safety / Toxicity ..", fontsize=7, tooltip="Safety / Toxicity Filter"];
+    "node_tokenizer_bpe" [width=0.18, height=0.18, fillcolor="#E8F4F8", color="#E8F4F880", penwidth=1, label="BPE (Subword)", fontsize=7, tooltip="BPE (Subword)"];
+    "node_tokenizer_unigram" [width=0.18, height=0.18, fillcolor="#E8F4F8", color="#E8F4F880", penwidth=1, label="Unigram (SentenceP..", fontsize=7, tooltip="Unigram (SentencePiece)"];
+    "node_tokenizer_bytelevel_bpe" [width=0.18, height=0.18, fillcolor="#E8F4F8", color="#E8F4F880", penwidth=1, label="Byte-level BPE", fontsize=7, tooltip="Byte-level BPE"];
+    "node_tokenizer_character" [width=0.18, height=0.18, fillcolor="#D4E6F1", color="#D4E6F180", penwidth=1, label="Character-level", fontsize=7, tooltip="Character-level"];
+    "node_sequence_packing" [width=0.35, height=0.35, fillcolor="#88CCEE", color="#88CCEE80", penwidth=2, label="Packing Strategy", fontsize=9, tooltip="Packing Strategy"];
+    "node_context_length" [width=0.35, height=0.35, fillcolor="#6699CC", color="#6699CC80", penwidth=2, label="Context Length", fontsize=9, tooltip="Context Length"];
+    "node_batching_random" [width=0.18, height=0.18, fillcolor="#D4E6F1", color="#D4E6F180", penwidth=1, label="Random Sampling", fontsize=7, tooltip="Random Sampling"];
+    "node_batching_length_bucketed" [width=0.18, height=0.18, fillcolor="#CCEEFF", color="#CCEEFF80", penwidth=1, label="Length-bucketed Ba..", fontsize=7, tooltip="Length-bucketed Batching"];
+    "node_aug_span_corruption" [width=0.18, height=0.18, fillcolor="#CCEEFF", color="#CCEEFF80", penwidth=1, label="Span Corruption / ..", fontsize=7, tooltip="Span Corruption / Masking"];
+    "node_aug_token_dropout" [width=0.18, height=0.18, fillcolor="#E8F4F8", color="#E8F4F880", penwidth=1, label="Token Dropout", fontsize=7, tooltip="Token Dropout"];
+    "node_aug_contrastive_crop" [width=0.18, height=0.18, fillcolor="#CCEEFF", color="#CCEEFF80", penwidth=1, label="Contrastive Cropping", fontsize=7, tooltip="Contrastive Cropping"];
+    "node_curriculum_length" [width=0.18, height=0.18, fillcolor="#CCEEFF", color="#CCEEFF80", penwidth=1, label="Length Curriculum", fontsize=7, tooltip="Length Curriculum"];
+    "node_mix_dataset_sampling" [width=0.18, height=0.18, fillcolor="#CCEEFF", color="#CCEEFF80", penwidth=1, label="Dataset Mixing Wei..", fontsize=7, tooltip="Dataset Mixing Weights"];
+    { rank=same; "node_data_source_web_text"; "node_data_source_code"; "node_data_source_books"; "node_data_source_synthetic"; "node_data_dedup"; "node_data_language_id"; "node_data_quality_filter"; "node_data_toxicity_filter"; "node_tokenizer_bpe"; "node_tokenizer_unigram"; "node_tokenizer_bytelevel_bpe"; "node_tokenizer_character"; "node_sequence_packing"; "node_context_length"; "node_batching_random"; "node_batching_length_bucketed"; "node_aug_span_corruption"; "node_aug_token_dropout"; "node_aug_contrastive_crop"; "node_curriculum_length"; "node_mix_dataset_sampling"; }
+
+    // Level 3
+    "node_packing_concat_fixed" [width=0.18, height=0.18, fillcolor="#D4E6F1", color="#D4E6F180", penwidth=1, label="Fixed Concat + Pad..", fontsize=7, tooltip="Fixed Concat + Padding"];
+    "node_packing_dynamic" [width=0.18, height=0.18, fillcolor="#D4E6F1", color="#D4E6F180", penwidth=1, label="Dynamic Packing", fontsize=7, tooltip="Dynamic Packing"];
+    "node_context_256" [width=0.18, height=0.18, fillcolor="#CCEEFF", color="#CCEEFF80", penwidth=1, label="256 Tokens", fontsize=7, tooltip="256 Tokens"];
+    "node_context_512" [width=0.18, height=0.18, fillcolor="#E8F4F8", color="#E8F4F880", penwidth=1, label="512 Tokens", fontsize=7, tooltip="512 Tokens"];
+    "node_context_1024" [width=0.18, height=0.18, fillcolor="#E8F4F8", color="#E8F4F880", penwidth=1, label="1024 Tokens", fontsize=7, tooltip="1024 Tokens"];
+    { rank=same; "node_packing_concat_fixed"; "node_packing_dynamic"; "node_context_256"; "node_context_512"; "node_context_1024"; }
+
+  }
+
+  subgraph cluster_nn {
+    label=<<B><FONT POINT-SIZE="14" COLOR="#882255">Neural Network</FONT></B>>;
+    style="rounded,filled";
+    fillcolor="#fafbfc";
+    color="#88225540";
+    penwidth=1;
+    fontname="Helvetica Neue";
+
+    // Level 0
+    "node_root_neural_network" [width=0.5, height=0.5, fillcolor="#882255", color="#88225580", penwidth=3, label="Neural Network", fontsize=11, tooltip="Neural Network"];
+    { rank=same; "node_root_neural_network"; }
+
+    // Level 1
+    "node_nn_embeddings" [width=0.35, height=0.35, fillcolor="#AA4499", color="#AA449980", penwidth=2, label="Embeddings", fontsize=9, tooltip="Embeddings"];
+    "node_nn_transformer" [width=0.35, height=0.35, fillcolor="#CC6677", color="#CC667780", penwidth=2, label="Transformer Backbone", fontsize=9, tooltip="Transformer Backbone"];
+    "node_nn_output_head" [width=0.35, height=0.35, fillcolor="#AA4499", color="#AA449980", penwidth=2, label="Output Head", fontsize=9, tooltip="Output Head"];
+    { rank=same; "node_nn_embeddings"; "node_nn_transformer"; "node_nn_output_head"; }
+
+    // Level 2
+    "node_nn_embedding_strategy" [width=0.35, height=0.35, fillcolor="#CC6677", color="#CC667780", penwidth=2, label="Token Embedding St..", fontsize=9, tooltip="Token Embedding Strategy"];
+    "node_nn_positional_encoding" [width=0.35, height=0.35, fillcolor="#AA4499", color="#AA449980", penwidth=2, label="Positional Encoding", fontsize=9, tooltip="Positional Encoding"];
+    "node_transformer_block" [width=0.35, height=0.35, fillcolor="#AA4499", color="#AA449980", penwidth=2, label="Transformer Block", fontsize=9, tooltip="Transformer Block"];
+    "node_head_strategy" [width=0.35, height=0.35, fillcolor="#CC6677", color="#CC667780", penwidth=2, label="LM Head Strategy", fontsize=9, tooltip="LM Head Strategy"];
+    { rank=same; "node_nn_embedding_strategy"; "node_nn_positional_encoding"; "node_transformer_block"; "node_head_strategy"; }
+
+    // Level 3
+    "node_embed_full" [width=0.18, height=0.18, fillcolor="#FFF0F5", color="#FFF0F580", penwidth=1, label="Full Embedding Mat..", fontsize=7, tooltip="Full Embedding Matrix"];
+    "node_embed_factorized" [width=0.18, height=0.18, fillcolor="#FFE4E1", color="#FFE4E180", penwidth=1, label="Factorized Embeddi..", fontsize=7, tooltip="Factorized Embeddings"];
+    "node_embed_hashing" [width=0.18, height=0.18, fillcolor="#FFE4E1", color="#FFE4E180", penwidth=1, label="Hashed / Shared Em..", fontsize=7, tooltip="Hashed / Shared Embeddings"];
+    "node_pos_rope" [width=0.18, height=0.18, fillcolor="#FFF0F5", color="#FFF0F580", penwidth=1, label="RoPE (Rotary)", fontsize=7, tooltip="RoPE (Rotary)"];
+    "node_pos_alibi" [width=0.18, height=0.18, fillcolor="#FADADD", color="#FADADD80", penwidth=1, label="ALiBi (Linear Bias)", fontsize=7, tooltip="ALiBi (Linear Bias)"];
+    "node_pos_absolute" [width=0.18, height=0.18, fillcolor="#FADADD", color="#FADADD80", penwidth=1, label="Learned Absolute P..", fontsize=7, tooltip="Learned Absolute Positions"];
+    "node_transformer_attention" [width=0.35, height=0.35, fillcolor="#CC6677", color="#CC667780", penwidth=2, label="Attention", fontsize=9, tooltip="Attention"];
+    "node_transformer_mlp" [width=0.35, height=0.35, fillcolor="#CC6677", color="#CC667780", penwidth=2, label="Feed-Forward Netwo..", fontsize=9, tooltip="Feed-Forward Network (MLP)"];
+    "node_transformer_norm" [width=0.35, height=0.35, fillcolor="#CC6677", color="#CC667780", penwidth=2, label="Normalization", fontsize=9, tooltip="Normalization"];
+    "node_transformer_residual" [width=0.18, height=0.18, fillcolor="#FADADD", color="#FADADD80", penwidth=1, label="Residual Connections", fontsize=7, tooltip="Residual Connections"];
+    "node_transformer_dropout" [width=0.18, height=0.18, fillcolor="#FFE4E1", color="#FFE4E180", penwidth=1, label="Dropout", fontsize=7, tooltip="Dropout"];
+    "node_head_untied" [width=0.18, height=0.18, fillcolor="#FFF0F5", color="#FFF0F580", penwidth=1, label="Untied Linear LM H..", fontsize=7, tooltip="Untied Linear LM Head"];
+    "node_head_weight_tied" [width=0.18, height=0.18, fillcolor="#FADADD", color="#FADADD80", penwidth=1, label="Weight-tied Head (..", fontsize=7, tooltip="Weight-tied Head (Reuse Embeddings)"];
+    "node_head_adaptive_softmax" [width=0.18, height=0.18, fillcolor="#FFE4E1", color="#FFE4E180", penwidth=1, label="Adaptive / Factori..", fontsize=7, tooltip="Adaptive / Factorized Softmax"];
+    { rank=same; "node_embed_full"; "node_embed_factorized"; "node_embed_hashing"; "node_pos_rope"; "node_pos_alibi"; "node_pos_absolute"; "node_transformer_attention"; "node_transformer_mlp"; "node_transformer_norm"; "node_transformer_residual"; "node_transformer_dropout"; "node_head_untied"; "node_head_weight_tied"; "node_head_adaptive_softmax"; }
+
+    // Level 4
+    "node_attn_projections" [width=0.35, height=0.35, fillcolor="#CC6677", color="#CC667780", penwidth=2, label="Attention Projecti..", fontsize=9, tooltip="Attention Projections"];
+    "node_attn_compute" [width=0.35, height=0.35, fillcolor="#CC6677", color="#CC667780", penwidth=2, label="Attention Computat..", fontsize=9, tooltip="Attention Computation"];
+    "node_attn_kv_cache" [width=0.35, height=0.35, fillcolor="#CC6677", color="#CC667780", penwidth=2, label="KV Cache Strategy ..", fontsize=9, tooltip="KV Cache Strategy (Inference)"];
+    "node_mlp_variant" [width=0.35, height=0.35, fillcolor="#DDCC77", color="#DDCC7780", penwidth=2, label="MLP Variant", fontsize=9, tooltip="MLP Variant"];
+    "node_norm_layernorm" [width=0.18, height=0.18, fillcolor="#FADADD", color="#FADADD80", penwidth=1, label="LayerNorm", fontsize=7, tooltip="LayerNorm"];
+    "node_norm_rmsnorm" [width=0.18, height=0.18, fillcolor="#FFF0F5", color="#FFF0F580", penwidth=1, label="RMSNorm", fontsize=7, tooltip="RMSNorm"];
+    { rank=same; "node_attn_projections"; "node_attn_compute"; "node_attn_kv_cache"; "node_mlp_variant"; "node_norm_layernorm"; "node_norm_rmsnorm"; }
+
+    // Level 5
+    "node_attn_query_proj" [width=0.18, height=0.18, fillcolor="#FFE4E1", color="#FFE4E180", penwidth=1, label="Query Projection", fontsize=7, tooltip="Query Projection"];
+    "node_attn_key_proj" [width=0.35, height=0.35, fillcolor="#DDCC77", color="#DDCC7780", penwidth=2, label="Key Projection", fontsize=9, tooltip="Key Projection"];
+    "node_attn_value_proj" [width=0.35, height=0.35, fillcolor="#AA4499", color="#AA449980", penwidth=2, label="Value Projection", fontsize=9, tooltip="Value Projection"];
+    "node_attn_output_proj" [width=0.18, height=0.18, fillcolor="#FADADD", color="#FADADD80", penwidth=1, label="Output Projection", fontsize=7, tooltip="Output Projection"];
+    "node_attn_softmax_impl" [width=0.35, height=0.35, fillcolor="#DDCC77", color="#DDCC7780", penwidth=2, label="Softmax Attention ..", fontsize=9, tooltip="Softmax Attention Implementation"];
+    "node_kv_cache_none" [width=0.18, height=0.18, fillcolor="#FFE4E1", color="#FFE4E180", penwidth=1, label="No KV Cache (Recom..", fontsize=7, tooltip="No KV Cache (Recompute)"];
+    "node_kv_cache_fp16" [width=0.18, height=0.18, fillcolor="#FFF0F5", color="#FFF0F580", penwidth=1, label="FP16/BF16 KV Cache", fontsize=7, tooltip="FP16/BF16 KV Cache"];
+    "node_kv_cache_int8" [width=0.18, height=0.18, fillcolor="#FFF0F5", color="#FFF0F580", penwidth=1, label="INT8 KV Cache", fontsize=7, tooltip="INT8 KV Cache"];
+    "node_mlp_dense_fnn" [width=0.18, height=0.18, fillcolor="#FADADD", color="#FADADD80", penwidth=1, label="Dense FFN (ReLU/GE..", fontsize=7, tooltip="Dense FFN (ReLU/GELU)"];
+    "node_mlp_swiglu" [width=0.18, height=0.18, fillcolor="#FFF0F5", color="#FFF0F580", penwidth=1, label="SwiGLU (Gated MLP)", fontsize=7, tooltip="SwiGLU (Gated MLP)"];
+    "node_mlp_low_rank" [width=0.18, height=0.18, fillcolor="#FFF0F5", color="#FFF0F580", penwidth=1, label="Low-rank / Factori..", fontsize=7, tooltip="Low-rank / Factorized MLP"];
+    "node_mlp_moe" [width=0.18, height=0.18, fillcolor="#FFE4E1", color="#FFE4E180", penwidth=1, label="Mixture-of-Experts..", fontsize=7, tooltip="Mixture-of-Experts (Sparse)"];
+    { rank=same; "node_attn_query_proj"; "node_attn_key_proj"; "node_attn_value_proj"; "node_attn_output_proj"; "node_attn_softmax_impl"; "node_kv_cache_none"; "node_kv_cache_fp16"; "node_kv_cache_int8"; "node_mlp_dense_fnn"; "node_mlp_swiglu"; "node_mlp_low_rank"; "node_mlp_moe"; }
+
+    // Level 6
+    "node_attn_key_per_head" [width=0.18, height=0.18, fillcolor="#FFE4E1", color="#FFE4E180", penwidth=1, label="Per-head Keys (MHA..", fontsize=7, tooltip="Per-head Keys (MHA-style)"];
+    "node_attn_key_shared" [width=0.18, height=0.18, fillcolor="#FFF0F5", color="#FFF0F580", penwidth=1, label="Shared Keys (GQA/M..", fontsize=7, tooltip="Shared Keys (GQA/MQA-style)"];
+    "node_attn_value_per_head" [width=0.18, height=0.18, fillcolor="#FFF0F5", color="#FFF0F580", penwidth=1, label="Per-head Values (M..", fontsize=7, tooltip="Per-head Values (MHA-style)"];
+    "node_attn_value_shared" [width=0.18, height=0.18, fillcolor="#FADADD", color="#FADADD80", penwidth=1, label="Shared Values (GQA..", fontsize=7, tooltip="Shared Values (GQA/MQA-style)"];
+    "node_attn_softmax_naive" [width=0.18, height=0.18, fillcolor="#FFE4E1", color="#FFE4E180", penwidth=1, label="Naive / Standard S..", fontsize=7, tooltip="Naive / Standard Softmax"];
+    "node_attn_softmax_flash" [width=0.18, height=0.18, fillcolor="#FFF0F5", color="#FFF0F580", penwidth=1, label="FlashAttention-sty..", fontsize=7, tooltip="FlashAttention-style (Tiled)"];
+    { rank=same; "node_attn_key_per_head"; "node_attn_key_shared"; "node_attn_value_per_head"; "node_attn_value_shared"; "node_attn_softmax_naive"; "node_attn_softmax_flash"; }
+
+  }
+
+  subgraph cluster_train {
+    label=<<B><FONT POINT-SIZE="14" COLOR="#117733">Training & Evaluation</FONT></B>>;
+    style="rounded,filled";
+    fillcolor="#fafbfc";
+    color="#11773340";
+    penwidth=1;
+    fontname="Helvetica Neue";
+
+    // Level 0
+    "node_root_training_eval" [width=0.5, height=0.5, fillcolor="#117733", color="#11773380", penwidth=3, label="Training & Evaluat..", fontsize=11, tooltip="Training & Evaluation"];
+    { rank=same; "node_root_training_eval"; }
+
+    // Level 1
+    "node_train_loss" [width=0.35, height=0.35, fillcolor="#88CCEE", color="#88CCEE80", penwidth=2, label="Loss Function", fontsize=9, tooltip="Loss Function"];
+    "node_train_optimizer" [width=0.35, height=0.35, fillcolor="#88CCEE", color="#88CCEE80", penwidth=2, label="Optimizer & State", fontsize=9, tooltip="Optimizer & State"];
+    "node_train_precision" [width=0.35, height=0.35, fillcolor="#DDDD78", color="#DDDD7880", penwidth=2, label="Numerical Precision", fontsize=9, tooltip="Numerical Precision"];
+    "node_train_activation_storage" [width=0.35, height=0.35, fillcolor="#88CCEE", color="#88CCEE80", penwidth=2, label="Activation Storage..", fontsize=9, tooltip="Activation Storage Strategy"];
+    "node_train_evaluation" [width=0.35, height=0.35, fillcolor="#DDDD78", color="#DDDD7880", penwidth=2, label="Evaluation Harness", fontsize=9, tooltip="Evaluation Harness"];
+    "node_train_budget_accounting" [width=0.35, height=0.35, fillcolor="#88CCEE", color="#88CCEE80", penwidth=2, label="Budget Accounting", fontsize=9, tooltip="Budget Accounting"];
+    { rank=same; "node_train_loss"; "node_train_optimizer"; "node_train_precision"; "node_train_activation_storage"; "node_train_evaluation"; "node_train_budget_accounting"; }
+
+    // Level 2
+    "node_loss_cross_entropy" [width=0.18, height=0.18, fillcolor="#DCEDC8", color="#DCEDC880", penwidth=1, label="Cross-Entropy", fontsize=7, tooltip="Cross-Entropy"];
+    "node_loss_label_smoothing" [width=0.18, height=0.18, fillcolor="#DCEDC8", color="#DCEDC880", penwidth=1, label="Label Smoothing", fontsize=7, tooltip="Label Smoothing"];
+    "node_loss_z_loss" [width=0.18, height=0.18, fillcolor="#F0FFF0", color="#F0FFF080", penwidth=1, label="Z-loss / Logit Pen..", fontsize=7, tooltip="Z-loss / Logit Penalty"];
+    "node_optimizer_state_strategy" [width=0.35, height=0.35, fillcolor="#88CCEE", color="#88CCEE80", penwidth=2, label="Optimizer State St..", fontsize=9, tooltip="Optimizer State Strategy"];
+    "node_precision_fp32" [width=0.18, height=0.18, fillcolor="#E8F5E9", color="#E8F5E980", penwidth=1, label="FP32 Training", fontsize=7, tooltip="FP32 Training"];
+    "node_precision_fp16_bf16" [width=0.18, height=0.18, fillcolor="#E8F5E9", color="#E8F5E980", penwidth=1, label="FP16/BF16 Mixed Pr..", fontsize=7, tooltip="FP16/BF16 Mixed Precision"];
+    "node_precision_fp8" [width=0.18, height=0.18, fillcolor="#F0FFF0", color="#F0FFF080", penwidth=1, label="FP8 Activations (A..", fontsize=7, tooltip="FP8 Activations (Advanced)"];
+    "node_activations_store_all" [width=0.18, height=0.18, fillcolor="#DCEDC8", color="#DCEDC880", penwidth=1, label="Store All Activati..", fontsize=7, tooltip="Store All Activations"];
+    "node_activations_checkpoint" [width=0.18, height=0.18, fillcolor="#E8F5E9", color="#E8F5E980", penwidth=1, label="Gradient Checkpoin..", fontsize=7, tooltip="Gradient Checkpointing"];
+    "node_eval_param_golf" [width=0.18, height=0.18, fillcolor="#E8F5E9", color="#E8F5E980", penwidth=1, label="OpenAI Parameter G..", fontsize=7, tooltip="OpenAI Parameter Golf Benchmark"];
+    "node_budget_parameters" [width=0.18, height=0.18, fillcolor="#E8F5E9", color="#E8F5E980", penwidth=1, label="Parameter Counter", fontsize=7, tooltip="Parameter Counter"];
+    "node_budget_memory" [width=0.18, height=0.18, fillcolor="#E8F5E9", color="#E8F5E980", penwidth=1, label="Peak Memory Estima..", fontsize=7, tooltip="Peak Memory Estimator"];
+    { rank=same; "node_loss_cross_entropy"; "node_loss_label_smoothing"; "node_loss_z_loss"; "node_optimizer_state_strategy"; "node_precision_fp32"; "node_precision_fp16_bf16"; "node_precision_fp8"; "node_activations_store_all"; "node_activations_checkpoint"; "node_eval_param_golf"; "node_budget_parameters"; "node_budget_memory"; }
+
+    // Level 3
+    "node_opt_adamw_fp32_state" [width=0.18, height=0.18, fillcolor="#F0FFF0", color="#F0FFF080", penwidth=1, label="AdamW (FP32 moments)", fontsize=7, tooltip="AdamW (FP32 moments)"];
+    "node_opt_adamw_8bit_state" [width=0.18, height=0.18, fillcolor="#DCEDC8", color="#DCEDC880", penwidth=1, label="AdamW (8-bit momen..", fontsize=7, tooltip="AdamW (8-bit moments)"];
+    "node_opt_adafactor" [width=0.18, height=0.18, fillcolor="#F0FFF0", color="#F0FFF080", penwidth=1, label="Adafactor (Factori..", fontsize=7, tooltip="Adafactor (Factorized)"];
+    "node_opt_sgd_momentum" [width=0.18, height=0.18, fillcolor="#E8F5E9", color="#E8F5E980", penwidth=1, label="SGD + Momentum", fontsize=7, tooltip="SGD + Momentum"];
+    { rank=same; "node_opt_adamw_fp32_state"; "node_opt_adamw_8bit_state"; "node_opt_adafactor"; "node_opt_sgd_momentum"; }
+
+  }
+
+  "node_root_data_pipeline" -> "node_data_sources" [color="#94a3b850", penwidth=0.8];
+  "node_data_sources" -> "node_data_source_web_text" [color="#94a3b850", penwidth=0.8];
+  "node_data_sources" -> "node_data_source_code" [color="#94a3b850", penwidth=0.8];
+  "node_data_sources" -> "node_data_source_books" [color="#94a3b850", penwidth=0.8];
+  "node_data_sources" -> "node_data_source_synthetic" [color="#94a3b850", penwidth=0.8];
+  "node_root_data_pipeline" -> "node_data_cleaning" [color="#94a3b850", penwidth=0.8];
+  "node_data_cleaning" -> "node_data_dedup" [color="#94a3b850", penwidth=0.8];
+  "node_data_cleaning" -> "node_data_language_id" [color="#94a3b850", penwidth=0.8];
+  "node_data_cleaning" -> "node_data_quality_filter" [color="#94a3b850", penwidth=0.8];
+  "node_data_cleaning" -> "node_data_toxicity_filter" [color="#94a3b850", penwidth=0.8];
+  "node_root_data_pipeline" -> "node_data_tokenization" [color="#94a3b850", penwidth=0.8];
+  "node_data_tokenization" -> "node_tokenizer_bpe" [color="#94a3b850", penwidth=0.8];
+  "node_data_tokenization" -> "node_tokenizer_unigram" [color="#94a3b850", penwidth=0.8];
+  "node_data_tokenization" -> "node_tokenizer_bytelevel_bpe" [color="#94a3b850", penwidth=0.8];
+  "node_data_tokenization" -> "node_tokenizer_character" [color="#94a3b850", penwidth=0.8];
+  "node_root_data_pipeline" -> "node_data_sequence_construction" [color="#94a3b850", penwidth=0.8];
+  "node_data_sequence_construction" -> "node_sequence_packing" [color="#94a3b850", penwidth=0.8];
+  "node_sequence_packing" -> "node_packing_concat_fixed" [color="#94a3b850", penwidth=0.8];
+  "node_sequence_packing" -> "node_packing_dynamic" [color="#94a3b850", penwidth=0.8];
+  "node_data_sequence_construction" -> "node_context_length" [color="#94a3b850", penwidth=0.8];
+  "node_context_length" -> "node_context_256" [color="#94a3b850", penwidth=0.8];
+  "node_context_length" -> "node_context_512" [color="#94a3b850", penwidth=0.8];
+  "node_context_length" -> "node_context_1024" [color="#94a3b850", penwidth=0.8];
+  "node_root_data_pipeline" -> "node_data_sampling_batching" [color="#94a3b850", penwidth=0.8];
+  "node_data_sampling_batching" -> "node_batching_random" [color="#94a3b850", penwidth=0.8];
+  "node_data_sampling_batching" -> "node_batching_length_bucketed" [color="#94a3b850", penwidth=0.8];
+  "node_root_data_pipeline" -> "node_data_augmentation" [color="#94a3b850", penwidth=0.8];
+  "node_data_augmentation" -> "node_aug_span_corruption" [color="#94a3b850", penwidth=0.8];
+  "node_data_augmentation" -> "node_aug_token_dropout" [color="#94a3b850", penwidth=0.8];
+  "node_data_augmentation" -> "node_aug_contrastive_crop" [color="#94a3b850", penwidth=0.8];
+  "node_root_data_pipeline" -> "node_data_curriculum_mixing" [color="#94a3b850", penwidth=0.8];
+  "node_data_curriculum_mixing" -> "node_curriculum_length" [color="#94a3b850", penwidth=0.8];
+  "node_data_curriculum_mixing" -> "node_mix_dataset_sampling" [color="#94a3b850", penwidth=0.8];
+  "node_root_neural_network" -> "node_nn_embeddings" [color="#94a3b850", penwidth=0.8];
+  "node_nn_embeddings" -> "node_nn_embedding_strategy" [color="#94a3b850", penwidth=0.8];
+  "node_nn_embedding_strategy" -> "node_embed_full" [color="#94a3b850", penwidth=0.8];
+  "node_nn_embedding_strategy" -> "node_embed_factorized" [color="#94a3b850", penwidth=0.8];
+  "node_nn_embedding_strategy" -> "node_embed_hashing" [color="#94a3b850", penwidth=0.8];
+  "node_nn_embeddings" -> "node_nn_positional_encoding" [color="#94a3b850", penwidth=0.8];
+  "node_nn_positional_encoding" -> "node_pos_rope" [color="#94a3b850", penwidth=0.8];
+  "node_nn_positional_encoding" -> "node_pos_alibi" [color="#94a3b850", penwidth=0.8];
+  "node_nn_positional_encoding" -> "node_pos_absolute" [color="#94a3b850", penwidth=0.8];
+  "node_root_neural_network" -> "node_nn_transformer" [color="#94a3b850", penwidth=0.8];
+  "node_nn_transformer" -> "node_transformer_block" [color="#94a3b850", penwidth=0.8];
+  "node_transformer_block" -> "node_transformer_attention" [color="#94a3b850", penwidth=0.8];
+  "node_transformer_attention" -> "node_attn_projections" [color="#94a3b850", penwidth=0.8];
+  "node_attn_projections" -> "node_attn_query_proj" [color="#94a3b850", penwidth=0.8];
+  "node_attn_projections" -> "node_attn_key_proj" [color="#94a3b850", penwidth=0.8];
+  "node_attn_key_proj" -> "node_attn_key_per_head" [color="#94a3b850", penwidth=0.8];
+  "node_attn_key_proj" -> "node_attn_key_shared" [color="#94a3b850", penwidth=0.8];
+  "node_attn_projections" -> "node_attn_value_proj" [color="#94a3b850", penwidth=0.8];
+  "node_attn_value_proj" -> "node_attn_value_per_head" [color="#94a3b850", penwidth=0.8];
+  "node_attn_value_proj" -> "node_attn_value_shared" [color="#94a3b850", penwidth=0.8];
+  "node_attn_projections" -> "node_attn_output_proj" [color="#94a3b850", penwidth=0.8];
+  "node_transformer_attention" -> "node_attn_compute" [color="#94a3b850", penwidth=0.8];
+  "node_attn_compute" -> "node_attn_softmax_impl" [color="#94a3b850", penwidth=0.8];
+  "node_attn_softmax_impl" -> "node_attn_softmax_naive" [color="#94a3b850", penwidth=0.8];
+  "node_attn_softmax_impl" -> "node_attn_softmax_flash" [color="#94a3b850", penwidth=0.8];
+  "node_transformer_attention" -> "node_attn_kv_cache" [color="#94a3b850", penwidth=0.8];
+  "node_attn_kv_cache" -> "node_kv_cache_none" [color="#94a3b850", penwidth=0.8];
+  "node_attn_kv_cache" -> "node_kv_cache_fp16" [color="#94a3b850", penwidth=0.8];
+  "node_attn_kv_cache" -> "node_kv_cache_int8" [color="#94a3b850", penwidth=0.8];
+  "node_transformer_block" -> "node_transformer_mlp" [color="#94a3b850", penwidth=0.8];
+  "node_transformer_mlp" -> "node_mlp_variant" [color="#94a3b850", penwidth=0.8];
+  "node_mlp_variant" -> "node_mlp_dense_fnn" [color="#94a3b850", penwidth=0.8];
+  "node_mlp_variant" -> "node_mlp_swiglu" [color="#94a3b850", penwidth=0.8];
+  "node_mlp_variant" -> "node_mlp_low_rank" [color="#94a3b850", penwidth=0.8];
+  "node_mlp_variant" -> "node_mlp_moe" [color="#94a3b850", penwidth=0.8];
+  "node_transformer_block" -> "node_transformer_norm" [color="#94a3b850", penwidth=0.8];
+  "node_transformer_norm" -> "node_norm_layernorm" [color="#94a3b850", penwidth=0.8];
+  "node_transformer_norm" -> "node_norm_rmsnorm" [color="#94a3b850", penwidth=0.8];
+  "node_transformer_block" -> "node_transformer_residual" [color="#94a3b850", penwidth=0.8];
+  "node_transformer_block" -> "node_transformer_dropout" [color="#94a3b850", penwidth=0.8];
+  "node_root_neural_network" -> "node_nn_output_head" [color="#94a3b850", penwidth=0.8];
+  "node_nn_output_head" -> "node_head_strategy" [color="#94a3b850", penwidth=0.8];
+  "node_head_strategy" -> "node_head_untied" [color="#94a3b850", penwidth=0.8];
+  "node_head_strategy" -> "node_head_weight_tied" [color="#94a3b850", penwidth=0.8];
+  "node_head_strategy" -> "node_head_adaptive_softmax" [color="#94a3b850", penwidth=0.8];
+  "node_root_training_eval" -> "node_train_loss" [color="#94a3b850", penwidth=0.8];
+  "node_train_loss" -> "node_loss_cross_entropy" [color="#94a3b850", penwidth=0.8];
+  "node_train_loss" -> "node_loss_label_smoothing" [color="#94a3b850", penwidth=0.8];
+  "node_train_loss" -> "node_loss_z_loss" [color="#94a3b850", penwidth=0.8];
+  "node_root_training_eval" -> "node_train_optimizer" [color="#94a3b850", penwidth=0.8];
+  "node_train_optimizer" -> "node_optimizer_state_strategy" [color="#94a3b850", penwidth=0.8];
+  "node_optimizer_state_strategy" -> "node_opt_adamw_fp32_state" [color="#94a3b850", penwidth=0.8];
+  "node_optimizer_state_strategy" -> "node_opt_adamw_8bit_state" [color="#94a3b850", penwidth=0.8];
+  "node_optimizer_state_strategy" -> "node_opt_adafactor" [color="#94a3b850", penwidth=0.8];
+  "node_optimizer_state_strategy" -> "node_opt_sgd_momentum" [color="#94a3b850", penwidth=0.8];
+  "node_root_training_eval" -> "node_train_precision" [color="#94a3b850", penwidth=0.8];
+  "node_train_precision" -> "node_precision_fp32" [color="#94a3b850", penwidth=0.8];
+  "node_train_precision" -> "node_precision_fp16_bf16" [color="#94a3b850", penwidth=0.8];
+  "node_train_precision" -> "node_precision_fp8" [color="#94a3b850", penwidth=0.8];
+  "node_root_training_eval" -> "node_train_activation_storage" [color="#94a3b850", penwidth=0.8];
+  "node_train_activation_storage" -> "node_activations_store_all" [color="#94a3b850", penwidth=0.8];
+  "node_train_activation_storage" -> "node_activations_checkpoint" [color="#94a3b850", penwidth=0.8];
+  "node_root_training_eval" -> "node_train_evaluation" [color="#94a3b850", penwidth=0.8];
+  "node_train_evaluation" -> "node_eval_param_golf" [color="#94a3b850", penwidth=0.8];
+  "node_root_training_eval" -> "node_train_budget_accounting" [color="#94a3b850", penwidth=0.8];
+  "node_train_budget_accounting" -> "node_budget_parameters" [color="#94a3b850", penwidth=0.8];
+  "node_train_budget_accounting" -> "node_budget_memory" [color="#94a3b850", penwidth=0.8];
+
+  // Research Hypotheses
+  "hypothesis_0" [label="Unknown", shape=box, fillcolor="#FFEBEE", color="#C62828", style="filled,rounded", fontcolor="#C62828", fontsize=9, width=0.80, height=0.35, penwidth=2, tooltip="Unknown
+
+"];
+  "hypothesis_1" [label="Low-Rank Factorized Transfor..", shape=ellipse, fillcolor="#FFF8E1", color="#FFA000", style="filled,rounded,dashed", fontcolor="#FFA000", fontsize=9, width=1.20, height=0.35, penwidth=2, tooltip="Low-Rank Factorized Transformer Layers
+
+This idea proposes to replace all standard `nn.Linear` layers within a Transformer model with low-rank factorized approximations to reduce parameter c"];
+  "hypothesis_1" -> "node_transformer_mlp" [color="#FFA00060", style="dashed", penwidth=1.2, arrowhead="vee", constraint=false];
+  "hypothesis_1" -> "node_transformer_block" [color="#FFA00060", style="dashed", penwidth=1.2, arrowhead="vee", constraint=false];
+  "hypothesis_1" -> "node_mlp_low_rank" [color="#FFA00060", style="dashed", penwidth=1.2, arrowhead="vee", constraint=false];
+  "hypothesis_2" [label="Unknown", shape=box, fillcolor="#FFEBEE", color="#C62828", style="filled,rounded", fontcolor="#C62828", fontsize=9, width=0.80, height=0.35, penwidth=2, tooltip="Unknown
+
+"];
+  "hypothesis_3" [label="Unknown", shape=ellipse, fillcolor="#FFF8E1", color="#FFA000", style="filled,rounded,dashed", fontcolor="#FFA000", fontsize=9, width=0.80, height=0.35, penwidth=2, tooltip="Unknown
+
+"];
+}

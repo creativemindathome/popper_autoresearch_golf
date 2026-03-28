@@ -1,0 +1,50 @@
+[
+  {
+    "name": "good_student.py",
+    "stage1_passed": true,
+    "stage1_duration": 0.00027108192443847656,
+    "verdict": "REJECTED",
+    "killed_by": "VALIDATION",
+    "tags_count": 0,
+    "expected_stage": "T5",
+    "reached_expected": false,
+    "stage2_skipped": true,
+    "final_verdict": "REJECTED"
+  },
+  {
+    "name": "gradient_flow_issues.py",
+    "stage1_passed": true,
+    "stage1_duration": 0.00019502639770507812,
+    "verdict": "REJECTED",
+    "killed_by": "VALIDATION",
+    "tags_count": 0,
+    "expected_stage": "T5",
+    "reached_expected": false,
+    "stage2_skipped": true,
+    "final_verdict": "REJECTED"
+  },
+  {
+    "name": "over_parametrized.py",
+    "stage1_passed": true,
+    "stage1_duration": 0.00020599365234375,
+    "verdict": "REJECTED",
+    "killed_by": "VALIDATION",
+    "tags_count": 0,
+    "expected_stage": "T2",
+    "reached_expected": false,
+    "stage2_skipped": true,
+    "final_verdict": "REJECTED"
+  },
+  {
+    "name": "broken_architecture.py",
+    "stage1_passed": true,
+    "stage1_duration": 0.0002009868621826172,
+    "verdict": "REJECTED",
+    "killed_by": "VALIDATION",
+    "tags_count": 0,
+    "expected_stage": "T3",
+    "reached_expected": false,
+    "stage2_skipped": true,
+    "final_verdict": "REJECTED"
+  }
+]

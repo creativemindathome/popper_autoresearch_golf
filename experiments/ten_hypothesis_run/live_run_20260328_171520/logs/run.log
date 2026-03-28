@@ -1,0 +1,51 @@
+[2026-03-28T17:15:20.266210] [INFO] ======================================================================
+[2026-03-28T17:15:20.266316] [INFO] FULL LIVE EXPERIMENT WITH SEPARATE STAGE MODELS
+[2026-03-28T17:15:20.266349] [INFO] ======================================================================
+[2026-03-28T17:15:20.266376] [INFO] Output directory: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_171520
+[2026-03-28T17:15:20.266402] [INFO] Stage 0 (Ideation): claude-sonnet-4-20250514
+[2026-03-28T17:15:20.266425] [INFO] Stage 2 (Falsifier): ENABLED
+[2026-03-28T17:15:20.266449] [INFO]   Model: claude-sonnet-4-20250514
+[2026-03-28T17:15:20.266471] [INFO]   Max hypotheses: 5
+[2026-03-28T17:15:20.266494] [INFO] 
+[2026-03-28T17:15:20.266517] [INFO] Starting experiment: 10 hypotheses
+[2026-03-28T17:15:20.266539] [INFO] Estimated time: 30-50 minutes
+[2026-03-28T17:15:20.266560] [INFO] 
+[2026-03-28T17:15:20.266582] [INFO] 
+======================================================================
+[2026-03-28T17:15:20.266606] [INFO] HYPOTHESIS 1/10
+[2026-03-28T17:15:20.266627] [INFO] ======================================================================
+[2026-03-28T17:15:20.266671] [INFO] 
+[2026-03-28T17:15:20.266690] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:15:20.266713] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:15:20.266736] [INFO]   Hypothesis #1
+[2026-03-28T17:15:20.266753] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:15:20.266776] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:16:01.517755] [INFO] ✓ Generated hypothesis #1: sparse-expert-attention
+[2026-03-28T17:16:01.519268] [INFO]   Parameter estimate: Explicit count: ~6.8M parameters (Base GPT: 6.2M + Router MLPs: 6×(384×128+128×6) = 0.6M, total well under 10M)
+[2026-03-28T17:16:01.519378] [INFO]   Novelty: 3 claims
+[2026-03-28T17:16:01.519535] [INFO]   Code: ~164 lines
+[2026-03-28T17:16:01.519734] [INFO]   ✓ Parameter estimate 6.8M is within 10M budget
+[2026-03-28T17:16:01.519809] [INFO]   ✓ Parameter estimate 6.2M is within 10M budget
+[2026-03-28T17:16:01.519877] [INFO]   ✓ Parameter estimate 0.6M is within 10M budget
+[2026-03-28T17:16:01.519947] [INFO]   ✓ Parameter estimate 10.0M is within 10M budget
+[2026-03-28T17:16:01.520163] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:16:01.520585] [ERROR] ✗ Hypothesis #1 failed: 'str' object has no attribute 'get'
+[2026-03-28T17:16:01.521717] [ERROR]   Debug traceback: Traceback (most recent call last):
+  File "/Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/run_full_live_experiment.py", line 497, in run_single_hypothesis
+    self.cap
+[2026-03-28T17:16:01.521813] [INFO] 
+✓ Hypothesis #1 complete in 41.3s
+[2026-03-28T17:16:01.521868] [INFO]   Verdict: None
+[2026-03-28T17:16:01.524058] [INFO]   [Graph Sync] Created new node: sparse-expert-attention
+[2026-03-28T17:16:01.524480] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:16:04.528035] [INFO] 
+======================================================================
+[2026-03-28T17:16:04.528307] [INFO] HYPOTHESIS 2/10
+[2026-03-28T17:16:04.528352] [INFO] ======================================================================
+[2026-03-28T17:16:04.528409] [INFO] 
+[2026-03-28T17:16:04.528435] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:16:04.528462] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:16:04.528486] [INFO]   Hypothesis #2
+[2026-03-28T17:16:04.528509] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:16:04.528560] [INFO] Calling Anthropic API (Sonnet)...

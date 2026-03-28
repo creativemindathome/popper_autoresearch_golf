@@ -1,0 +1,21 @@
+{
+  "idea_id": "test_loop_1774710824",
+  "timestamp": "2026-03-28T16:13:44.720726",
+  "what_and_why": "Test continuous loop with standard transformer architecture using proper initialization and residual connections",
+  "config_changes": {
+    "d_model": 256,
+    "n_heads": 4,
+    "n_layers": 2
+  },
+  "train_gpt_code": "\nimport torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nclass Hyperparameters:\n    vocab_size = 50257\n    d_model = 256\n    n_heads = 4\n    n_layers = 2\n    d_mlp = 1024\n    max_seq_len = 1024\n    batch_size = 4\n    learning_rate = 0.001\n\nclass GPT(nn.Module):\n    def __init__(self, vocab_size, d_model, n_heads, n_layers, d_mlp, max_seq_len):\n        super().__init__()\n        self.tok_emb = nn.Embedding(vocab_size, d_model)\n        self.pos_emb = nn.Embedding(max_seq_len, d_model)\n        \n        self.blocks = nn.ModuleList([\n            TransformerBlock(d_model, n_heads, d_mlp)\n            for _ in range(n_layers)\n        ])\n        \n        self.ln_f = nn.LayerNorm(d_model)\n        self.lm_head = nn.Linear(d_model, vocab_size, bias=False)\n        \n    def forward(self, input_ids, targets=None):\n        B, T = input_ids.size()\n        tok_emb = self.tok_emb(input_ids)\n        pos_emb = self.pos_emb(torch.arange(T, device=input_ids.device))\n        x = tok_emb + pos_emb\n        \n        for block in self.blocks:\n            x = block(x)\n            \n        x = self.ln_f(x)\n        logits = self.lm_head(x)\n        \n        if targets is not None:\n            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))\n            return loss\n        return logits\n\nclass TransformerBlock(nn.Module):\n    def __init__(self, d_model, n_heads, d_mlp):\n        super().__init__()\n        self.ln1 = nn.LayerNorm(d_model)\n        self.attn = nn.MultiheadAttention(d_model, n_heads, batch_first=True)\n        self.ln2 = nn.LayerNorm(d_model)\n        self.mlp = nn.Sequential(\n            nn.Linear(d_model, d_mlp),\n            nn.GELU(),\n            nn.Linear(d_mlp, d_model),\n        )\n        \n    def forward(self, x):\n        x = x + self.attn(self.ln1(x), self.ln1(x), self.ln1(x))[0]\n        x = x + self.mlp(self.ln2(x))\n        return x\n",
+  "parent_ref": {
+    "source": "parameter-golf",
+    "commit": "abc123"
+  },
+  "review": {
+    "approved": true,
+    "score": 7,
+    "novelty_score": 6,
+    "comments": "Standard architecture, should be tested"
+  }
+}

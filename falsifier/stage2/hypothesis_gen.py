@@ -55,16 +55,26 @@ def generate_kill_hypotheses(
     stage1_results: dict[str, Any],
 ) -> list[KillHypothesis]:
     """Generate adversarial kill hypotheses.
-    
-    If ANTHROPIC_API_KEY is not set, falls back to heuristics based on Stage 1 tags.
+
+    Uses Composer 2 if available, falls back to standard Anthropic,
+    then to heuristics.
     """
-    # Check for API key
+    # Try Composer 2 first (advanced reasoning)
+    try:
+        from .composer_falsifier import Composer2Falsifier
+        composer = Composer2Falsifier()
+        print("[hypothesis_gen] Using Composer 2 for advanced falsification...")
+        return composer.generate_kill_hypotheses(inp, stage1_results)
+    except Exception as e:
+        print(f"[hypothesis_gen] Composer 2 not available: {e}")
+
+    # Fall back to standard Anthropic
     api_key = os.environ.get("ANTHROPIC_API_KEY")
-    
+
     if not api_key:
         # Fallback: generate hypotheses from Stage 1 tags
         return _generate_fallback_hypotheses(inp, stage1_results)
-    
+
     try:
         return _generate_llm_hypotheses(inp, stage1_results, api_key)
     except Exception as e:

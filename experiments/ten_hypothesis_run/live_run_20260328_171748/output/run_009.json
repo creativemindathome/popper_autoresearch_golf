@@ -1,0 +1,58 @@
+{
+  "run_id": "h009_a6d9c0cf",
+  "hypothesis_number": 9,
+  "start_time": 1774715063.8954182,
+  "end_time": 1774715109.119725,
+  "status": "complete",
+  "idea_json": {
+    "theory_id": "gradient-weighted-sparse-attention",
+    "what_and_why": "This architecture replaces traditional multi-head attention with Gradient-Weighted Sparse Attention (GWSA). Instead of computing attention across all positions, GWSA uses gradient magnitudes from the previous training step to identify the most 'learning-active' token positions, then computes full attention only within these sparse neighborhoods. Each head maintains a learned threshold and uses exponential moving averages of gradient norms to create dynamic sparse attention patterns. This creates computation-aware attention that adapts to what the model is actively learning. The key insight is that positions with high gradient activity are information bottlenecks that deserve more attention resources. We expect this to show faster initial convergence as attention focuses on learning-critical regions, followed by gradual sparsification as the model stabilizes. Falsification would show as either no sparsification occurring (thresholds too conservative) or catastrophic forgetting (thresholds too aggressive), measurable by tracking attention density and loss curves.",
+    "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\nfrom dataclasses import dataclass\n\n# Parameter count: ~8.2M parameters (verified <10M)\n# Embedding: 384*50304 = 19.3M tokens, but using sparse vocab of 16384 = 6.3M\n# 6 layers * (384*384*4 attention + 384*1536*2 FFN + small norms) \u2248 8.2M total\n\n@dataclass\nclass Config:\n    block_size: int = 1024\n    vocab_size: int = 16384  # Reduced vocab to fit budget\n    n_layer: int = 6\n    n_head: int = 6\n    n_embd: int = 384\n    dropout: float = 0.1\n    bias: bool = True\n    sparse_ratio: float = 0.3  # Keep top 30% of attention\n    gradient_ema_decay: float = 0.9\n\nclass GradientWeightedSparseAttention(nn.Module):\n    def __init__(self, config):\n        super().__init__()\n        assert config.n_embd % config.n_head == 0\n        self.c_attn = nn.Linear(config.n_embd, 3 * config.n_embd, bias=config.bias)\n        self.c_proj = nn.Linear(config.n_embd, config.n_embd, bias=config.bias)\n        self.attn_dropout = nn.Dropout(config.dropout)\n        self.resid_dropout = nn.Dropout(config.dropout)\n        self.n_head = config.n_head\n        self.n_embd = config.n_embd\n        self.dropout = config.dropout\n        self.sparse_ratio = config.sparse_ratio\n        self.gradient_ema_decay = config.gradient_ema_decay\n        \n        # Gradient tracking for sparse attention\n        self.register_buffer('grad_ema', torch.zeros(1))\n        self.register_buffer('position_importance', torch.ones(config.block_size))\n        self.learned_threshold = nn.Parameter(torch.tensor(0.5))\n        \n    def forward(self, x):\n        B, T, C = x.size()\n        \n        # Update gradient-based importance if in training mode\n        if self.training and hasattr(x, 'grad') and x.grad is not None:\n            with torch.no_grad():\n                # Compute gradient magnitude per position\n                grad_norm = x.grad.norm(dim=-1).mean(dim=0)  # [T]\n                # Update EMA of position importance\n                self.position_importance = (self.gradient_ema_decay * self.position_importance + \n                                          (1 - self.gradient_ema_decay) * grad_norm)\n        \n        # Standard attention computation\n        qkv = self.c_attn(x)\n        q, k, v = qkv.split(self.n_embd, dim=2)\n        k = k.view(B, T, self.n_head, C // self.n_head).transpose(1, 2)\n        q = q.view(B, T, self.n_head, C // self.n_head).transpose(1, 2)\n        v = v.view(B, T, self.n_head, C // self.n_head).transpose(1, 2)\n        \n        # Compute attention scores\n        att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))\n        \n        # Apply gradient-based sparsification\n        if self.training:\n            # Create importance-based mask\n            importance_scores = self.position_importance[:T].unsqueeze(0).unsqueeze(0).unsqueeze(0)\n            threshold = torch.sigmoid(self.learned_threshold) * importance_scores.max()\n            \n            # Keep only top sparse_ratio of positions based on importance\n            num_keep = max(1, int(T * self.sparse_ratio))\n            _, top_indices = importance_scores.squeeze().topk(num_keep)\n            \n            # Create sparse mask\n            sparse_mask = torch.full((T,), float('-inf'), device=x.device)\n            sparse_mask[top_indices] = 0.0\n            att = att + sparse_mask.unsqueeze(0).unsqueeze(0).unsqueeze(-1)\n        \n        # Causal mask\n        att = att.masked_fill(torch.tril(torch.ones(T, T, device=x.device)) == 0, float('-inf'))\n        att = F.softmax(att, dim=-1)\n        att = self.attn_dropout(att)\n        y = att @ v\n        \n        y = y.transpose(1, 2).contiguous().view(B, T, C)\n        y = self.resid_dropout(self.c_proj(y))\n        return y\n\nclass MLP(nn.Module):\n    def __init__(self, config):\n        super().__init__()\n        self.c_fc = nn.Linear(config.n_embd, 4 * config.n_embd, bias=config.bias)\n        self.gelu = nn.GELU()\n        self.c_proj = nn.Linear(4 * config.n_embd, config.n_embd, bias=config.bias)\n        self.dropout = nn.Dropout(config.dropout)\n        \n    def forward(self, x):\n        x = self.c_fc(x)\n        x = self.gelu(x)\n        x = self.c_proj(x)\n        x = self.dropout(x)\n        return x\n\nclass Block(nn.Module):\n    def __init__(self, config):\n        super().__init__()\n        self.ln_1 = nn.LayerNorm(config.n_embd)\n        self.attn = GradientWeightedSparseAttention(config)\n        self.ln_2 = nn.LayerNorm(config.n_embd)\n        self.mlp = MLP(config)\n        \n    def forward(self, x):\n        x = x + self.attn(self.ln_1(x))\n        x = x + self.mlp(self.ln_2(x))\n        return x\n\nclass GPT(nn.Module):\n    def __init__(self, config):\n        super().__init__()\n        self.config = config\n        \n        self.transformer = nn.ModuleDict(dict(\n            wte = nn.Embedding(config.vocab_size, config.n_embd),\n            wpe = nn.Embedding(config.block_size, config.n_embd),\n            drop = nn.Dropout(config.dropout),\n            h = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),\n            ln_f = nn.LayerNorm(config.n_embd),\n        ))\n        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)\n        \n        # Weight sharing\n        self.transformer.wte.weight = self.lm_head.weight\n        \n        # Initialize weights\n        self.apply(self._init_weights)\n        \n    def _init_weights(self, module):\n        if isinstance(module, nn.Linear):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            if module.bias is not None:\n                torch.nn.init.zeros_(module.bias)\n        elif isinstance(module, nn.Embedding):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            \n    def forward(self, idx, targets=None):\n        device = idx.device\n        b, t = idx.size()\n        \n        pos = torch.arange(0, t, dtype=torch.long, device=device)\n        \n        tok_emb = self.transformer.wte(idx)\n        pos_emb = self.transformer.wpe(pos)\n        x = self.transformer.drop(tok_emb + pos_emb)\n        \n        for block in self.transformer.h:\n            x = block(x)\n        x = self.transformer.ln_f(x)\n        \n        if targets is not None:\n            logits = self.lm_head(x)\n            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)\n        else:\n            logits = self.lm_head(x[:, [-1], :])\n            loss = None\n            \n        return logits, loss\n\n# Training setup\nconfig = Config()\nmodel = GPT(config)\noptimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, betas=(0.9, 0.95))\n\n# Dummy training loop\nmodel.train()\nfor step in range(100):\n    # Generate dummy data\n    batch_size = 4\n    sequence_length = 256\n    x = torch.randint(0, config.vocab_size, (batch_size, sequence_length))\n    y = torch.randint(0, config.vocab_size, (batch_size, sequence_length))\n    \n    logits, loss = model(x, y)\n    \n    optimizer.zero_grad()\n    loss.backward()\n    optimizer.step()\n    \n    if step % 20 == 0:\n        print(f'Step {step}, Loss: {loss.item():.4f}')\n        # Track sparsification\n        avg_threshold = sum(block.attn.learned_threshold.item() for block in model.transformer.h) / len(model.transformer.h)\n        print(f'Avg learned threshold: {avg_threshold:.4f}')\n\nprint(f'Total parameters: {sum(p.numel() for p in model.parameters()):,}')",
+    "parent_architecture": "GPT-2 small (modified)",
+    "novelty_claims": [
+      "First architecture to use gradient magnitudes from previous training steps to dynamically determine attention sparsity patterns",
+      "Introduces learnable thresholds that adapt sparsification based on gradient-derived position importance",
+      "Creates computation-aware attention that focuses resources on learning-active regions rather than fixed patterns"
+    ],
+    "expected_behavior": "Initial loss around 8-10 (typical for random init). Should show faster convergence in first 50 steps as attention focuses on high-gradient regions. Success: loss drops to <6 by step 100 with learned thresholds adapting (0.3-0.7 range). Failure: thresholds stuck at extremes (0.0 or 1.0) or no attention sparsification occurring.",
+    "parameter_estimate": "Explicit count: ~8.2M parameters (verified <10M). Breakdown: 6.3M embedding (16K vocab * 384), 1.8M attention/MLP weights across 6 layers, 0.1M norms and biases.",
+    "risk_factors": [
+      "Gradient tracking overhead could slow training by 10-20%",
+      "Learned thresholds might collapse to always-sparse or never-sparse modes",
+      "Position importance EMA might not capture meaningful learning dynamics in short sequences"
+    ]
+  },
+  "stage1_result": {
+    "verdict": "REFUTED",
+    "killed_by": "T2",
+    "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "tags": [],
+    "t2_budget": {
+      "status": "FAIL_FATAL",
+      "test_id": "T2",
+      "estimated_params": 17046016,
+      "estimated_artifact_bytes": 10234984,
+      "budget_remaining_bytes": 6542232,
+      "budget_utilization": 0.6100525856018066,
+      "flops_ratio": 1.0,
+      "estimated_training_seconds": 14843.406974976,
+      "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+      "tags": [],
+      "wall_seconds": 0.0041753339901333675,
+      "attn_flops_ratio": 0.6545454545454545,
+      "mlp_flops_ratio": 0.32727272727272727,
+      "embed_flops_ratio": 0.01818181818181818,
+      "architectural_balance_score": 0.0
+    },
+    "t3_compilation": null,
+    "t4_signal": null,
+    "t5_init": null,
+    "t7_microtrain": null
+  },
+  "stage2_input": null,
+  "stage2_result": null,
+  "verdict": "REFUTED",
+  "kill_hypotheses": [],
+  "experiments_run": 0,
+  "error": null
+}

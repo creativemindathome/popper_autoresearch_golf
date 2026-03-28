@@ -1,0 +1,329 @@
+======================================================================
+FULL LIVE EXPERIMENT
+======================================================================
+Output: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_170317
+Hypotheses: 10
+Stage 2: ENABLED
+  Model: claude-sonnet-4-20250514
+
+[2026-03-28T17:03:17.170842] [INFO] ======================================================================
+[2026-03-28T17:03:17.170952] [INFO] FULL LIVE EXPERIMENT WITH SEPARATE STAGE MODELS
+[2026-03-28T17:03:17.170991] [INFO] ======================================================================
+[2026-03-28T17:03:17.171019] [INFO] Output directory: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_170317
+[2026-03-28T17:03:17.171046] [INFO] Stage 0 (Ideation): claude-sonnet-4-20250514
+[2026-03-28T17:03:17.171071] [INFO] Stage 2 (Falsifier): ENABLED
+[2026-03-28T17:03:17.171095] [INFO]   Model: claude-sonnet-4-20250514
+[2026-03-28T17:03:17.171118] [INFO]   Max hypotheses: 5
+[2026-03-28T17:03:17.171140] [INFO] 
+[2026-03-28T17:03:17.171163] [INFO] Starting experiment: 10 hypotheses
+[2026-03-28T17:03:17.171185] [INFO] Estimated time: 30-50 minutes
+[2026-03-28T17:03:17.171206] [INFO] 
+[2026-03-28T17:03:17.171228] [INFO] 
+======================================================================
+[2026-03-28T17:03:17.171250] [INFO] HYPOTHESIS 1/10
+[2026-03-28T17:03:17.171272] [INFO] ======================================================================
+[2026-03-28T17:03:17.171313] [INFO] 
+[2026-03-28T17:03:17.171335] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:03:17.171358] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:03:17.171379] [INFO]   Hypothesis #1
+[2026-03-28T17:03:17.171400] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:03:17.171421] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:03:52.404901] [INFO] ✓ Generated hypothesis #1: entropy-guided-sparse-attention
+[2026-03-28T17:03:52.405138] [INFO]   Novelty: 5 claims
+[2026-03-28T17:03:52.405227] [INFO]   Code: ~155 lines
+[2026-03-28T17:03:52.406004] [INFO] 
+[2026-03-28T17:03:52.406059] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:03:52.406099] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:03:52.406132] [INFO]   Theory: entropy-guided-sparse-attention
+[2026-03-28T17:03:52.406164] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:03:52.406654] [INFO] Running T2 Budget check...
+[2026-03-28T17:03:52.406683] [INFO] Running T3 Compilation check...
+[2026-03-28T17:03:52.406711] [INFO] Running T4 Signal check...
+[2026-03-28T17:03:52.406743] [INFO] Running T5 Init check...
+[2026-03-28T17:03:52.406776] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:03:52.410545] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:03:52.410752] [INFO] 
+✓ Hypothesis #1 complete in 35.2s
+[2026-03-28T17:03:52.410785] [INFO]   Verdict: REFUTED
+[2026-03-28T17:03:52.411025] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:03:55.415553] [INFO] 
+======================================================================
+[2026-03-28T17:03:55.416014] [INFO] HYPOTHESIS 2/10
+[2026-03-28T17:03:55.416159] [INFO] ======================================================================
+[2026-03-28T17:03:55.416302] [INFO] 
+[2026-03-28T17:03:55.416342] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:03:55.416378] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:03:55.416406] [INFO]   Hypothesis #2
+[2026-03-28T17:03:55.416431] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:03:55.416504] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:04:36.171034] [INFO] ✓ Generated hypothesis #2: differential-attention-routing
+[2026-03-28T17:04:36.171379] [INFO]   Novelty: 5 claims
+[2026-03-28T17:04:36.171653] [INFO]   Code: ~197 lines
+[2026-03-28T17:04:36.172358] [INFO] 
+[2026-03-28T17:04:36.172412] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:04:36.172492] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:04:36.172580] [INFO]   Theory: differential-attention-routing
+[2026-03-28T17:04:36.172665] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:04:36.173062] [INFO] Running T2 Budget check...
+[2026-03-28T17:04:36.173108] [INFO] Running T3 Compilation check...
+[2026-03-28T17:04:36.173171] [INFO] Running T4 Signal check...
+[2026-03-28T17:04:36.173237] [INFO] Running T5 Init check...
+[2026-03-28T17:04:36.173305] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:04:36.195662] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:04:36.196084] [INFO] 
+✓ Hypothesis #2 complete in 40.8s
+[2026-03-28T17:04:36.196211] [INFO]   Verdict: REFUTED
+[2026-03-28T17:04:36.196518] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:04:39.200866] [INFO] 
+======================================================================
+[2026-03-28T17:04:39.201117] [INFO] HYPOTHESIS 3/10
+[2026-03-28T17:04:39.201439] [INFO] ======================================================================
+[2026-03-28T17:04:39.201728] [INFO] 
+[2026-03-28T17:04:39.201787] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:04:39.201834] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:04:39.201891] [INFO]   Hypothesis #3
+[2026-03-28T17:04:39.201934] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:04:39.201996] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:05:17.467631] [INFO] ✓ Generated hypothesis #3: gradient-guided-sparse-attention
+[2026-03-28T17:05:17.468038] [INFO]   Novelty: 5 claims
+[2026-03-28T17:05:17.468377] [INFO]   Code: ~162 lines
+[2026-03-28T17:05:17.469079] [INFO] 
+[2026-03-28T17:05:17.469130] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:05:17.469213] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:05:17.469275] [INFO]   Theory: gradient-guided-sparse-attention
+[2026-03-28T17:05:17.469335] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:05:17.469873] [INFO] Running T2 Budget check...
+[2026-03-28T17:05:17.469931] [INFO] Running T3 Compilation check...
+[2026-03-28T17:05:17.470028] [INFO] Running T4 Signal check...
+[2026-03-28T17:05:17.470115] [INFO] Running T5 Init check...
+[2026-03-28T17:05:17.470201] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:05:17.506782] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:05:17.507301] [INFO] 
+✓ Hypothesis #3 complete in 38.3s
+[2026-03-28T17:05:17.507407] [INFO]   Verdict: REFUTED
+[2026-03-28T17:05:17.507682] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:05:20.509923] [INFO] 
+======================================================================
+[2026-03-28T17:05:20.510159] [INFO] HYPOTHESIS 4/10
+[2026-03-28T17:05:20.510509] [INFO] ======================================================================
+[2026-03-28T17:05:20.510606] [INFO] 
+[2026-03-28T17:05:20.510662] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:05:20.510771] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:05:20.510837] [INFO]   Hypothesis #4
+[2026-03-28T17:05:20.510927] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:05:20.511021] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:05:52.671593] [INFO] ✓ Generated hypothesis #4: fourier-attention-gates
+[2026-03-28T17:05:52.671823] [INFO]   Novelty: 5 claims
+[2026-03-28T17:05:52.671972] [INFO]   Code: ~160 lines
+[2026-03-28T17:05:52.672666] [INFO] 
+[2026-03-28T17:05:52.672720] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:05:52.672762] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:05:52.672835] [INFO]   Theory: fourier-attention-gates
+[2026-03-28T17:05:52.672886] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:05:52.673145] [INFO] Running T2 Budget check...
+[2026-03-28T17:05:52.673181] [INFO] Running T3 Compilation check...
+[2026-03-28T17:05:52.673227] [INFO] Running T4 Signal check...
+[2026-03-28T17:05:52.673260] [INFO] Running T5 Init check...
+[2026-03-28T17:05:52.673304] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:05:52.675391] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:05:52.675579] [INFO] 
+✓ Hypothesis #4 complete in 32.2s
+[2026-03-28T17:05:52.675622] [INFO]   Verdict: REFUTED
+[2026-03-28T17:05:52.675830] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:05:55.678768] [INFO] 
+======================================================================
+[2026-03-28T17:05:55.679118] [INFO] HYPOTHESIS 5/10
+[2026-03-28T17:05:55.679241] [INFO] ======================================================================
+[2026-03-28T17:05:55.679398] [INFO] 
+[2026-03-28T17:05:55.679448] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:05:55.679528] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:05:55.679593] [INFO]   Hypothesis #5
+[2026-03-28T17:05:55.679659] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:05:55.679717] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:06:31.517178] [INFO] ✓ Generated hypothesis #5: temporal-depth-modulation
+[2026-03-28T17:06:31.517617] [INFO]   Novelty: 5 claims
+[2026-03-28T17:06:31.517829] [INFO]   Code: ~172 lines
+[2026-03-28T17:06:31.518455] [INFO] 
+[2026-03-28T17:06:31.518510] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:06:31.518571] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:06:31.518655] [INFO]   Theory: temporal-depth-modulation
+[2026-03-28T17:06:31.518747] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:06:31.519111] [INFO] Running T2 Budget check...
+[2026-03-28T17:06:31.519150] [INFO] Running T3 Compilation check...
+[2026-03-28T17:06:31.519184] [INFO] Running T4 Signal check...
+[2026-03-28T17:06:31.519215] [INFO] Running T5 Init check...
+[2026-03-28T17:06:31.519247] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:06:31.522296] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:06:31.522518] [INFO] 
+✓ Hypothesis #5 complete in 35.8s
+[2026-03-28T17:06:31.522558] [INFO]   Verdict: REFUTED
+[2026-03-28T17:06:31.522837] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:06:34.527765] [INFO] 
+======================================================================
+[2026-03-28T17:06:34.527969] [INFO] HYPOTHESIS 6/10
+[2026-03-28T17:06:34.528195] [INFO] ======================================================================
+[2026-03-28T17:06:34.528310] [INFO] 
+[2026-03-28T17:06:34.528350] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:06:34.528414] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:06:34.528458] [INFO]   Hypothesis #6
+[2026-03-28T17:06:34.528516] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:06:34.528605] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:07:14.443244] [INFO] ✓ Generated hypothesis #6: adaptive-sparse-moe-6
+[2026-03-28T17:07:14.443549] [INFO]   Novelty: 5 claims
+[2026-03-28T17:07:14.443950] [INFO]   Code: ~200 lines
+[2026-03-28T17:07:14.444523] [INFO] 
+[2026-03-28T17:07:14.444576] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:07:14.444657] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:07:14.444720] [INFO]   Theory: adaptive-sparse-moe-6
+[2026-03-28T17:07:14.444773] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:07:14.445038] [INFO] Running T2 Budget check...
+[2026-03-28T17:07:14.445073] [INFO] Running T3 Compilation check...
+[2026-03-28T17:07:14.445120] [INFO] Running T4 Signal check...
+[2026-03-28T17:07:14.445152] [INFO] Running T5 Init check...
+[2026-03-28T17:07:14.445208] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:07:14.448130] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:07:14.448375] [INFO] 
+✓ Hypothesis #6 complete in 39.9s
+[2026-03-28T17:07:14.448423] [INFO]   Verdict: REFUTED
+[2026-03-28T17:07:14.448661] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:07:17.453087] [INFO] 
+======================================================================
+[2026-03-28T17:07:17.453342] [INFO] HYPOTHESIS 7/10
+[2026-03-28T17:07:17.453712] [INFO] ======================================================================
+[2026-03-28T17:07:17.453866] [INFO] 
+[2026-03-28T17:07:17.453992] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:07:17.454104] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:07:17.454205] [INFO]   Hypothesis #7
+[2026-03-28T17:07:17.454304] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:07:17.454436] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:07:59.167583] [INFO] ✓ Generated hypothesis #7: gradient-informed-attention-v7
+[2026-03-28T17:07:59.167996] [INFO]   Novelty: 5 claims
+[2026-03-28T17:07:59.168071] [INFO]   Code: ~186 lines
+[2026-03-28T17:07:59.169082] [INFO] 
+[2026-03-28T17:07:59.169182] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:07:59.169221] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:07:59.169312] [INFO]   Theory: gradient-informed-attention-v7
+[2026-03-28T17:07:59.169367] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:07:59.170396] [INFO] Running T2 Budget check...
+[2026-03-28T17:07:59.170456] [INFO] Running T3 Compilation check...
+[2026-03-28T17:07:59.170500] [INFO] Running T4 Signal check...
+[2026-03-28T17:07:59.170579] [INFO] Running T5 Init check...
+[2026-03-28T17:07:59.170624] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:07:59.175432] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:07:59.175829] [INFO] 
+✓ Hypothesis #7 complete in 41.7s
+[2026-03-28T17:07:59.175872] [INFO]   Verdict: REFUTED
+[2026-03-28T17:07:59.176159] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:08:02.181241] [INFO] 
+======================================================================
+[2026-03-28T17:08:02.181429] [INFO] HYPOTHESIS 8/10
+[2026-03-28T17:08:02.181498] [INFO] ======================================================================
+[2026-03-28T17:08:02.181648] [INFO] 
+[2026-03-28T17:08:02.181704] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:08:02.181745] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:08:02.181791] [INFO]   Hypothesis #8
+[2026-03-28T17:08:02.181825] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:08:02.181861] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:08:40.125459] [INFO] ✓ Generated hypothesis #8: gradient-conditioned-attention-v8
+[2026-03-28T17:08:40.125794] [INFO]   Novelty: 5 claims
+[2026-03-28T17:08:40.125923] [INFO]   Code: ~168 lines
+[2026-03-28T17:08:40.126450] [INFO] 
+[2026-03-28T17:08:40.126488] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:08:40.126535] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:08:40.126697] [INFO]   Theory: gradient-conditioned-attention-v8
+[2026-03-28T17:08:40.126751] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:08:40.127098] [INFO] Running T2 Budget check...
+[2026-03-28T17:08:40.127133] [INFO] Running T3 Compilation check...
+[2026-03-28T17:08:40.127167] [INFO] Running T4 Signal check...
+[2026-03-28T17:08:40.127201] [INFO] Running T5 Init check...
+[2026-03-28T17:08:40.127230] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:08:40.130344] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:08:40.130748] [INFO] 
+✓ Hypothesis #8 complete in 37.9s
+[2026-03-28T17:08:40.130809] [INFO]   Verdict: REFUTED
+[2026-03-28T17:08:40.131159] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:08:43.136251] [INFO] 
+======================================================================
+[2026-03-28T17:08:43.136546] [INFO] HYPOTHESIS 9/10
+[2026-03-28T17:08:43.136858] [INFO] ======================================================================
+[2026-03-28T17:08:43.137031] [INFO] 
+[2026-03-28T17:08:43.137086] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:08:43.137190] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:08:43.137308] [INFO]   Hypothesis #9
+[2026-03-28T17:08:43.137405] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:08:43.137491] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:09:11.825012] [INFO] ✓ Generated hypothesis #9: spiral-attention-h9
+[2026-03-28T17:09:11.825249] [INFO]   Novelty: 5 claims
+[2026-03-28T17:09:11.825560] [INFO]   Code: ~124 lines
+[2026-03-28T17:09:11.826545] [ERROR] ✗ Hypothesis #9 failed: 'str' object has no attribute 'get'
+[2026-03-28T17:09:11.826595] [INFO] 
+✓ Hypothesis #9 complete in 28.7s
+[2026-03-28T17:09:11.826649] [INFO]   Verdict: None
+[2026-03-28T17:09:11.827068] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:09:14.832171] [INFO] 
+======================================================================
+[2026-03-28T17:09:14.832429] [INFO] HYPOTHESIS 10/10
+[2026-03-28T17:09:14.832758] [INFO] ======================================================================
+[2026-03-28T17:09:14.832852] [INFO] 
+[2026-03-28T17:09:14.832898] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:09:14.832968] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:09:14.833023] [INFO]   Hypothesis #10
+[2026-03-28T17:09:14.833102] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:09:14.833233] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:09:54.997627] [INFO] ✓ Generated hypothesis #10: fractal-depth-transformer
+[2026-03-28T17:09:54.998471] [INFO]   Novelty: 5 claims
+[2026-03-28T17:09:54.999194] [INFO]   Code: ~194 lines
+[2026-03-28T17:09:55.000019] [ERROR] ✗ Hypothesis #10 failed: 'str' object has no attribute 'get'
+[2026-03-28T17:09:55.000163] [INFO] 
+✓ Hypothesis #10 complete in 40.2s
+[2026-03-28T17:09:55.000480] [INFO]   Verdict: None
+[2026-03-28T17:09:55.001445] [INFO] 
+[2026-03-28T17:09:55.001530] [INFO] ======================================================================
+[2026-03-28T17:09:55.001629] [INFO] FINAL SUMMARY
+[2026-03-28T17:09:55.001726] [INFO] ======================================================================
+[2026-03-28T17:09:55.001834] [INFO] 
+[2026-03-28T17:09:55.001903] [INFO] STATISTICS:
+[2026-03-28T17:09:55.001973] [INFO]   Total time: 6.6 minutes
+[2026-03-28T17:09:55.002066] [INFO]   Completed: 8/10
+[2026-03-28T17:09:55.002149] [INFO]   Failed: 2/10
+[2026-03-28T17:09:55.002205] [INFO] 
+[2026-03-28T17:09:55.002263] [INFO] PIPELINE RESULTS:
+[2026-03-28T17:09:55.002321] [INFO]   Generated: 10
+[2026-03-28T17:09:55.002378] [INFO]   Stage 1 Passed: 0 / 10
+[2026-03-28T17:09:55.002442] [INFO]   Stage 1 Killed: 8 / 10
+[2026-03-28T17:09:55.002500] [INFO]   Stage 2 Triggered: 0
+[2026-03-28T17:09:55.002557] [INFO]   Stage 2 Passed: 0 / 0
+[2026-03-28T17:09:55.002722] [INFO]   Stage 2 Killed: 0 / 0
+[2026-03-28T17:09:55.002776] [INFO] 
+[2026-03-28T17:09:55.002830] [INFO] VERDICT BREAKDOWN:
+[2026-03-28T17:09:55.002957] [INFO]   REFUTED: 8
+[2026-03-28T17:09:55.003020] [INFO]   UNKNOWN: 2
+[2026-03-28T17:09:55.003307] [INFO] 
+[2026-03-28T17:09:55.003378] [INFO] ✓ Summary saved to: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_170317/summary.json
+[2026-03-28T17:09:55.003455] [INFO] 
+[2026-03-28T17:09:55.003518] [INFO] Generating visualization data...
+[2026-03-28T17:09:55.005448] [INFO] ✓ Visualization data saved to: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_170317/visualization/visualization_data.json
+[2026-03-28T17:09:55.005531] [INFO]   - Timeline: 20 events
+[2026-03-28T17:09:55.005767] [INFO]   - Evolution frames: 16
+[2026-03-28T17:09:55.005879] [INFO]   - Stage 2 enabled: True
+
+======================================================================
+✓ EXPERIMENT COMPLETE
+======================================================================
+
+Results: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_170317
+
+Next steps:
+  1. View summary: cat /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_170317/summary.json
+  2. Generate frames: python3 visualization/generate_frames.py --viz-data /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_170317/visualization/visualization_data.json --output /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_170317/visualization/frames
+  3. Assemble video: python3 visualization/assemble_clip.py --frames /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_170317/visualization/frames --output /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_170317/evolution_timelapse.mp4
+  4. View HTML: open /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_170317/viewer.html

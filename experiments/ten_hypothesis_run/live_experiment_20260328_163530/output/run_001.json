@@ -1,0 +1,54 @@
+{
+  "run_id": "h001_e852ef9b",
+  "hypothesis_number": 1,
+  "start_time": 1774712131.725396,
+  "end_time": 1774712165.081793,
+  "status": "complete",
+  "idea_json": {
+    "theory_id": "gradient-sculpted-attention",
+    "what_and_why": "Traditional attention mechanisms compute similarity between all token pairs, but this creates a quadratic bottleneck and forces the model to learn which connections to ignore. Instead, we propose Gradient-Sculpted Attention (GSA) where attention patterns are dynamically pruned based on gradient flow during training. The key insight is that attention heads naturally develop sparse, interpretable patterns - we can accelerate this by explicitly tracking which attention weights contribute most to gradient updates and progressively mask out low-gradient connections.\n\nThe mechanism works by maintaining a running exponential moving average of squared gradients for each attention weight, similar to Adam's second moment. During forward passes, we apply a learnable threshold that masks attention weights below a certain gradient magnitude percentile. This creates a dynamic sparse attention pattern that adapts to the data distribution while maintaining differentiability. The sparsity level is annealed from dense to sparse during training, allowing the model to first explore all connections then focus on the most important ones.",
+    "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nfrom torch.optim import Adam\nimport math\n\nclass GradientSculptedAttention(nn.Module):\n    def __init__(self, dim, heads=8, dim_head=64, sparsity_target=0.1):\n        super().__init__()\n        inner_dim = dim_head * heads\n        self.heads = heads\n        self.dim_head = dim_head\n        self.scale = dim_head ** -0.5\n        self.sparsity_target = sparsity_target\n        \n        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias=False)\n        self.to_out = nn.Linear(inner_dim, dim)\n        \n        # Gradient tracking\n        self.register_buffer('grad_ema', torch.zeros(1))\n        self.register_buffer('step_count', torch.zeros(1))\n        self.grad_decay = 0.99\n        \n    def forward(self, x):\n        b, n, d = x.shape\n        h = self.heads\n        \n        qkv = self.to_qkv(x).chunk(3, dim=-1)\n        q, k, v = map(lambda t: t.view(b, n, h, self.dim_head).transpose(1, 2), qkv)\n        \n        # Compute attention scores\n        dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale\n        \n        if self.training:\n            # Apply gradient-based masking\n            current_sparsity = self.sparsity_target * min(1.0, self.step_count.item() / 1000)\n            if current_sparsity > 0:\n                # Create mask based on gradient EMA\n                threshold = torch.quantile(self.grad_ema.flatten(), 1 - current_sparsity)\n                mask = self.grad_ema >= threshold\n                dots = dots.masked_fill(~mask, float('-inf'))\n        \n        attn = F.softmax(dots, dim=-1)\n        \n        # Track gradients for attention weights\n        if self.training and attn.requires_grad:\n            def grad_hook(grad):\n                grad_sq = grad.pow(2)\n                if self.grad_ema.numel() != grad_sq.numel():\n                    self.grad_ema.data = torch.zeros_like(grad_sq)\n                self.grad_ema.data = self.grad_decay * self.grad_ema + (1 - self.grad_decay) * grad_sq\n                self.step_count.data += 1\n            \n            attn.register_hook(grad_hook)\n        \n        out = torch.matmul(attn, v)\n        out = out.transpose(1, 2).reshape(b, n, -1)\n        return self.to_out(out)\n\nclass GSATransformerBlock(nn.Module):\n    def __init__(self, dim, heads=8, mlp_ratio=4):\n        super().__init__()\n        self.ln1 = nn.LayerNorm(dim)\n        self.attn = GradientSculptedAttention(dim, heads)\n        self.ln2 = nn.LayerNorm(dim)\n        \n        mlp_dim = int(dim * mlp_ratio)\n        self.mlp = nn.Sequential(\n            nn.Linear(dim, mlp_dim),\n            nn.GELU(),\n            nn.Linear(mlp_dim, dim)\n        )\n        \n    def forward(self, x):\n        x = x + self.attn(self.ln1(x))\n        x = x + self.mlp(self.ln2(x))\n        return x\n\nclass GSATransformer(nn.Module):\n    def __init__(self, vocab_size=50257, dim=512, depth=6, heads=8, max_seq_len=1024):\n        super().__init__()\n        self.dim = dim\n        self.max_seq_len = max_seq_len\n        \n        self.token_emb = nn.Embedding(vocab_size, dim)\n        self.pos_emb = nn.Embedding(max_seq_len, dim)\n        \n        self.blocks = nn.ModuleList([\n            GSATransformerBlock(dim, heads) for _ in range(depth)\n        ])\n        \n        self.ln_f = nn.LayerNorm(dim)\n        self.head = nn.Linear(dim, vocab_size, bias=False)\n        \n    def forward(self, x):\n        b, t = x.shape\n        pos = torch.arange(0, t, device=x.device).unsqueeze(0)\n        \n        x = self.token_emb(x) + self.pos_emb(pos)\n        \n        for block in self.blocks:\n            x = block(x)\n            \n        x = self.ln_f(x)\n        return self.head(x)\n\n# Training setup\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = GSATransformer(vocab_size=1000, dim=256, depth=4, heads=4, max_seq_len=128).to(device)\noptimizer = Adam(model.parameters(), lr=3e-4)\n\n# Synthetic data for micro-training\ndef generate_batch(batch_size=32, seq_len=64, vocab_size=1000):\n    return torch.randint(0, vocab_size, (batch_size, seq_len)).to(device)\n\n# Training loop\nmodel.train()\nlosses = []\n\nfor step in range(500):\n    batch = generate_batch()\n    inputs = batch[:, :-1]\n    targets = batch[:, 1:]\n    \n    logits = model(inputs)\n    loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), targets.reshape(-1))\n    \n    optimizer.zero_grad()\n    loss.backward()\n    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)\n    optimizer.step()\n    \n    losses.append(loss.item())\n    \n    if step % 50 == 0:\n        avg_sparsity = sum(block.attn.sparsity_target * min(1.0, block.attn.step_count.item() / 1000) \n                          for block in model.blocks) / len(model.blocks)\n        print(f'Step {step}, Loss: {loss.item():.4f}, Avg Sparsity: {avg_sparsity:.3f}')\n\nprint(f'Final loss: {losses[-1]:.4f}')\nprint(f'Loss reduction: {losses[0] - losses[-1]:.4f}')",
+    "parent_architecture": "GPT-2 small",
+    "novelty_claims": [
+      "Dynamic gradient-based attention pruning that adapts sparsity patterns during training",
+      "Exponential moving average of squared gradients used for attention weight importance scoring",
+      "Progressive sparsity annealing from dense to sparse attention throughout training",
+      "Differentiable sparse attention that maintains gradient flow while reducing computation",
+      "Self-organizing attention patterns that emerge from optimization dynamics rather than fixed structures"
+    ],
+    "expected_behavior": "We should observe: (1) Initial training with standard loss curves as attention is dense, (2) Gradual acceleration in training speed as sparsity increases and computation reduces, (3) Maintained or improved final performance despite sparsity due to focused attention on important connections, (4) Emergent structured sparsity patterns that correlate with linguistic phenomena, (5) Faster convergence compared to standard transformers due to reduced parameter interference from unimportant attention weights."
+  },
+  "stage1_result": {
+    "verdict": "REFUTED",
+    "killed_by": "T2",
+    "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "tags": [],
+    "t2_budget": {
+      "status": "FAIL_FATAL",
+      "test_id": "T2",
+      "estimated_params": 17046016,
+      "estimated_artifact_bytes": 10232491,
+      "budget_remaining_bytes": 6544725,
+      "budget_utilization": 0.6099039912223816,
+      "flops_ratio": 1.0,
+      "estimated_training_seconds": 14843.406974976,
+      "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+      "tags": [],
+      "wall_seconds": 0.0040042080072453246,
+      "attn_flops_ratio": 0.6545454545454545,
+      "mlp_flops_ratio": 0.32727272727272727,
+      "embed_flops_ratio": 0.01818181818181818,
+      "architectural_balance_score": 0.0
+    },
+    "t3_compilation": null,
+    "t4_signal": null,
+    "t5_init": null,
+    "t7_microtrain": null
+  },
+  "stage2_input": null,
+  "stage2_result": null,
+  "verdict": "REFUTED",
+  "kill_hypotheses": [],
+  "experiments_run": 0,
+  "error": null
+}

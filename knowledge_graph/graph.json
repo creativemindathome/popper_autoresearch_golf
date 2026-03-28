@@ -1,0 +1,1062 @@
+{
+  "nodes": {
+    "test-hypothesis-001": {
+      "node_id": "test-hypothesis-001",
+      "idea_id": "test-hypothesis-001",
+      "title": "Test Hypothesis",
+      "theory_type": "architectural",
+      "status": "REFUTED",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:00:00",
+          "actor": "test"
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": "2026-03-28T17:01:00",
+          "actor": "falsifier"
+        }
+      ],
+      "falsification": {
+        "outcome": "FAILED",
+        "stage_reached": 1,
+        "killed_by": "T2",
+        "kill_reason": "Budget exceeded: 500M parameters > 124M limit",
+        "test_results": {
+          "T2": {
+            "status": "FAIL",
+            "reason": "param_count=500000000 > 124000000"
+          }
+        }
+      },
+      "_created": 1774714120.779336,
+      "_created_by": 43293
+    },
+    "cascade-depth-attention": {
+      "node_id": "cascade-depth-attention",
+      "idea_id": "cascade-depth-attention",
+      "title": "cascade-depth-attention",
+      "theory_type": "architectural",
+      "status": "UNKNOWN",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:10:39.644388",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "COMPLETE",
+          "timestamp": "2026-03-28T17:11:23.463976",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture replaces standard multi-head attention with 'cascade depth attention' where each attention head operates at a different sequence downsampling rate. Head 1 sees every token, head 2 sees every 2nd token, head 3 sees every 4th token, etc. Within each head, we use standard scaled dot-product attention but on the downsampled sequence, then upsample results back to full resolution via learned interpolation. This creates a natural hierarchy where different heads capture patterns at different temporal scales - short-range dependencies (head 1), medium-range (head 2), long-range (head 3+). The key insight is that not every head needs to see every token with full resolution. By reducing the effective sequence length for higher-numbered heads, we dramatically reduce the O(n\u00b2) attention cost while maintaining representational capacity. Expected falsification: If this works, we should see (1) faster training due to reduced attention computation, (2) better long-range modeling on tasks requiring distant dependencies, (3) interpretable specialization where head 1 learns local patterns and higher heads learn global structure. Failure modes: heads might not learn their intended specializations, or the upsampling might lose critical information.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:10:39.644388",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "ITERATE",
+        "stage_reached": 1,
+        "killed_by": null,
+        "kill_reason": null,
+        "timing": {
+          "started_at": "2026-03-28T17:10:39.644388",
+          "completed_at": "2026-03-28T17:11:23.463976",
+          "wall_seconds": 43.81958770751953
+        },
+        "test_results": {
+          "T2": null,
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774714283.465222,
+      "_created_by": 43933
+    },
+    "rotational-attention-sharing": {
+      "node_id": "rotational-attention-sharing",
+      "idea_id": "rotational-attention-sharing",
+      "title": "rotational-attention-sharing",
+      "theory_type": "architectural",
+      "status": "UNKNOWN",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:11:55.820265",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "COMPLETE",
+          "timestamp": "2026-03-28T17:12:36.300577",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture implements 'Rotational Attention Sharing' where attention heads within each layer share weight matrices but apply different rotational transformations to queries and keys before computing attention. Instead of having separate Wq, Wk, Wv matrices for each head, we use a single shared set and rotate the query/key spaces using learned rotation matrices. This dramatically reduces parameters while maintaining representational diversity across heads. The rotation matrices are much smaller (d_head \u00d7 d_head) compared to full projection matrices (d_model \u00d7 d_model), cutting attention parameters by ~6x while preserving the multi-head attention's ability to attend to different representation subspaces. The rotations act as efficient parameter-sharing with geometric inductive bias, similar to how rotary position embeddings improve attention but applied to head specialization. Expected falsification: If rotational diversity is insufficient, we'll see attention heads converging to similar patterns (measurable via cosine similarity of attention weights). If the shared base projections are too constraining, we'll see slower convergence compared to standard multi-head attention. Success signature: maintaining attention diversity while achieving similar or better perplexity with 6x fewer attention parameters.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:11:55.820265",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "ITERATE",
+        "stage_reached": 1,
+        "killed_by": null,
+        "kill_reason": null,
+        "timing": {
+          "started_at": "2026-03-28T17:11:55.820265",
+          "completed_at": "2026-03-28T17:12:36.300577",
+          "wall_seconds": 40.48031187057495
+        },
+        "test_results": {
+          "T2": null,
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774714356.3024142,
+      "_created_by": 44665
+    },
+    "dual-scale-attention-fusion": {
+      "node_id": "dual-scale-attention-fusion",
+      "idea_id": "dual-scale-attention-fusion",
+      "title": "dual-scale-attention-fusion",
+      "theory_type": "architectural",
+      "status": "UNKNOWN",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:12:52.737658",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "COMPLETE",
+          "timestamp": "2026-03-28T17:13:30.328396",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture replaces standard multi-head attention with a dual-scale mechanism: half the attention heads operate on the full sequence (global context) while the other half use strided attention with stride=4 to capture long-range patterns efficiently. The outputs are fused through a learned gating mechanism that adaptively combines local and global attention based on token importance. This reduces computational complexity from O(n\u00b2) to O(n\u00b2 + n\u00b2/16) \u2248 O(1.06n\u00b2) while maintaining representational capacity. The theory is that many attention patterns are redundant - some heads naturally focus locally while others capture global dependencies, so we can explicitly specialize them and reduce computation. Expected falsification: If the method works, we should see faster convergence on tasks requiring both local and global context (like coding or long documents). If it fails, we'll see either attention collapse (all heads focusing on the same patterns) or poor long-range dependency modeling, manifesting as higher perplexity on sequences with distant references.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:12:52.737658",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "ITERATE",
+        "stage_reached": 1,
+        "killed_by": null,
+        "kill_reason": null,
+        "timing": {
+          "started_at": "2026-03-28T17:12:52.737658",
+          "completed_at": "2026-03-28T17:13:30.328396",
+          "wall_seconds": 37.59073805809021
+        },
+        "test_results": {
+          "T2": null,
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774714410.329462,
+      "_created_by": 45034
+    },
+    "dynamic-attention-sparsity": {
+      "node_id": "dynamic-attention-sparsity",
+      "idea_id": "dynamic-attention-sparsity",
+      "title": "dynamic-attention-sparsity",
+      "theory_type": "architectural",
+      "status": "UNKNOWN",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:13:58.919848",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "COMPLETE",
+          "timestamp": "2026-03-28T17:14:48.261847",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture introduces Dynamic Attention Sparsity (DAS) where attention heads learn to dynamically select which tokens to attend to based on learned importance scores. Each attention head computes a lightweight 'importance gate' that zeros out attention to irrelevant positions, creating sparse attention patterns that adapt during training. Unlike fixed sparse patterns, this learns optimal sparsity for each layer and head. The mechanism works by adding a small gating network (2-layer MLP with sigmoid) that takes query vectors and outputs binary masks for key-value selection. This reduces computational cost while potentially improving focus on relevant information. Expected falsification: if DAS works, we should see (1) attention patterns becoming sparser over training, (2) similar or better perplexity with fewer effective attention operations, (3) learned sparsity patterns that differ meaningfully across heads. If it fails, we'll see either no sparsity learning (gates stay open) or catastrophic forgetting (gates close too aggressively, causing gradient flow issues).",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:13:58.919848",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "ITERATE",
+        "stage_reached": 1,
+        "killed_by": null,
+        "kill_reason": null,
+        "timing": {
+          "started_at": "2026-03-28T17:13:58.919848",
+          "completed_at": "2026-03-28T17:14:48.261847",
+          "wall_seconds": 49.34199905395508
+        },
+        "test_results": {
+          "T2": null,
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774714488.263071,
+      "_created_by": 45348
+    },
+    "sparse-expert-attention": {
+      "node_id": "sparse-expert-attention",
+      "idea_id": "sparse-expert-attention",
+      "title": "sparse-expert-attention",
+      "theory_type": "architectural",
+      "status": "REFUTED",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:18:35.132111",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": "2026-03-28T17:19:29.777705",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture replaces traditional multi-head attention with 'expert attention heads' where each head specializes in different types of dependencies (local, global, syntactic). Only the top-k most relevant expert heads are activated per token, creating sparse computation. Each expert head has specialized query/key transformations optimized for its dependency type: local experts use depthwise convolutions for nearby tokens, global experts use learned global tokens, and syntactic experts use position-relative biases. The sparse activation is learned through a lightweight gating network that routes tokens to the most relevant experts.\n\nThis works by exploiting the observation that different attention heads naturally learn different patterns (Voita et al. 2019). By explicitly specializing heads and making activation sparse, we reduce computation while maintaining expressiveness. The gating network learns which expert types are needed for each token, similar to mixture-of-experts but applied to attention patterns rather than FFN layers. This should maintain model capacity while reducing active parameters per forward pass.\n\nFalsification signatures: If expert specialization fails, all experts will learn similar patterns (measured by attention pattern similarity). If gating is poor, the model will activate all experts (no sparsity benefit). Success shows distinct expert attention patterns and consistent 2-3 expert activation per token with competitive perplexity.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:18:35.132111",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "FAILED",
+        "stage_reached": 1,
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "timing": {
+          "started_at": "2026-03-28T17:18:35.132111",
+          "completed_at": "2026-03-28T17:19:29.777705",
+          "wall_seconds": 54.645593881607056
+        },
+        "test_results": {
+          "T2": {
+            "status": "FAIL_FATAL",
+            "test_id": "T2",
+            "estimated_params": 17046016,
+            "estimated_artifact_bytes": 10236233,
+            "budget_remaining_bytes": 6540983,
+            "budget_utilization": 0.6101270318031311,
+            "flops_ratio": 1.0,
+            "estimated_training_seconds": 14843.406974976,
+            "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+            "tags": [],
+            "wall_seconds": 0.010740584009909071,
+            "attn_flops_ratio": 0.6545454545454545,
+            "mlp_flops_ratio": 0.32727272727272727,
+            "embed_flops_ratio": 0.01818181818181818,
+            "architectural_balance_score": 0.0
+          },
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774714561.5230982,
+      "_created_by": 45965
+    },
+    "spiral-attention-gpt": {
+      "node_id": "spiral-attention-gpt",
+      "idea_id": "spiral-attention-gpt",
+      "title": "spiral-attention-gpt",
+      "theory_type": "architectural",
+      "status": "UNKNOWN",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:16:31.740865",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "COMPLETE",
+          "timestamp": "2026-03-28T17:17:14.486246",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture replaces standard multi-head attention with 'Spiral Attention' - a novel pattern where attention heads are organized in overlapping spirals across the sequence. Each head attends to positions following a Fibonacci-spaced spiral pattern (positions i, i+1, i+2, i+3, i+5, i+8, etc.), creating natural hierarchical attention spans within a single layer. The spiral patterns are offset across heads to ensure full sequence coverage while maintaining locality bias. This design reduces the effective attention computation from O(n\u00b2) to O(n\u00b7log(n)) while preserving long-range dependencies through the mathematical properties of Fibonacci spacing - which naturally captures both local and exponentially-spaced distant relationships. The spiral patterns create implicit multi-scale attention without requiring separate mechanisms, as Fibonacci sequences have been shown to optimize information distribution in natural systems. Expected falsification: If spiral attention works, we should see (1) faster initial convergence due to better locality bias, (2) improved long-range dependency capture compared to standard attention, and (3) more stable gradients due to structured sparsity. Failure modes include: poor performance on tasks requiring arbitrary long-range connections, or training instability if spiral patterns create information bottlenecks.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:16:31.740865",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "ITERATE",
+        "stage_reached": 1,
+        "killed_by": null,
+        "kill_reason": null,
+        "timing": {
+          "started_at": "2026-03-28T17:16:31.740865",
+          "completed_at": "2026-03-28T17:17:14.486246",
+          "wall_seconds": 42.745380878448486
+        },
+        "test_results": {
+          "T2": null,
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774714634.486897,
+      "_created_by": 46407
+    },
+    "dynamic-depth-routing": {
+      "node_id": "dynamic-depth-routing",
+      "idea_id": "dynamic-depth-routing",
+      "title": "dynamic-depth-routing",
+      "theory_type": "architectural",
+      "status": "REFUTED",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:17:48.370447",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": "2026-03-28T17:18:32.122534",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture implements dynamic depth routing where each token can 'choose' how many transformer layers to process through, based on learned routing decisions. Instead of all tokens flowing through all layers sequentially, tokens get routed through a subset of layers based on their complexity needs. The core mechanism uses lightweight routing modules (single linear layer + sigmoid) at each layer that decide whether a token should continue to the next layer or skip to the output. This is inspired by early exit mechanisms but applied to individual tokens rather than entire sequences. The key insight is that simple tokens (common words, punctuation) likely need less computational depth than complex tokens (rare words, contextually ambiguous terms). We implement this with 8 transformer layers but expect most tokens to use only 4-6 layers on average, creating computational savings while maintaining model capacity. Expected falsification: if the routing decisions become random or all tokens consistently use all layers, the mechanism fails. Success signature: different token types should show different average layer usage patterns, and validation loss should improve faster than baseline due to better compute allocation.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:17:48.370447",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "FAILED",
+        "stage_reached": 1,
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "timing": {
+          "started_at": "2026-03-28T17:17:48.370447",
+          "completed_at": "2026-03-28T17:18:32.122534",
+          "wall_seconds": 43.7520866394043
+        },
+        "test_results": {
+          "T2": {
+            "status": "FAIL_FATAL",
+            "test_id": "T2",
+            "estimated_params": 17046016,
+            "estimated_artifact_bytes": 10234483,
+            "budget_remaining_bytes": 6542733,
+            "budget_utilization": 0.6100227236747742,
+            "flops_ratio": 1.0,
+            "estimated_training_seconds": 14843.406974976,
+            "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+            "tags": [],
+            "wall_seconds": 0.010448500004713424,
+            "attn_flops_ratio": 0.6545454545454545,
+            "mlp_flops_ratio": 0.32727272727272727,
+            "embed_flops_ratio": 0.01818181818181818,
+            "architectural_balance_score": 0.0
+          },
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774714712.123492,
+      "_created_by": 47083
+    },
+    "rotary-cascade-attention": {
+      "node_id": "rotary-cascade-attention",
+      "idea_id": "rotary-cascade-attention",
+      "title": "rotary-cascade-attention",
+      "theory_type": "architectural",
+      "status": "REFUTED",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:19:32.781230",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": "2026-03-28T17:20:14.939918",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture replaces traditional multi-head attention with 'Rotary Cascade Attention' where each attention head operates on progressively rotated position encodings at different frequencies, and attention computations cascade through heads sequentially rather than in parallel. Head h_i attends to keys/queries rotated by frequency \u03c9_i = base^(i/num_heads), and the output of head h_i becomes an additive bias for head h_(i+1). This creates a hierarchical attention pattern where early heads capture local patterns and later heads build on these to capture longer-range dependencies. The sequential cascade allows each head to leverage information computed by previous heads, potentially achieving the representational power of larger parallel attention with fewer parameters per head. We expect this to show improved sample efficiency on tasks requiring hierarchical pattern recognition, with initial loss around 9-11 (due to rotary encoding complexity), dropping to 6-7 within 100 steps if the cascading mechanism works. Failure would manifest as loss stagnation around 8-9, indicating the cascade isn't effectively building hierarchical representations.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:19:32.781230",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "FAILED",
+        "stage_reached": 1,
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "timing": {
+          "started_at": "2026-03-28T17:19:32.781230",
+          "completed_at": "2026-03-28T17:20:14.939918",
+          "wall_seconds": 42.15868806838989
+        },
+        "test_results": {
+          "T2": {
+            "status": "FAIL_FATAL",
+            "test_id": "T2",
+            "estimated_params": 17046016,
+            "estimated_artifact_bytes": 10234235,
+            "budget_remaining_bytes": 6542981,
+            "budget_utilization": 0.6100079417228699,
+            "flops_ratio": 1.0,
+            "estimated_training_seconds": 14843.406974976,
+            "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+            "tags": [],
+            "wall_seconds": 0.03174270800082013,
+            "attn_flops_ratio": 0.6545454545454545,
+            "mlp_flops_ratio": 0.32727272727272727,
+            "embed_flops_ratio": 0.01818181818181818,
+            "architectural_balance_score": 0.0
+          },
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774714814.940895,
+      "_created_by": 47083
+    },
+    "sparse-mixture-attention": {
+      "node_id": "sparse-mixture-attention",
+      "idea_id": "sparse-mixture-attention",
+      "title": "sparse-mixture-attention",
+      "theory_type": "architectural",
+      "status": "REFUTED",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:20:17.946378",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": "2026-03-28T17:20:58.143195",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture introduces Sparse Mixture Attention (SMA) where each attention head is specialized for different token relationships through learned sparse connectivity patterns. Instead of full dense attention, each head maintains a learned binary mask that selectively attends to ~25% of positions, with different heads learning complementary sparse patterns (local, strided, random). The sparse masks are learned parameters initialized to encourage diversity across heads. This reduces attention computation from O(n\u00b2) to O(0.25n\u00b2) while potentially improving representation quality through forced specialization. Each head learns to become an expert at specific types of dependencies rather than trying to capture everything. The sparse patterns are learned end-to-end via straight-through estimators on continuous relaxations of binary masks, allowing gradient flow while maintaining actual sparsity during forward pass.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:20:17.946378",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "FAILED",
+        "stage_reached": 1,
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "timing": {
+          "started_at": "2026-03-28T17:20:17.946378",
+          "completed_at": "2026-03-28T17:20:58.143195",
+          "wall_seconds": 40.19681692123413
+        },
+        "test_results": {
+          "T2": {
+            "status": "FAIL_FATAL",
+            "test_id": "T2",
+            "estimated_params": 17046016,
+            "estimated_artifact_bytes": 10234408,
+            "budget_remaining_bytes": 6542808,
+            "budget_utilization": 0.610018253326416,
+            "flops_ratio": 1.0,
+            "estimated_training_seconds": 14843.406974976,
+            "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+            "tags": [],
+            "wall_seconds": 0.006009250006172806,
+            "attn_flops_ratio": 0.6545454545454545,
+            "mlp_flops_ratio": 0.32727272727272727,
+            "embed_flops_ratio": 0.01818181818181818,
+            "architectural_balance_score": 0.0
+          },
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774714858.144665,
+      "_created_by": 47083
+    },
+    "spiral-attention-mixer": {
+      "node_id": "spiral-attention-mixer",
+      "idea_id": "spiral-attention-mixer",
+      "title": "spiral-attention-mixer",
+      "theory_type": "architectural",
+      "status": "REFUTED",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:21:01.148897",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": "2026-03-28T17:21:46.360719",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture replaces traditional multi-head attention with a 'Spiral Attention Mixer' that processes tokens in overlapping spiral patterns through the sequence. Instead of computing full O(n\u00b2) attention, each head focuses on a different spiral stride pattern (e.g., every 1st, 3rd, 7th, 13th token) and uses shared query/key projections across heads to reduce parameters. The spiral patterns naturally capture both local dependencies (stride-1) and long-range dependencies (larger strides) while maintaining linear memory complexity. The key insight is that most attention patterns in language are either very local (adjacent tokens) or follow predictable periodicities (subject-verb relationships, sentence boundaries), which spiral patterns can capture efficiently. We expect this to show faster initial convergence due to the inductive bias toward structured attention patterns, with clear failure modes if the spiral strides don't align well with the dataset's natural dependencies. Success would show comparable perplexity to full attention with 60% fewer parameters in the attention mechanism.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:21:01.148897",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "FAILED",
+        "stage_reached": 1,
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "timing": {
+          "started_at": "2026-03-28T17:21:01.148897",
+          "completed_at": "2026-03-28T17:21:46.360719",
+          "wall_seconds": 45.211822271347046
+        },
+        "test_results": {
+          "T2": {
+            "status": "FAIL_FATAL",
+            "test_id": "T2",
+            "estimated_params": 17046016,
+            "estimated_artifact_bytes": 10234452,
+            "budget_remaining_bytes": 6542764,
+            "budget_utilization": 0.6100208759307861,
+            "flops_ratio": 1.0,
+            "estimated_training_seconds": 14843.406974976,
+            "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+            "tags": [],
+            "wall_seconds": 0.005371749997721054,
+            "attn_flops_ratio": 0.6545454545454545,
+            "mlp_flops_ratio": 0.32727272727272727,
+            "embed_flops_ratio": 0.01818181818181818,
+            "architectural_balance_score": 0.0
+          },
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774714906.3623931,
+      "_created_by": 47083
+    },
+    "adaptive-sparse-attention": {
+      "node_id": "adaptive-sparse-attention",
+      "idea_id": "adaptive-sparse-attention",
+      "title": "adaptive-sparse-attention",
+      "theory_type": "architectural",
+      "status": "REFUTED",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:21:49.369956",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": "2026-03-28T17:22:40.210345",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture implements Adaptive Sparse Attention where each attention head learns to dynamically select which tokens to attend to, rather than computing full O(n\u00b2) attention. Each head maintains a learned 'attention budget' that starts dense but becomes increasingly sparse through training via a differentiable top-k mechanism. The key insight is that most attention weights are near-zero anyway - we can learn to predict which will be important and only compute those, dramatically reducing both memory and computation while potentially improving focus on relevant tokens.\n\nThe mechanism works through learned query-key compatibility scoring followed by differentiable top-k selection using Gumbel-Softmax. Each head learns its own sparsity pattern and budget size (ranging from 25% to 75% of sequence length). This creates a natural curriculum: heads start dense to learn general patterns, then specialize into sparse, focused attention patterns. The architecture should maintain representational capacity while being much more efficient.\n\nFalsification signatures: Success shows (1) attention matrices becoming visibly sparser over training, (2) different heads learning different sparsity patterns, (3) maintained or improved perplexity despite reduced computation. Failure modes include (1) all heads learning identical patterns, (2) instability from differentiable top-k, or (3) performance degradation from insufficient attention budget.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:21:49.369956",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "FAILED",
+        "stage_reached": 1,
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "timing": {
+          "started_at": "2026-03-28T17:21:49.369956",
+          "completed_at": "2026-03-28T17:22:40.210345",
+          "wall_seconds": 50.840389013290405
+        },
+        "test_results": {
+          "T2": {
+            "status": "FAIL_FATAL",
+            "test_id": "T2",
+            "estimated_params": 17046016,
+            "estimated_artifact_bytes": 10235541,
+            "budget_remaining_bytes": 6541675,
+            "budget_utilization": 0.6100857853889465,
+            "flops_ratio": 1.0,
+            "estimated_training_seconds": 14843.406974976,
+            "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+            "tags": [],
+            "wall_seconds": 0.0032473330065840855,
+            "attn_flops_ratio": 0.6545454545454545,
+            "mlp_flops_ratio": 0.32727272727272727,
+            "embed_flops_ratio": 0.01818181818181818,
+            "architectural_balance_score": 0.0
+          },
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774714960.211051,
+      "_created_by": 47083
+    },
+    "dynamic-sparse-attention-heads": {
+      "node_id": "dynamic-sparse-attention-heads",
+      "idea_id": "dynamic-sparse-attention-heads",
+      "title": "dynamic-sparse-attention-heads",
+      "theory_type": "architectural",
+      "status": "REFUTED",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:22:43.214288",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": "2026-03-28T17:23:23.503890",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture replaces traditional multi-head attention with dynamically sparse attention heads that learn to activate only relevant head subsets per token. Each attention head has a learned 'activation gate' that outputs a scalar weight (0-1) determining if that head should contribute to the final output. The sparse routing is implemented via a lightweight gating network that takes the query as input and outputs head activation probabilities. This allows the model to adaptively use different attention patterns (local vs global, syntactic vs semantic) based on token context, rather than always computing all heads. The key insight is that not all attention heads are needed for every token - some heads specialize in syntax, others in semantics, others in positional relationships. By learning when to activate each head, we can maintain representational capacity while reducing computational overhead. Expected falsification: If the gating network learns meaningful specialization, we should see (1) different heads activating for different token types, (2) interpretable attention patterns in active heads, (3) training convergence with 20-30% fewer active heads on average. If it fails, all heads will activate equally (no specialization) or the model will underperform due to insufficient capacity.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:22:43.214288",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "FAILED",
+        "stage_reached": 1,
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "timing": {
+          "started_at": "2026-03-28T17:22:43.214288",
+          "completed_at": "2026-03-28T17:23:23.503890",
+          "wall_seconds": 40.289602279663086
+        },
+        "test_results": {
+          "T2": {
+            "status": "FAIL_FATAL",
+            "test_id": "T2",
+            "estimated_params": 17046016,
+            "estimated_artifact_bytes": 10233690,
+            "budget_remaining_bytes": 6543526,
+            "budget_utilization": 0.6099754571914673,
+            "flops_ratio": 1.0,
+            "estimated_training_seconds": 14843.406974976,
+            "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+            "tags": [],
+            "wall_seconds": 0.0057421250094193965,
+            "attn_flops_ratio": 0.6545454545454545,
+            "mlp_flops_ratio": 0.32727272727272727,
+            "embed_flops_ratio": 0.01818181818181818,
+            "architectural_balance_score": 0.0
+          },
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774715003.505292,
+      "_created_by": 47083
+    },
+    "rotary-sparse-attention-8": {
+      "node_id": "rotary-sparse-attention-8",
+      "idea_id": "rotary-sparse-attention-8",
+      "title": "rotary-sparse-attention-8",
+      "theory_type": "architectural",
+      "status": "REFUTED",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:23:26.508621",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": "2026-03-28T17:24:20.890033",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture combines Rotary Position Embedding (RoPE) with learnable sparse attention patterns to create 'Rotary Sparse Attention'. Instead of full quadratic attention, each head learns to attend to a fixed number of positions (sparsity_k=32) selected via learned routing weights that are rotated by RoPE. The key insight is that RoPE's rotational properties can guide sparse attention to focus on positions with complementary rotational phases, creating structured sparsity patterns that preserve long-range dependencies while being computationally efficient.\n\nThe mechanism works by computing RoPE embeddings for all positions, then using the rotational similarity between query and key positions to determine sparse attention patterns. This should capture both local coherence (nearby tokens) and periodic patterns (tokens at specific rotational distances) more efficiently than random or fixed sparsity. The learned routing weights allow the model to adapt these patterns per head.\n\nFalsification signatures: If this works, we expect (1) faster convergence than standard attention due to reduced noise, (2) distinct sparsity patterns emerging per head, (3) better handling of positional relationships in the sparse regime. Failure modes include collapsed attention patterns (all heads learning same sparsity) or inability to capture long-range dependencies due to overly restrictive sparsity.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:23:26.508621",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "FAILED",
+        "stage_reached": 1,
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "timing": {
+          "started_at": "2026-03-28T17:23:26.508621",
+          "completed_at": "2026-03-28T17:24:20.890033",
+          "wall_seconds": 54.38141202926636
+        },
+        "test_results": {
+          "T2": {
+            "status": "FAIL_FATAL",
+            "test_id": "T2",
+            "estimated_params": 17046016,
+            "estimated_artifact_bytes": 10236683,
+            "budget_remaining_bytes": 6540533,
+            "budget_utilization": 0.61015385389328,
+            "flops_ratio": 1.0,
+            "estimated_training_seconds": 14843.406974976,
+            "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+            "tags": [],
+            "wall_seconds": 0.004843542003072798,
+            "attn_flops_ratio": 0.6545454545454545,
+            "mlp_flops_ratio": 0.32727272727272727,
+            "embed_flops_ratio": 0.01818181818181818,
+            "architectural_balance_score": 0.0
+          },
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774715060.890988,
+      "_created_by": 47083
+    },
+    "gradient-weighted-sparse-attention": {
+      "node_id": "gradient-weighted-sparse-attention",
+      "idea_id": "gradient-weighted-sparse-attention",
+      "title": "gradient-weighted-sparse-attention",
+      "theory_type": "architectural",
+      "status": "REFUTED",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:24:23.895418",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": "2026-03-28T17:25:09.119725",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture replaces traditional multi-head attention with Gradient-Weighted Sparse Attention (GWSA). Instead of computing attention across all positions, GWSA uses gradient magnitudes from the previous training step to identify the most 'learning-active' token positions, then computes full attention only within these sparse neighborhoods. Each head maintains a learned threshold and uses exponential moving averages of gradient norms to create dynamic sparse attention patterns. This creates computation-aware attention that adapts to what the model is actively learning. The key insight is that positions with high gradient activity are information bottlenecks that deserve more attention resources. We expect this to show faster initial convergence as attention focuses on learning-critical regions, followed by gradual sparsification as the model stabilizes. Falsification would show as either no sparsification occurring (thresholds too conservative) or catastrophic forgetting (thresholds too aggressive), measurable by tracking attention density and loss curves.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:24:23.895418",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "FAILED",
+        "stage_reached": 1,
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "timing": {
+          "started_at": "2026-03-28T17:24:23.895418",
+          "completed_at": "2026-03-28T17:25:09.119725",
+          "wall_seconds": 45.22430682182312
+        },
+        "test_results": {
+          "T2": {
+            "status": "FAIL_FATAL",
+            "test_id": "T2",
+            "estimated_params": 17046016,
+            "estimated_artifact_bytes": 10234984,
+            "budget_remaining_bytes": 6542232,
+            "budget_utilization": 0.6100525856018066,
+            "flops_ratio": 1.0,
+            "estimated_training_seconds": 14843.406974976,
+            "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+            "tags": [],
+            "wall_seconds": 0.0041753339901333675,
+            "attn_flops_ratio": 0.6545454545454545,
+            "mlp_flops_ratio": 0.32727272727272727,
+            "embed_flops_ratio": 0.01818181818181818,
+            "architectural_balance_score": 0.0
+          },
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774715109.120724,
+      "_created_by": 47083
+    },
+    "temporal-decay-attention": {
+      "node_id": "temporal-decay-attention",
+      "idea_id": "temporal-decay-attention",
+      "title": "temporal-decay-attention",
+      "theory_type": "architectural",
+      "status": "REFUTED",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:25:12.125527",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": "2026-03-28T17:25:49.021031",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture modifies the attention mechanism to include learnable temporal decay factors that exponentially downweight older tokens based on their distance from the current position. Instead of standard positional encodings, each attention head learns a decay rate parameter that creates an exponential attention mask: attention_weight = softmax(QK^T / sqrt(d_k)) * exp(-decay_rate * distance). This creates a form of 'attention memory' where recent tokens have stronger influence, similar to recurrent networks but maintaining parallelizability. The decay rates are initialized small (0.01-0.1) and learned per head, allowing different heads to specialize in different temporal ranges - some focusing on immediate context, others on longer dependencies. This should reduce the quadratic attention complexity's practical impact by naturally sparsifying attention patterns, while the exponential decay provides an inductive bias for sequential data that standard transformers lack. Expected falsification: If temporal structure doesn't matter for the task, decay rates should converge to near-zero (recovering standard attention). If it helps, we should see faster convergence and lower perplexity, especially on tasks with strong temporal dependencies. The decay parameters should show interpretable specialization across heads.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:25:12.125527",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "FAILED",
+        "stage_reached": 1,
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "timing": {
+          "started_at": "2026-03-28T17:25:12.125527",
+          "completed_at": "2026-03-28T17:25:49.021031",
+          "wall_seconds": 36.895503759384155
+        },
+        "test_results": {
+          "T2": {
+            "status": "FAIL_FATAL",
+            "test_id": "T2",
+            "estimated_params": 17046016,
+            "estimated_artifact_bytes": 10232881,
+            "budget_remaining_bytes": 6544335,
+            "budget_utilization": 0.609927237033844,
+            "flops_ratio": 1.0,
+            "estimated_training_seconds": 14843.406974976,
+            "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+            "tags": [],
+            "wall_seconds": 0.0033851669868454337,
+            "attn_flops_ratio": 0.6545454545454545,
+            "mlp_flops_ratio": 0.32727272727272727,
+            "embed_flops_ratio": 0.01818181818181818,
+            "architectural_balance_score": 0.0
+          },
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774715149.021965,
+      "_created_by": 47083
+    },
+    "spiral-attention-gates": {
+      "node_id": "spiral-attention-gates",
+      "idea_id": "spiral-attention-gates",
+      "title": "spiral-attention-gates",
+      "theory_type": "architectural",
+      "status": "REFUTED",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:27:17.224983",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": "2026-03-28T17:28:02.280269",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture replaces standard multi-head attention with 'Spiral Attention' - where attention heads are organized in a spiral pattern that processes information at different temporal scales. Instead of all heads attending to the same sequence length, heads are assigned decreasing window sizes (head 0: full sequence, head 1: last 64 tokens, head 2: last 32 tokens, etc.) and their outputs are combined through learned gating mechanisms. This creates a hierarchical attention pattern that captures both local and global dependencies efficiently. The spiral pattern works because language has natural hierarchical structure - immediate context matters most, but longer-range dependencies exist at decreasing importance. By forcing different heads to specialize in different ranges, we reduce redundancy and improve parameter efficiency. The gating mechanism allows the model to dynamically weight the importance of each temporal scale. Expected falsification: If this works, we should see faster convergence and better perplexity than baseline GPT-2 at same parameter count. If it fails, loss will plateau higher than baseline, indicating the hierarchical assumption is wrong or the gating is insufficient.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:27:17.224983",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "FAILED",
+        "stage_reached": 1,
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "timing": {
+          "started_at": "2026-03-28T17:27:17.224983",
+          "completed_at": "2026-03-28T17:28:02.280269",
+          "wall_seconds": 45.055286169052124
+        },
+        "test_results": {
+          "T2": {
+            "status": "FAIL_FATAL",
+            "test_id": "T2",
+            "estimated_params": 17046016,
+            "estimated_artifact_bytes": 10233970,
+            "budget_remaining_bytes": 6543246,
+            "budget_utilization": 0.6099921464920044,
+            "flops_ratio": 1.0,
+            "estimated_training_seconds": 14843.406974976,
+            "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+            "tags": [],
+            "wall_seconds": 0.004005833994597197,
+            "attn_flops_ratio": 0.6545454545454545,
+            "mlp_flops_ratio": 0.32727272727272727,
+            "embed_flops_ratio": 0.01818181818181818,
+            "architectural_balance_score": 0.0
+          },
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774715282.281605,
+      "_created_by": 51287
+    },
+    "dual-resolution-attention": {
+      "node_id": "dual-resolution-attention",
+      "idea_id": "dual-resolution-attention",
+      "title": "dual-resolution-attention",
+      "theory_type": "architectural",
+      "status": "REFUTED",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:28:05.285336",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": "2026-03-28T17:28:54.155368",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture implements a dual-resolution attention mechanism where each layer processes information at two different granularities simultaneously. The key innovation is splitting the embedding dimension into two streams: a 'local stream' (256 dims) that attends to nearby tokens with full resolution, and a 'global stream' (256 dims) that attends to a compressed representation of the entire sequence using learned compression tokens. The local stream uses standard attention on the full sequence, while the global stream first compresses every 4 consecutive tokens into single representatives, then attends over this compressed sequence. The two streams are merged via a learned gating mechanism that allows the model to dynamically balance local detail versus global context. This design maintains the expressiveness of full attention while reducing the quadratic complexity bottleneck - the global stream operates on sequence_length/4 tokens, making long sequences much more tractable. The compression is learned end-to-end through a simple linear projection that maps 4\u00d7n_embd dimensional concatenated tokens to n_embd dimensions. Expected falsification: If this works, we should see faster convergence on tasks requiring long-range dependencies, and the global stream should learn meaningful compressions (visualizable through the compression weights). If it fails, the gating mechanism might collapse to using only one stream, or the compression might lose critical information.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:28:05.285336",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "FAILED",
+        "stage_reached": 1,
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "timing": {
+          "started_at": "2026-03-28T17:28:05.285336",
+          "completed_at": "2026-03-28T17:28:54.155368",
+          "wall_seconds": 48.87003183364868
+        },
+        "test_results": {
+          "T2": {
+            "status": "FAIL_FATAL",
+            "test_id": "T2",
+            "estimated_params": 17046016,
+            "estimated_artifact_bytes": 10235846,
+            "budget_remaining_bytes": 6541370,
+            "budget_utilization": 0.610103964805603,
+            "flops_ratio": 1.0,
+            "estimated_training_seconds": 14843.406974976,
+            "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+            "tags": [],
+            "wall_seconds": 0.015985582998837344,
+            "attn_flops_ratio": 0.6545454545454545,
+            "mlp_flops_ratio": 0.32727272727272727,
+            "embed_flops_ratio": 0.01818181818181818,
+            "architectural_balance_score": 0.0
+          },
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774715334.15666,
+      "_created_by": 51287
+    },
+    "dynamic-sparse-attention": {
+      "node_id": "dynamic-sparse-attention",
+      "idea_id": "dynamic-sparse-attention",
+      "title": "dynamic-sparse-attention",
+      "theory_type": "architectural",
+      "status": "REFUTED",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:28:57.165699",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": "2026-03-28T17:29:40.895533",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture implements Dynamic Sparse Attention (DSA) where each attention head learns to attend to only a small, learned subset of positions rather than all positions. Each head maintains a lightweight 'relevance predictor' (single linear layer) that scores all positions and selects only the top-k most relevant tokens for attention computation. This reduces attention complexity from O(n\u00b2) to O(n\u00d7k) where k<<n, while allowing the model to learn which positions matter most for each head. The relevance predictor is trained end-to-end with gradients flowing through the top-k selection via straight-through estimation. Unlike fixed sparse patterns (local windows, strided), this learns task-specific sparsity patterns that can capture both local and long-range dependencies as needed. The falsification signature is clear: either the model learns meaningful sparse patterns (evidenced by diverse top-k selections across heads and improved efficiency) or it fails to focus attention properly (random selections, degraded performance). Success would show different heads learning complementary sparse patterns while maintaining or improving perplexity compared to dense attention.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:28:57.165699",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "FAILED",
+        "stage_reached": 1,
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "timing": {
+          "started_at": "2026-03-28T17:28:57.165699",
+          "completed_at": "2026-03-28T17:29:40.895533",
+          "wall_seconds": 43.72983407974243
+        },
+        "test_results": {
+          "T2": {
+            "status": "FAIL_FATAL",
+            "test_id": "T2",
+            "estimated_params": 17046016,
+            "estimated_artifact_bytes": 10234373,
+            "budget_remaining_bytes": 6542843,
+            "budget_utilization": 0.6100161671638489,
+            "flops_ratio": 1.0,
+            "estimated_training_seconds": 14843.406974976,
+            "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+            "tags": [],
+            "wall_seconds": 0.04306587499740999,
+            "attn_flops_ratio": 0.6545454545454545,
+            "mlp_flops_ratio": 0.32727272727272727,
+            "embed_flops_ratio": 0.01818181818181818,
+            "architectural_balance_score": 0.0
+          },
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774715380.8969622,
+      "_created_by": 51287
+    }
+  },
+  "edges": [],
+  "version": "1.0",
+  "metadata": {
+    "last_modified": 1774715380.8969622,
+    "last_modified_by": 51287,
+    "node_count": 19
+  }
+}

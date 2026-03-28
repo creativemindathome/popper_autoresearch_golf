@@ -1,0 +1,58 @@
+{
+  "run_id": "h003_ddd56b24",
+  "hypothesis_number": 3,
+  "start_time": 1774714772.78123,
+  "end_time": 1774714814.939918,
+  "status": "complete",
+  "idea_json": {
+    "theory_id": "rotary-cascade-attention",
+    "what_and_why": "This architecture replaces traditional multi-head attention with 'Rotary Cascade Attention' where each attention head operates on progressively rotated position encodings at different frequencies, and attention computations cascade through heads sequentially rather than in parallel. Head h_i attends to keys/queries rotated by frequency \u03c9_i = base^(i/num_heads), and the output of head h_i becomes an additive bias for head h_(i+1). This creates a hierarchical attention pattern where early heads capture local patterns and later heads build on these to capture longer-range dependencies. The sequential cascade allows each head to leverage information computed by previous heads, potentially achieving the representational power of larger parallel attention with fewer parameters per head. We expect this to show improved sample efficiency on tasks requiring hierarchical pattern recognition, with initial loss around 9-11 (due to rotary encoding complexity), dropping to 6-7 within 100 steps if the cascading mechanism works. Failure would manifest as loss stagnation around 8-9, indicating the cascade isn't effectively building hierarchical representations.",
+    "train_gpt_code": "# Parameter count: ~7.2M (n_embd=384, n_layer=6, n_head=4, vocab=50304)\n# Embedding: 384*50304 = 19.3M tokens -> use smaller vocab 16384 = 6.3M\n# 6 layers * (384*384*4 + 384*1536*4) = 6 * (590K + 2.36M) = 17.7M\n# Total: ~6.8M parameters\n\nimport torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\n\nclass RotaryEmbedding(nn.Module):\n    def __init__(self, dim, max_seq_len=1024, base=10000):\n        super().__init__()\n        self.dim = dim\n        self.max_seq_len = max_seq_len\n        self.base = base\n        \n        inv_freq = 1.0 / (base ** (torch.arange(0, dim, 2).float() / dim))\n        self.register_buffer('inv_freq', inv_freq)\n        \n    def forward(self, seq_len, device, freq_scale=1.0):\n        t = torch.arange(seq_len, device=device, dtype=self.inv_freq.dtype)\n        freqs = torch.outer(t, self.inv_freq * freq_scale)\n        cos = freqs.cos()\n        sin = freqs.sin()\n        return cos, sin\n\ndef apply_rotary_pos_emb(x, cos, sin):\n    x1, x2 = x[..., 0::2], x[..., 1::2]\n    return torch.cat([x1 * cos - x2 * sin, x1 * sin + x2 * cos], dim=-1)\n\nclass RotaryCascadeAttention(nn.Module):\n    def __init__(self, n_embd, n_head, max_seq_len=1024):\n        super().__init__()\n        self.n_embd = n_embd\n        self.n_head = n_head\n        self.head_dim = n_embd // n_head\n        \n        # Single projection for all heads (more parameter efficient)\n        self.qkv = nn.Linear(n_embd, n_embd * 3, bias=False)\n        self.proj = nn.Linear(n_embd, n_embd, bias=False)\n        self.dropout = nn.Dropout(0.1)\n        \n        # Rotary embedding with different frequencies per head\n        self.rotary = RotaryEmbedding(self.head_dim, max_seq_len)\n        \n        # Cascade mixing weights (learnable scaling between heads)\n        self.cascade_weights = nn.Parameter(torch.ones(n_head - 1) * 0.1)\n        \n    def forward(self, x):\n        B, T, C = x.shape\n        \n        # Get Q, K, V for all heads\n        qkv = self.qkv(x)  # B, T, 3*C\n        q, k, v = qkv.chunk(3, dim=-1)\n        q = q.view(B, T, self.n_head, self.head_dim).transpose(1, 2)  # B, H, T, D\n        k = k.view(B, T, self.n_head, self.head_dim).transpose(1, 2)\n        v = v.view(B, T, self.n_head, self.head_dim).transpose(1, 2)\n        \n        # Apply different rotary frequencies to each head and cascade\n        head_outputs = []\n        cascade_bias = None\n        \n        for i in range(self.n_head):\n            # Different frequency for each head\n            freq_scale = self.rotary.base ** (i / self.n_head)\n            cos, sin = self.rotary(T, x.device, freq_scale)\n            \n            # Apply rotary to this head's q and k\n            q_rot = apply_rotary_pos_emb(q[:, i], cos, sin)  # B, T, D\n            k_rot = apply_rotary_pos_emb(k[:, i], cos, sin)  # B, T, D\n            \n            # Attention computation\n            att = torch.matmul(q_rot, k_rot.transpose(-2, -1)) / math.sqrt(self.head_dim)\n            \n            # Add cascade bias from previous heads\n            if cascade_bias is not None:\n                att = att + self.cascade_weights[i-1] * cascade_bias\n            \n            # Causal mask\n            mask = torch.triu(torch.ones(T, T, device=x.device), diagonal=1).bool()\n            att.masked_fill_(mask, float('-inf'))\n            \n            att = F.softmax(att, dim=-1)\n            att = self.dropout(att)\n            \n            # Apply to values\n            out = torch.matmul(att, v[:, i])  # B, T, D\n            head_outputs.append(out)\n            \n            # Update cascade bias for next head\n            cascade_bias = att.mean(dim=1, keepdim=True)  # Average attention for bias\n        \n        # Concatenate all head outputs\n        out = torch.cat(head_outputs, dim=-1)  # B, T, C\n        out = self.proj(out)\n        \n        return out\n\nclass MLP(nn.Module):\n    def __init__(self, n_embd):\n        super().__init__()\n        self.fc1 = nn.Linear(n_embd, 4 * n_embd, bias=False)\n        self.fc2 = nn.Linear(4 * n_embd, n_embd, bias=False)\n        self.dropout = nn.Dropout(0.1)\n        \n    def forward(self, x):\n        x = self.fc1(x)\n        x = F.gelu(x)\n        x = self.dropout(x)\n        x = self.fc2(x)\n        return x\n\nclass Block(nn.Module):\n    def __init__(self, n_embd, n_head):\n        super().__init__()\n        self.ln1 = nn.LayerNorm(n_embd)\n        self.attn = RotaryCascadeAttention(n_embd, n_head)\n        self.ln2 = nn.LayerNorm(n_embd)\n        self.mlp = MLP(n_embd)\n        \n    def forward(self, x):\n        x = x + self.attn(self.ln1(x))\n        x = x + self.mlp(self.ln2(x))\n        return x\n\nclass GPT(nn.Module):\n    def __init__(self, vocab_size=16384, n_embd=384, n_layer=6, n_head=4, max_seq_len=1024):\n        super().__init__()\n        self.vocab_size = vocab_size\n        self.n_embd = n_embd\n        \n        self.wte = nn.Embedding(vocab_size, n_embd)\n        self.blocks = nn.ModuleList([Block(n_embd, n_head) for _ in range(n_layer)])\n        self.ln_f = nn.LayerNorm(n_embd)\n        self.lm_head = nn.Linear(n_embd, vocab_size, bias=False)\n        \n        self.apply(self._init_weights)\n        \n    def _init_weights(self, module):\n        if isinstance(module, nn.Linear):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n        elif isinstance(module, nn.Embedding):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            \n    def forward(self, idx):\n        B, T = idx.shape\n        x = self.wte(idx)\n        \n        for block in self.blocks:\n            x = block(x)\n            \n        x = self.ln_f(x)\n        logits = self.lm_head(x)\n        \n        return logits\n\n# Training setup\nif __name__ == '__main__':\n    device = 'cuda' if torch.cuda.is_available() else 'cpu'\n    model = GPT().to(device)\n    \n    # Count parameters\n    total_params = sum(p.numel() for p in model.parameters())\n    print(f'Total parameters: {total_params/1e6:.2f}M')\n    \n    # Simple training loop\n    optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=0.1)\n    \n    for step in range(100):\n        # Dummy batch\n        x = torch.randint(0, model.vocab_size, (8, 128), device=device)\n        \n        logits = model(x[:, :-1])\n        targets = x[:, 1:]\n        \n        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))\n        \n        optimizer.zero_grad()\n        loss.backward()\n        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)\n        optimizer.step()\n        \n        if step % 20 == 0:\n            print(f'Step {step}, Loss: {loss.item():.4f}')\n    \n    print(f'Final loss: {loss.item():.4f}')",
+    "parent_architecture": "GPT-2 small (modified)",
+    "novelty_claims": [
+      "Sequential cascade attention where each head builds on previous heads' attention patterns rather than parallel computation",
+      "Per-head rotary frequency scaling creating hierarchical position encoding from local to global patterns",
+      "Learnable cascade mixing weights that allow the model to control information flow between attention heads"
+    ],
+    "expected_behavior": "Initial loss ~10-11 due to rotary complexity, dropping to 6-7 within 100 steps if cascade mechanism works. Success: smooth loss reduction with clear hierarchical attention patterns. Failure: loss plateau around 8-9 indicating cascade isn't building useful hierarchical representations.",
+    "parameter_estimate": "~6.8M parameters (n_embd=384, n_layer=6, n_head=4, vocab=16384)",
+    "risk_factors": [
+      "Sequential attention computation may be slower than parallel, reducing training efficiency",
+      "Cascade bias propagation could amplify attention errors across heads leading to unstable training",
+      "Different rotary frequencies per head might interfere destructively rather than create useful hierarchical patterns"
+    ]
+  },
+  "stage1_result": {
+    "verdict": "REFUTED",
+    "killed_by": "T2",
+    "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "tags": [],
+    "t2_budget": {
+      "status": "FAIL_FATAL",
+      "test_id": "T2",
+      "estimated_params": 17046016,
+      "estimated_artifact_bytes": 10234235,
+      "budget_remaining_bytes": 6542981,
+      "budget_utilization": 0.6100079417228699,
+      "flops_ratio": 1.0,
+      "estimated_training_seconds": 14843.406974976,
+      "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+      "tags": [],
+      "wall_seconds": 0.03174270800082013,
+      "attn_flops_ratio": 0.6545454545454545,
+      "mlp_flops_ratio": 0.32727272727272727,
+      "embed_flops_ratio": 0.01818181818181818,
+      "architectural_balance_score": 0.0
+    },
+    "t3_compilation": null,
+    "t4_signal": null,
+    "t5_init": null,
+    "t7_microtrain": null
+  },
+  "stage2_input": null,
+  "stage2_result": null,
+  "verdict": "REFUTED",
+  "kill_hypotheses": [],
+  "experiments_run": 0,
+  "error": null
+}

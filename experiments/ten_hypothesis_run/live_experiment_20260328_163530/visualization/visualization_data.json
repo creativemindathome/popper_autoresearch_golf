@@ -1,0 +1,194 @@
+{
+  "timeline": [
+    {
+      "time": 0.0004401206970214844,
+      "hypothesis": 1,
+      "event": "start",
+      "theory_id": "gradient-sculpted-attention"
+    },
+    {
+      "time": 33.35683727264404,
+      "hypothesis": 1,
+      "event": "complete",
+      "verdict": "REFUTED",
+      "status": "complete",
+      "stage1_verdict": "REFUTED",
+      "stage2_verdict": null
+    },
+    {
+      "time": 36.363885164260864,
+      "hypothesis": 2,
+      "event": "start",
+      "theory_id": "dynamic-depth-transformer"
+    },
+    {
+      "time": 79.29563212394714,
+      "hypothesis": 2,
+      "event": "complete",
+      "verdict": "REFUTED",
+      "status": "complete",
+      "stage1_verdict": "REFUTED",
+      "stage2_verdict": null
+    }
+  ],
+  "evolution": [
+    {
+      "frame": 0,
+      "timestamp": 33.35049223899841,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 1,
+      "timestamp": 33.35670304298401,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 2,
+      "timestamp": 79.28756833076477,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 3,
+      "timestamp": 79.29548811912537,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    }
+  ],
+  "start_time": 1774712131.7249558,
+  "runs": [
+    {
+      "run_id": "h001_e852ef9b",
+      "hypothesis_number": 1,
+      "start_time": 1774712131.725396,
+      "end_time": 1774712165.081793,
+      "status": "complete",
+      "idea_json": {
+        "theory_id": "gradient-sculpted-attention",
+        "what_and_why": "Traditional attention mechanisms compute similarity between all token pairs, but this creates a quadratic bottleneck and forces the model to learn which connections to ignore. Instead, we propose Gradient-Sculpted Attention (GSA) where attention patterns are dynamically pruned based on gradient flow during training. The key insight is that attention heads naturally develop sparse, interpretable patterns - we can accelerate this by explicitly tracking which attention weights contribute most to gradient updates and progressively mask out low-gradient connections.\n\nThe mechanism works by maintaining a running exponential moving average of squared gradients for each attention weight, similar to Adam's second moment. During forward passes, we apply a learnable threshold that masks attention weights below a certain gradient magnitude percentile. This creates a dynamic sparse attention pattern that adapts to the data distribution while maintaining differentiability. The sparsity level is annealed from dense to sparse during training, allowing the model to first explore all connections then focus on the most important ones.",
+        "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nfrom torch.optim import Adam\nimport math\n\nclass GradientSculptedAttention(nn.Module):\n    def __init__(self, dim, heads=8, dim_head=64, sparsity_target=0.1):\n        super().__init__()\n        inner_dim = dim_head * heads\n        self.heads = heads\n        self.dim_head = dim_head\n        self.scale = dim_head ** -0.5\n        self.sparsity_target = sparsity_target\n        \n        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias=False)\n        self.to_out = nn.Linear(inner_dim, dim)\n        \n        # Gradient tracking\n        self.register_buffer('grad_ema', torch.zeros(1))\n        self.register_buffer('step_count', torch.zeros(1))\n        self.grad_decay = 0.99\n        \n    def forward(self, x):\n        b, n, d = x.shape\n        h = self.heads\n        \n        qkv = self.to_qkv(x).chunk(3, dim=-1)\n        q, k, v = map(lambda t: t.view(b, n, h, self.dim_head).transpose(1, 2), qkv)\n        \n        # Compute attention scores\n        dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale\n        \n        if self.training:\n            # Apply gradient-based masking\n            current_sparsity = self.sparsity_target * min(1.0, self.step_count.item() / 1000)\n            if current_sparsity > 0:\n                # Create mask based on gradient EMA\n                threshold = torch.quantile(self.grad_ema.flatten(), 1 - current_sparsity)\n                mask = self.grad_ema >= threshold\n                dots = dots.masked_fill(~mask, float('-inf'))\n        \n        attn = F.softmax(dots, dim=-1)\n        \n        # Track gradients for attention weights\n        if self.training and attn.requires_grad:\n            def grad_hook(grad):\n                grad_sq = grad.pow(2)\n                if self.grad_ema.numel() != grad_sq.numel():\n                    self.grad_ema.data = torch.zeros_like(grad_sq)\n                self.grad_ema.data = self.grad_decay * self.grad_ema + (1 - self.grad_decay) * grad_sq\n                self.step_count.data += 1\n            \n            attn.register_hook(grad_hook)\n        \n        out = torch.matmul(attn, v)\n        out = out.transpose(1, 2).reshape(b, n, -1)\n        return self.to_out(out)\n\nclass GSATransformerBlock(nn.Module):\n    def __init__(self, dim, heads=8, mlp_ratio=4):\n        super().__init__()\n        self.ln1 = nn.LayerNorm(dim)\n        self.attn = GradientSculptedAttention(dim, heads)\n        self.ln2 = nn.LayerNorm(dim)\n        \n        mlp_dim = int(dim * mlp_ratio)\n        self.mlp = nn.Sequential(\n            nn.Linear(dim, mlp_dim),\n            nn.GELU(),\n            nn.Linear(mlp_dim, dim)\n        )\n        \n    def forward(self, x):\n        x = x + self.attn(self.ln1(x))\n        x = x + self.mlp(self.ln2(x))\n        return x\n\nclass GSATransformer(nn.Module):\n    def __init__(self, vocab_size=50257, dim=512, depth=6, heads=8, max_seq_len=1024):\n        super().__init__()\n        self.dim = dim\n        self.max_seq_len = max_seq_len\n        \n        self.token_emb = nn.Embedding(vocab_size, dim)\n        self.pos_emb = nn.Embedding(max_seq_len, dim)\n        \n        self.blocks = nn.ModuleList([\n            GSATransformerBlock(dim, heads) for _ in range(depth)\n        ])\n        \n        self.ln_f = nn.LayerNorm(dim)\n        self.head = nn.Linear(dim, vocab_size, bias=False)\n        \n    def forward(self, x):\n        b, t = x.shape\n        pos = torch.arange(0, t, device=x.device).unsqueeze(0)\n        \n        x = self.token_emb(x) + self.pos_emb(pos)\n        \n        for block in self.blocks:\n            x = block(x)\n            \n        x = self.ln_f(x)\n        return self.head(x)\n\n# Training setup\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = GSATransformer(vocab_size=1000, dim=256, depth=4, heads=4, max_seq_len=128).to(device)\noptimizer = Adam(model.parameters(), lr=3e-4)\n\n# Synthetic data for micro-training\ndef generate_batch(batch_size=32, seq_len=64, vocab_size=1000):\n    return torch.randint(0, vocab_size, (batch_size, seq_len)).to(device)\n\n# Training loop\nmodel.train()\nlosses = []\n\nfor step in range(500):\n    batch = generate_batch()\n    inputs = batch[:, :-1]\n    targets = batch[:, 1:]\n    \n    logits = model(inputs)\n    loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), targets.reshape(-1))\n    \n    optimizer.zero_grad()\n    loss.backward()\n    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)\n    optimizer.step()\n    \n    losses.append(loss.item())\n    \n    if step % 50 == 0:\n        avg_sparsity = sum(block.attn.sparsity_target * min(1.0, block.attn.step_count.item() / 1000) \n                          for block in model.blocks) / len(model.blocks)\n        print(f'Step {step}, Loss: {loss.item():.4f}, Avg Sparsity: {avg_sparsity:.3f}')\n\nprint(f'Final loss: {losses[-1]:.4f}')\nprint(f'Loss reduction: {losses[0] - losses[-1]:.4f}')",
+        "parent_architecture": "GPT-2 small",
+        "novelty_claims": [
+          "Dynamic gradient-based attention pruning that adapts sparsity patterns during training",
+          "Exponential moving average of squared gradients used for attention weight importance scoring",
+          "Progressive sparsity annealing from dense to sparse attention throughout training",
+          "Differentiable sparse attention that maintains gradient flow while reducing computation",
+          "Self-organizing attention patterns that emerge from optimization dynamics rather than fixed structures"
+        ],
+        "expected_behavior": "We should observe: (1) Initial training with standard loss curves as attention is dense, (2) Gradual acceleration in training speed as sparsity increases and computation reduces, (3) Maintained or improved final performance despite sparsity due to focused attention on important connections, (4) Emergent structured sparsity patterns that correlate with linguistic phenomena, (5) Faster convergence compared to standard transformers due to reduced parameter interference from unimportant attention weights."
+      },
+      "stage1_result": {
+        "verdict": "REFUTED",
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "tags": [],
+        "t2_budget": {
+          "status": "FAIL_FATAL",
+          "test_id": "T2",
+          "estimated_params": 17046016,
+          "estimated_artifact_bytes": 10232491,
+          "budget_remaining_bytes": 6544725,
+          "budget_utilization": 0.6099039912223816,
+          "flops_ratio": 1.0,
+          "estimated_training_seconds": 14843.406974976,
+          "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+          "tags": [],
+          "wall_seconds": 0.0040042080072453246,
+          "attn_flops_ratio": 0.6545454545454545,
+          "mlp_flops_ratio": 0.32727272727272727,
+          "embed_flops_ratio": 0.01818181818181818,
+          "architectural_balance_score": 0.0
+        },
+        "t3_compilation": null,
+        "t4_signal": null,
+        "t5_init": null,
+        "t7_microtrain": null
+      },
+      "stage2_input": null,
+      "stage2_result": null,
+      "verdict": "REFUTED",
+      "kill_hypotheses": [],
+      "experiments_run": 0,
+      "error": null
+    },
+    {
+      "run_id": "h002_fbaef3ae",
+      "hypothesis_number": 2,
+      "start_time": 1774712168.088841,
+      "end_time": 1774712211.020588,
+      "status": "complete",
+      "idea_json": {
+        "theory_id": "dynamic-depth-transformer",
+        "what_and_why": "Most transformer layers operate at fixed computational depth, but different tokens likely require different amounts of processing. This architecture implements 'Dynamic Depth Routing' where each token can adaptively choose how many layers to pass through based on a learned confidence score. Early layers contain lightweight 'routing gates' that predict whether a token needs more processing. Tokens with high confidence scores can 'exit early' through skip connections, while uncertain tokens continue through deeper layers.\n\nThe key insight is that not all tokens are created equal - simple function words like 'the' or 'and' may need minimal processing, while complex concepts require deep reasoning. By allowing tokens to dynamically choose their computational path, we can maintain model capacity for hard examples while dramatically reducing average compute. The routing mechanism uses a small MLP that predicts processing difficulty and routes accordingly, trained end-to-end with a sparsity penalty to encourage early exits.",
+        "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\nimport time\n\nclass DynamicDepthAttention(nn.Module):\n    def __init__(self, d_model, n_heads, dropout=0.1):\n        super().__init__()\n        self.d_model = d_model\n        self.n_heads = n_heads\n        self.head_dim = d_model // n_heads\n        \n        self.q_proj = nn.Linear(d_model, d_model)\n        self.k_proj = nn.Linear(d_model, d_model)\n        self.v_proj = nn.Linear(d_model, d_model)\n        self.out_proj = nn.Linear(d_model, d_model)\n        self.dropout = nn.Dropout(dropout)\n        \n    def forward(self, x, mask=None):\n        B, T, C = x.shape\n        \n        q = self.q_proj(x).view(B, T, self.n_heads, self.head_dim).transpose(1, 2)\n        k = self.k_proj(x).view(B, T, self.n_heads, self.head_dim).transpose(1, 2)\n        v = self.v_proj(x).view(B, T, self.n_heads, self.head_dim).transpose(1, 2)\n        \n        attn = (q @ k.transpose(-2, -1)) / math.sqrt(self.head_dim)\n        if mask is not None:\n            attn.masked_fill_(mask == 0, float('-inf'))\n        attn = F.softmax(attn, dim=-1)\n        attn = self.dropout(attn)\n        \n        out = (attn @ v).transpose(1, 2).contiguous().view(B, T, C)\n        return self.out_proj(out)\n\nclass RoutingGate(nn.Module):\n    def __init__(self, d_model, threshold=0.5):\n        super().__init__()\n        self.gate = nn.Sequential(\n            nn.Linear(d_model, d_model // 4),\n            nn.ReLU(),\n            nn.Linear(d_model // 4, 1),\n            nn.Sigmoid()\n        )\n        self.threshold = threshold\n        \n    def forward(self, x):\n        # x: (B, T, d_model)\n        confidence = self.gate(x)  # (B, T, 1)\n        should_continue = (confidence < self.threshold).float()\n        return confidence, should_continue\n\nclass DynamicDepthBlock(nn.Module):\n    def __init__(self, d_model, n_heads, d_ff, dropout=0.1, is_exit_layer=False):\n        super().__init__()\n        self.attn = DynamicDepthAttention(d_model, n_heads, dropout)\n        self.ln1 = nn.LayerNorm(d_model)\n        self.ln2 = nn.LayerNorm(d_model)\n        \n        self.ff = nn.Sequential(\n            nn.Linear(d_model, d_ff),\n            nn.ReLU(),\n            nn.Dropout(dropout),\n            nn.Linear(d_ff, d_model),\n            nn.Dropout(dropout)\n        )\n        \n        self.router = RoutingGate(d_model) if not is_exit_layer else None\n        self.is_exit_layer = is_exit_layer\n        \n    def forward(self, x, mask=None, routing_info=None):\n        # x: (B, T, d_model)\n        # routing_info: dict with 'active_mask' indicating which tokens are still processing\n        \n        if routing_info is not None:\n            active_mask = routing_info['active_mask']  # (B, T, 1)\n        else:\n            active_mask = torch.ones_like(x[:, :, :1])\n            \n        # Only process active tokens\n        residual = x\n        x = self.ln1(x)\n        x = self.attn(x, mask)\n        x = residual + x * active_mask  # Only update active tokens\n        \n        residual = x\n        x = self.ln2(x)\n        x = self.ff(x)\n        x = residual + x * active_mask\n        \n        # Routing decision\n        if self.router is not None and not self.is_exit_layer:\n            confidence, should_continue = self.router(x)\n            new_active_mask = active_mask * should_continue\n            routing_info = {\n                'active_mask': new_active_mask,\n                'confidence': confidence,\n                'exit_tokens': active_mask - new_active_mask\n            }\n        else:\n            routing_info = {'active_mask': active_mask}\n            \n        return x, routing_info\n\nclass DynamicDepthTransformer(nn.Module):\n    def __init__(self, vocab_size, d_model=512, n_heads=8, n_layers=12, d_ff=2048, max_len=1024, dropout=0.1):\n        super().__init__()\n        self.d_model = d_model\n        self.n_layers = n_layers\n        \n        self.token_emb = nn.Embedding(vocab_size, d_model)\n        self.pos_emb = nn.Embedding(max_len, d_model)\n        \n        self.blocks = nn.ModuleList([\n            DynamicDepthBlock(d_model, n_heads, d_ff, dropout, is_exit_layer=(i == n_layers-1))\n            for i in range(n_layers)\n        ])\n        \n        self.ln_f = nn.LayerNorm(d_model)\n        self.head = nn.Linear(d_model, vocab_size, bias=False)\n        \n        # Sparsity penalty weight\n        self.sparsity_weight = 0.01\n        \n        self.apply(self._init_weights)\n        \n    def _init_weights(self, module):\n        if isinstance(module, nn.Linear):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            if module.bias is not None:\n                torch.nn.init.zeros_(module.bias)\n        elif isinstance(module, nn.Embedding):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            \n    def forward(self, x, targets=None):\n        B, T = x.shape\n        \n        # Create causal mask\n        mask = torch.tril(torch.ones(T, T, device=x.device)).view(1, 1, T, T)\n        \n        # Token + position embeddings\n        pos = torch.arange(T, device=x.device)\n        x = self.token_emb(x) + self.pos_emb(pos)\n        \n        # Track routing statistics\n        total_confidence = 0\n        exit_stats = []\n        \n        routing_info = None\n        \n        # Pass through dynamic depth blocks\n        for i, block in enumerate(self.blocks):\n            x, routing_info = block(x, mask, routing_info)\n            \n            if routing_info.get('confidence') is not None:\n                total_confidence += routing_info['confidence'].mean()\n                if 'exit_tokens' in routing_info:\n                    exit_stats.append(routing_info['exit_tokens'].sum())\n        \n        x = self.ln_f(x)\n        logits = self.head(x)\n        \n        loss = None\n        if targets is not None:\n            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))\n            \n            # Add sparsity penalty to encourage early exits\n            if total_confidence > 0:\n                sparsity_penalty = self.sparsity_weight * total_confidence\n                loss += sparsity_penalty\n                \n        return {\n            'logits': logits,\n            'loss': loss,\n            'routing_stats': {\n                'avg_confidence': total_confidence / len([b for b in self.blocks if b.router is not None]),\n                'exit_stats': exit_stats\n            }\n        }\n\ndef train_dynamic_depth_transformer():\n    # Hyperparameters\n    vocab_size = 10000\n    d_model = 256\n    n_heads = 8\n    n_layers = 6\n    d_ff = 1024\n    batch_size = 32\n    seq_len = 128\n    lr = 3e-4\n    n_steps = 1000\n    \n    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\n    \n    model = DynamicDepthTransformer(\n        vocab_size=vocab_size,\n        d_model=d_model,\n        n_heads=n_heads,\n        n_layers=n_layers,\n        d_ff=d_ff,\n        max_len=seq_len\n    ).to(device)\n    \n    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.1)\n    \n    print(f\"Model parameters: {sum(p.numel() for p in model.parameters())/1e6:.2f}M\")\n    \n    model.train()\n    for step in range(n_steps):\n        # Generate random data\n        x = torch.randint(0, vocab_size, (batch_size, seq_len), device=device)\n        targets = torch.roll(x, -1, dims=1)\n        \n        optimizer.zero_grad()\n        \n        start_time = time.time()\n        output = model(x, targets)\n        loss = output['loss']\n        \n        loss.backward()\n        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)\n        optimizer.step()\n        \n        forward_time = time.time() - start_time\n        \n        if step % 100 == 0:\n            routing_stats = output['routing_stats']\n            print(f\"Step {step}, Loss: {loss.item():.4f}, \"\n                  f\"Avg Confidence: {routing_stats['avg_confidence']:.4f}, \"\n                  f\"Time: {forward_time:.3f}s\")\n            \n            # Print exit statistics\n            if routing_stats['exit_stats']:\n                exits_per_layer = [stat.item() for stat in routing_stats['exit_stats']]\n                print(f\"  Exits per layer: {exits_per_layer}\")\n    \n    return model\n\nif __name__ == '__main__':\n    model = train_dynamic_depth_transformer()\n    print(\"Training completed!\")",
+        "parent_architecture": "GPT-2 small",
+        "novelty_claims": [
+          "Token-level dynamic depth routing allowing different tokens to use different amounts of computation",
+          "Learned confidence gates that predict processing difficulty and route tokens accordingly",
+          "Sparsity-regularized training that encourages early exits for simple tokens",
+          "Adaptive computation that maintains model capacity while reducing average compute per token",
+          "End-to-end differentiable routing mechanism integrated with attention layers"
+        ],
+        "expected_behavior": "Training should show gradually increasing early exit rates as the model learns to route simple tokens through fewer layers. Loss should converge faster than baseline due to adaptive computation allocation. We expect to see bimodal routing patterns where function words exit early while content words use full depth. Routing confidence scores should correlate with token complexity/rarity."
+      },
+      "stage1_result": {
+        "verdict": "REFUTED",
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "tags": [],
+        "t2_budget": {
+          "status": "FAIL_FATAL",
+          "test_id": "T2",
+          "estimated_params": 17046016,
+          "estimated_artifact_bytes": 10235894,
+          "budget_remaining_bytes": 6541322,
+          "budget_utilization": 0.6101068258285522,
+          "flops_ratio": 1.0,
+          "estimated_training_seconds": 14843.406974976,
+          "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+          "tags": [],
+          "wall_seconds": 0.006008750002365559,
+          "attn_flops_ratio": 0.6545454545454545,
+          "mlp_flops_ratio": 0.32727272727272727,
+          "embed_flops_ratio": 0.01818181818181818,
+          "architectural_balance_score": 0.0
+        },
+        "t3_compilation": null,
+        "t4_signal": null,
+        "t5_init": null,
+        "t7_microtrain": null
+      },
+      "stage2_input": null,
+      "stage2_result": null,
+      "verdict": "REFUTED",
+      "kill_hypotheses": [],
+      "experiments_run": 0,
+      "error": null
+    }
+  ],
+  "stage2_config": {
+    "enabled": true,
+    "model": "claude-sonnet-4-20250514",
+    "max_hypotheses": 5,
+    "max_tokens": 4000,
+    "temperature": 0.7
+  }
+}

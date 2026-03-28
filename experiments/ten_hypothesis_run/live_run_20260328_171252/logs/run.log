@@ -1,0 +1,46 @@
+[2026-03-28T17:12:52.737225] [INFO] ======================================================================
+[2026-03-28T17:12:52.737339] [INFO] FULL LIVE EXPERIMENT WITH SEPARATE STAGE MODELS
+[2026-03-28T17:12:52.737373] [INFO] ======================================================================
+[2026-03-28T17:12:52.737398] [INFO] Output directory: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_171252
+[2026-03-28T17:12:52.737421] [INFO] Stage 0 (Ideation): claude-sonnet-4-20250514
+[2026-03-28T17:12:52.737443] [INFO] Stage 2 (Falsifier): ENABLED
+[2026-03-28T17:12:52.737464] [INFO]   Model: claude-sonnet-4-20250514
+[2026-03-28T17:12:52.737485] [INFO]   Max hypotheses: 5
+[2026-03-28T17:12:52.737505] [INFO] 
+[2026-03-28T17:12:52.737526] [INFO] Starting experiment: 3 hypotheses
+[2026-03-28T17:12:52.737545] [INFO] Estimated time: 9-15 minutes
+[2026-03-28T17:12:52.737565] [INFO] 
+[2026-03-28T17:12:52.737585] [INFO] 
+======================================================================
+[2026-03-28T17:12:52.737604] [INFO] HYPOTHESIS 1/3
+[2026-03-28T17:12:52.737624] [INFO] ======================================================================
+[2026-03-28T17:12:52.737661] [INFO] 
+[2026-03-28T17:12:52.737681] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:12:52.737702] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:12:52.737721] [INFO]   Hypothesis #1
+[2026-03-28T17:12:52.737740] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:12:52.737759] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:13:30.326620] [INFO] ✓ Generated hypothesis #1: dual-scale-attention-fusion
+[2026-03-28T17:13:30.327198] [INFO]   Parameter estimate: Explicit count: ~6.2M parameters (verified <10M)
+[2026-03-28T17:13:30.327350] [INFO]   Novelty: 3 claims
+[2026-03-28T17:13:30.327513] [INFO]   Code: ~145 lines
+[2026-03-28T17:13:30.327671] [INFO]   ✓ Parameter estimate 6.2M is within 10M budget
+[2026-03-28T17:13:30.327724] [INFO]   ✓ Parameter estimate 10.0M is within 10M budget
+[2026-03-28T17:13:30.327858] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:13:30.328308] [ERROR] ✗ Hypothesis #1 failed: 'str' object has no attribute 'get'
+[2026-03-28T17:13:30.328400] [INFO] 
+✓ Hypothesis #1 complete in 37.6s
+[2026-03-28T17:13:30.328444] [INFO]   Verdict: None
+[2026-03-28T17:13:30.329949] [INFO]   [Graph Sync] Created new node: dual-scale-attention-fusion
+[2026-03-28T17:13:30.330362] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:13:33.334301] [INFO] 
+======================================================================
+[2026-03-28T17:13:33.334568] [INFO] HYPOTHESIS 2/3
+[2026-03-28T17:13:33.334840] [INFO] ======================================================================
+[2026-03-28T17:13:33.334976] [INFO] 
+[2026-03-28T17:13:33.335024] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:13:33.335068] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:13:33.335108] [INFO]   Hypothesis #2
+[2026-03-28T17:13:33.335146] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:13:33.335185] [INFO] Calling Anthropic API (Sonnet)...

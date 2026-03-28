@@ -1,0 +1,22 @@
+{
+  "total_hypotheses": 2,
+  "completed": 0,
+  "failed": 2,
+  "total_time_seconds": 100.6159610748291,
+  "total_time_minutes": 1.676932684580485,
+  "stage2_enabled": true,
+  "stage2_model": "claude-sonnet-4-20250514",
+  "statistics": {
+    "total_generated": 2,
+    "stage1_passed": 0,
+    "stage1_killed": 0,
+    "stage2_triggered": 0,
+    "stage2_passed": 0,
+    "stage2_killed": 0,
+    "failed": 2
+  },
+  "verdicts": {
+    "UNKNOWN": 2
+  },
+  "snapshots_captured": 2
+}

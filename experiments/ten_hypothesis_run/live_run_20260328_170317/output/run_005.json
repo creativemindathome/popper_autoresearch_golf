@@ -1,0 +1,54 @@
+{
+  "run_id": "h005_3f1b76df",
+  "hypothesis_number": 5,
+  "start_time": 1774713955.679382,
+  "end_time": 1774713991.522517,
+  "status": "complete",
+  "idea_json": {
+    "theory_id": "temporal-depth-modulation",
+    "what_and_why": "Current transformers use fixed depth throughout training and inference, but this may be suboptimal. Early in training, when the model is learning basic patterns, shallow networks might be more efficient and less prone to optimization difficulties. As training progresses and more complex relationships need to be captured, deeper processing becomes beneficial. This architecture implements 'Temporal Depth Modulation' where the effective depth of the transformer increases dynamically during training based on gradient flow patterns and loss plateaus. The key insight is that we can start with only the first few layers active, then progressively 'unlock' deeper layers when the gradient magnitude in active layers drops below a threshold, indicating the current depth has saturated its learning capacity. This could dramatically improve training efficiency by avoiding early-training optimization difficulties associated with very deep networks, while still achieving the representational power of deep models.",
+    "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\n\nclass TemporalDepthGPT(nn.Module):\n    def __init__(self, vocab_size=50257, n_embd=768, n_head=12, n_layer=12, max_seq_len=1024):\n        super().__init__()\n        self.n_layer = n_layer\n        self.active_layers = 2  # Start with only 2 layers active\n        self.gradient_threshold = 1e-3\n        self.patience_counter = 0\n        self.patience_limit = 100  # Steps to wait before adding layer\n        \n        # Token and position embeddings\n        self.wte = nn.Embedding(vocab_size, n_embd)\n        self.wpe = nn.Embedding(max_seq_len, n_embd)\n        \n        # All transformer blocks (but not all will be active initially)\n        self.blocks = nn.ModuleList([\n            TransformerBlock(n_embd, n_head) for _ in range(n_layer)\n        ])\n        \n        # Layer norm and output head\n        self.ln_f = nn.LayerNorm(n_embd)\n        self.lm_head = nn.Linear(n_embd, vocab_size, bias=False)\n        \n        # Track gradient magnitudes for depth decisions\n        self.grad_magnitudes = []\n        \n    def forward(self, idx, targets=None):\n        b, t = idx.size()\n        pos = torch.arange(0, t, dtype=torch.long, device=idx.device)\n        \n        # Embeddings\n        tok_emb = self.wte(idx)\n        pos_emb = self.wpe(pos)\n        x = tok_emb + pos_emb\n        \n        # Forward through only active layers\n        for i in range(min(self.active_layers, self.n_layer)):\n            x = self.blocks[i](x)\n        \n        x = self.ln_f(x)\n        \n        if targets is not None:\n            logits = self.lm_head(x)\n            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)\n            return logits, loss\n        else:\n            logits = self.lm_head(x[:, [-1], :])\n            return logits\n    \n    def update_depth(self):\n        \"\"\"Called after backward pass to potentially increase depth\"\"\"\n        if self.active_layers >= self.n_layer:\n            return\n        \n        # Calculate average gradient magnitude in active layers\n        total_grad_mag = 0\n        param_count = 0\n        for i in range(self.active_layers):\n            for param in self.blocks[i].parameters():\n                if param.grad is not None:\n                    total_grad_mag += param.grad.abs().mean().item()\n                    param_count += 1\n        \n        if param_count > 0:\n            avg_grad_mag = total_grad_mag / param_count\n            self.grad_magnitudes.append(avg_grad_mag)\n            \n            # If gradients are small, we might have saturated current depth\n            if avg_grad_mag < self.gradient_threshold:\n                self.patience_counter += 1\n                if self.patience_counter >= self.patience_limit:\n                    self.active_layers = min(self.active_layers + 1, self.n_layer)\n                    self.patience_counter = 0\n                    print(f\"Increased active layers to {self.active_layers}\")\n            else:\n                self.patience_counter = 0\n\nclass TransformerBlock(nn.Module):\n    def __init__(self, n_embd, n_head):\n        super().__init__()\n        self.ln1 = nn.LayerNorm(n_embd)\n        self.attn = MultiHeadAttention(n_embd, n_head)\n        self.ln2 = nn.LayerNorm(n_embd)\n        self.mlp = MLP(n_embd)\n        \n    def forward(self, x):\n        x = x + self.attn(self.ln1(x))\n        x = x + self.mlp(self.ln2(x))\n        return x\n\nclass MultiHeadAttention(nn.Module):\n    def __init__(self, n_embd, n_head):\n        super().__init__()\n        self.n_head = n_head\n        self.n_embd = n_embd\n        self.head_dim = n_embd // n_head\n        \n        self.qkv = nn.Linear(n_embd, 3 * n_embd)\n        self.proj = nn.Linear(n_embd, n_embd)\n        \n    def forward(self, x):\n        B, T, C = x.size()\n        \n        qkv = self.qkv(x)\n        q, k, v = qkv.chunk(3, dim=-1)\n        \n        q = q.view(B, T, self.n_head, self.head_dim).transpose(1, 2)\n        k = k.view(B, T, self.n_head, self.head_dim).transpose(1, 2)\n        v = v.view(B, T, self.n_head, self.head_dim).transpose(1, 2)\n        \n        att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(self.head_dim))\n        att = att.masked_fill(torch.tril(torch.ones(T, T, device=x.device)) == 0, float('-inf'))\n        att = F.softmax(att, dim=-1)\n        \n        y = att @ v\n        y = y.transpose(1, 2).contiguous().view(B, T, C)\n        y = self.proj(y)\n        return y\n\nclass MLP(nn.Module):\n    def __init__(self, n_embd):\n        super().__init__()\n        self.c_fc = nn.Linear(n_embd, 4 * n_embd)\n        self.c_proj = nn.Linear(4 * n_embd, n_embd)\n        \n    def forward(self, x):\n        x = F.gelu(self.c_fc(x))\n        x = self.c_proj(x)\n        return x\n\n# Training loop\ndef train_temporal_depth_gpt():\n    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\n    model = TemporalDepthGPT(vocab_size=1000, n_embd=256, n_head=8, n_layer=8).to(device)\n    optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=0.1)\n    \n    # Dummy data\n    batch_size, seq_len = 4, 128\n    \n    losses = []\n    active_layers_history = []\n    \n    for step in range(1000):\n        # Generate random data\n        x = torch.randint(0, 1000, (batch_size, seq_len), device=device)\n        y = torch.randint(0, 1000, (batch_size, seq_len), device=device)\n        \n        optimizer.zero_grad()\n        logits, loss = model(x, y)\n        loss.backward()\n        \n        # Update depth based on gradient analysis\n        model.update_depth()\n        \n        optimizer.step()\n        \n        losses.append(loss.item())\n        active_layers_history.append(model.active_layers)\n        \n        if step % 100 == 0:\n            print(f\"Step {step}, Loss: {loss.item():.4f}, Active layers: {model.active_layers}\")\n    \n    return losses, active_layers_history\n\nif __name__ == '__main__':\n    losses, active_layers_history = train_temporal_depth_gpt()\n    print(f\"Final active layers: {active_layers_history[-1]}\")\n    print(f\"Final loss: {losses[-1]:.4f}\")",
+    "parent_architecture": "GPT-2 small",
+    "novelty_claims": [
+      "Dynamic depth adjustment during training based on gradient flow analysis",
+      "Progressive layer activation mechanism that starts shallow and grows deeper",
+      "Gradient magnitude threshold system for determining optimal depth expansion timing",
+      "Patience-based layer unlocking to avoid premature depth increases",
+      "Training efficiency optimization through adaptive architecture complexity"
+    ],
+    "expected_behavior": "Training should start with faster convergence in early steps due to shallow depth, then show periodic improvements as new layers activate. We should see step-wise drops in loss when layers are added, and the active_layers count should gradually increase from 2 to the full depth. The model should achieve similar final performance to a full-depth baseline but with significantly faster early training and better gradient flow."
+  },
+  "stage1_result": {
+    "verdict": "REFUTED",
+    "killed_by": "T2",
+    "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "tags": [],
+    "t2_budget": {
+      "status": "FAIL_FATAL",
+      "test_id": "T2",
+      "estimated_params": 17046016,
+      "estimated_artifact_bytes": 10233667,
+      "budget_remaining_bytes": 6543549,
+      "budget_utilization": 0.6099740862846375,
+      "flops_ratio": 1.0,
+      "estimated_training_seconds": 14843.406974976,
+      "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+      "tags": [],
+      "wall_seconds": 0.0028287079912843183,
+      "attn_flops_ratio": 0.6545454545454545,
+      "mlp_flops_ratio": 0.32727272727272727,
+      "embed_flops_ratio": 0.01818181818181818,
+      "architectural_balance_score": 0.0
+    },
+    "t3_compilation": null,
+    "t4_signal": null,
+    "t5_init": null,
+    "t7_microtrain": null
+  },
+  "stage2_input": null,
+  "stage2_result": null,
+  "verdict": "REFUTED",
+  "kill_hypotheses": [],
+  "experiments_run": 0,
+  "error": null
+}

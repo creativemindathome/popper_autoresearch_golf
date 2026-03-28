@@ -1,0 +1,58 @@
+[2026-03-28T17:16:31.740253] [INFO] ======================================================================
+[2026-03-28T17:16:31.740425] [INFO] FULL LIVE EXPERIMENT WITH SEPARATE STAGE MODELS
+[2026-03-28T17:16:31.740541] [INFO] ======================================================================
+[2026-03-28T17:16:31.740573] [INFO] Output directory: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_171631
+[2026-03-28T17:16:31.740601] [INFO] Stage 0 (Ideation): claude-sonnet-4-20250514
+[2026-03-28T17:16:31.740627] [INFO] Stage 2 (Falsifier): ENABLED
+[2026-03-28T17:16:31.740650] [INFO]   Model: claude-sonnet-4-20250514
+[2026-03-28T17:16:31.740674] [INFO]   Max hypotheses: 5
+[2026-03-28T17:16:31.740696] [INFO] 
+[2026-03-28T17:16:31.740718] [INFO] Starting experiment: 3 hypotheses
+[2026-03-28T17:16:31.740740] [INFO] Estimated time: 9-15 minutes
+[2026-03-28T17:16:31.740760] [INFO] 
+[2026-03-28T17:16:31.740782] [INFO] 
+======================================================================
+[2026-03-28T17:16:31.740804] [INFO] HYPOTHESIS 1/3
+[2026-03-28T17:16:31.740825] [INFO] ======================================================================
+[2026-03-28T17:16:31.740870] [INFO] 
+[2026-03-28T17:16:31.740892] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:16:31.740914] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:16:31.740935] [INFO]   Hypothesis #1
+[2026-03-28T17:16:31.740956] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:16:31.740977] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:17:14.484243] [INFO] ✓ Generated hypothesis #1: spiral-attention-gpt
+[2026-03-28T17:17:14.484694] [INFO]   Parameter estimate: Explicit count: ~4.2M parameters (16K vocab * 256 embd = 4.1M + 4 layers * 0.8M = 3.2M + output head 4.1M = 11.4M... still too big! Need vocab_size=8192 for ~3.7M total)
+[2026-03-28T17:17:14.484857] [INFO]   Novelty: 3 claims
+[2026-03-28T17:17:14.485016] [INFO]   Code: ~159 lines
+[2026-03-28T17:17:14.485152] [INFO]   ✓ Parameter estimate 4.2M is within 10M budget
+[2026-03-28T17:17:14.485192] [INFO]   ✓ Parameter estimate 4.1M is within 10M budget
+[2026-03-28T17:17:14.485302] [INFO]   ✓ Parameter estimate 0.8M is within 10M budget
+[2026-03-28T17:17:14.485335] [INFO]   ✓ Parameter estimate 3.2M is within 10M budget
+[2026-03-28T17:17:14.485365] [INFO]   ✓ Parameter estimate 4.1M is within 10M budget
+[2026-03-28T17:17:14.485392] [INFO]   ⚠️️ WARNING: Parameter estimate 11.4M exceeds 10M budget - will likely be KILLED by T2
+[2026-03-28T17:17:14.485418] [INFO]   ✓ Parameter estimate 3.7M is within 10M budget
+[2026-03-28T17:17:14.485515] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:17:14.485768] [ERROR] ✗ Hypothesis #1 failed: 'str' object has no attribute 'get'
+[2026-03-28T17:17:14.486199] [ERROR]   Debug traceback: Traceback (most recent call last):
+  File "/Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/run_full_live_experiment.py", line 497, in run_single_hypothesis
+    self.capture_graph_snapshot()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/run_full_live_experiment.py", line 636, in capture_graph_snapshot
+    approved = sum(1 for n in nodes if n.get("status") == "APPROVED")
+  File "/Users/curio
+[2026-03-28T17:17:14.486248] [INFO] 
+✓ Hypothesis #1 complete in 42.7s
+[2026-03-28T17:17:14.486280] [INFO]   Verdict: None
+[2026-03-28T17:17:14.487564] [INFO]   [Graph Sync] Created new node: spiral-attention-gpt
+[2026-03-28T17:17:14.487829] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:17:17.492975] [INFO] 
+======================================================================
+[2026-03-28T17:17:17.493619] [INFO] HYPOTHESIS 2/3
+[2026-03-28T17:17:17.493678] [INFO] ======================================================================
+[2026-03-28T17:17:17.493867] [INFO] 
+[2026-03-28T17:17:17.493913] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:17:17.493946] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:17:17.493975] [INFO]   Hypothesis #2
+[2026-03-28T17:17:17.494055] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:17:17.494227] [INFO] Calling Anthropic API (Sonnet)...

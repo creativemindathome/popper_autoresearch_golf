@@ -1,0 +1,86 @@
+digraph KG {
+  graph [bgcolor="white", fontname="Helvetica Neue",
+         fontsize=16, labelloc="t", labeljust="center",
+         nodesep=0.4, ranksep=1.2, splines="curved",
+         overlap="scale", pad=0.8];
+  node [fontname="Helvetica Neue", shape=circle,
+        fixedsize=true, style="filled", penwidth=2];
+  edge [color="#94a3b8", arrowsize=0.6, penwidth=1.5];
+
+  label="Knowledge Graph";
+
+  // Roots (main clusters)
+  { rank=same; 
+    "node_root_data_pipeline" [pos="2,5!", width=1.2, height=1.2, fillcolor="#3b82f6", color="#2563eb", fontsize=11, fontcolor="white", label="Data Pipeline"];
+    "node_root_neural_network" [pos="8,5!", width=1.2, height=1.2, fillcolor="#ef4444", color="#dc2626", fontsize=11, fontcolor="white", label="Neural Network"];
+    "node_root_training_eval" [pos="14,5!", width=1.2, height=1.2, fillcolor="#22c55e", color="#16a34a", fontsize=11, fontcolor="white", label="Training & Eval"];
+  }
+
+  // Branches (attached to roots)
+    "node_data_sources" [pos="-0.5,2.5!", width=0.7, height=0.7, fillcolor="#2dd4bf", color="#14b8a6", fontsize=9, fontcolor="#1e293b", label="Data Sources"];
+    "node_root_data_pipeline" -> "node_data_sources" [penwidth=2, color="#14b8a655"];
+    "node_data_source_web_text" [pos="-1.9400000000000002,0.7!", width=0.35, height=0.35, fillcolor="#a5b4fc", color="#a5b4fc", fontsize=0, label="", tooltip="Web Text"];
+    "node_data_sources" -> "node_data_source_web_text" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_data_source_code" [pos="-0.98,0.7!", width=0.35, height=0.35, fillcolor="#c4b5fd", color="#c4b5fd", fontsize=0, label="", tooltip="Code"];
+    "node_data_sources" -> "node_data_source_code" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_data_source_books" [pos="-0.020000000000000018,0.7!", width=0.35, height=0.35, fillcolor="#a5b4fc", color="#a5b4fc", fontsize=0, label="", tooltip="Books / Long-Form"];
+    "node_data_sources" -> "node_data_source_books" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_data_source_synthetic" [pos="0.9400000000000002,0.7!", width=0.35, height=0.35, fillcolor="#c4b5fd", color="#c4b5fd", fontsize=0, label="", tooltip="Synthetic / Generated Data"];
+    "node_data_sources" -> "node_data_source_synthetic" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_data_cleaning" [pos="2.0,2.5!", width=0.7, height=0.7, fillcolor="#fbbf24", color="#f59e0b", fontsize=9, fontcolor="#1e293b", label="Cleaning&"];
+    "node_root_data_pipeline" -> "node_data_cleaning" [penwidth=2, color="#f59e0b55"];
+    "node_data_dedup" [pos="0.5599999999999998,0.7!", width=0.35, height=0.35, fillcolor="#fda4af", color="#fda4af", fontsize=0, label="", tooltip="Deduplication"];
+    "node_data_cleaning" -> "node_data_dedup" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_data_language_id" [pos="1.52,0.7!", width=0.35, height=0.35, fillcolor="#fdb4b6", color="#fdb4b6", fontsize=0, label="", tooltip="Language ID Filter"];
+    "node_data_cleaning" -> "node_data_language_id" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_data_quality_filter" [pos="2.48,0.7!", width=0.35, height=0.35, fillcolor="#fda4af", color="#fda4af", fontsize=0, label="", tooltip="Quality Scoring Filter"];
+    "node_data_cleaning" -> "node_data_quality_filter" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_data_toxicity_filter" [pos="3.4400000000000004,0.7!", width=0.35, height=0.35, fillcolor="#fdb4b6", color="#fdb4b6", fontsize=0, label="", tooltip="Safety / Toxicity Filter"];
+    "node_data_cleaning" -> "node_data_toxicity_filter" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_data_tokenization" [pos="4.5,2.5!", width=0.7, height=0.7, fillcolor="#fb923c", color="#f97316", fontsize=9, fontcolor="#1e293b", label="Tokenization"];
+    "node_root_data_pipeline" -> "node_data_tokenization" [penwidth=2, color="#f9731655"];
+    "node_tokenizer_bpe" [pos="3.0599999999999996,0.7!", width=0.35, height=0.35, fillcolor="#86efac", color="#86efac", fontsize=0, label="", tooltip="BPE (Subword)"];
+    "node_data_tokenization" -> "node_tokenizer_bpe" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_tokenizer_unigram" [pos="4.02,0.7!", width=0.35, height=0.35, fillcolor="#bbf7d0", color="#bbf7d0", fontsize=0, label="", tooltip="Unigram (SentencePiece)"];
+    "node_data_tokenization" -> "node_tokenizer_unigram" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_tokenizer_bytelevel_bpe" [pos="4.98,0.7!", width=0.35, height=0.35, fillcolor="#86efac", color="#86efac", fontsize=0, label="", tooltip="Byte-level BPE"];
+    "node_data_tokenization" -> "node_tokenizer_bytelevel_bpe" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_tokenizer_character" [pos="5.94,0.7!", width=0.35, height=0.35, fillcolor="#bbf7d0", color="#bbf7d0", fontsize=0, label="", tooltip="Character-level"];
+    "node_data_tokenization" -> "node_tokenizer_character" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_nn_embeddings" [pos="5.5,2.5!", width=0.7, height=0.7, fillcolor="#2dd4bf", color="#14b8a6", fontsize=9, fontcolor="#1e293b", label="Embeddings"];
+    "node_root_neural_network" -> "node_nn_embeddings" [penwidth=2, color="#14b8a655"];
+    "node_nn_embedding_strategy" [pos="4.06,0.7!", width=0.35, height=0.35, fillcolor="#a5b4fc", color="#a5b4fc", fontsize=0, label="", tooltip="Token Embedding Strategy"];
+    "node_nn_embeddings" -> "node_nn_embedding_strategy" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_nn_positional_encoding" [pos="5.02,0.7!", width=0.35, height=0.35, fillcolor="#c4b5fd", color="#c4b5fd", fontsize=0, label="", tooltip="Positional Encoding"];
+    "node_nn_embeddings" -> "node_nn_positional_encoding" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_nn_transformer" [pos="8.0,2.5!", width=0.7, height=0.7, fillcolor="#fbbf24", color="#f59e0b", fontsize=9, fontcolor="#1e293b", label="Transformer Backbone"];
+    "node_root_neural_network" -> "node_nn_transformer" [penwidth=2, color="#f59e0b55"];
+    "node_transformer_block" [pos="6.56,0.7!", width=0.35, height=0.35, fillcolor="#fda4af", color="#fda4af", fontsize=0, label="", tooltip="Transformer Block"];
+    "node_nn_transformer" -> "node_transformer_block" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_nn_output_head" [pos="10.5,2.5!", width=0.7, height=0.7, fillcolor="#fb923c", color="#f97316", fontsize=9, fontcolor="#1e293b", label="Output Head"];
+    "node_root_neural_network" -> "node_nn_output_head" [penwidth=2, color="#f9731655"];
+    "node_head_strategy" [pos="9.06,0.7!", width=0.35, height=0.35, fillcolor="#86efac", color="#86efac", fontsize=0, label="", tooltip="LM Head Strategy"];
+    "node_nn_output_head" -> "node_head_strategy" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_train_loss" [pos="11.5,2.5!", width=0.7, height=0.7, fillcolor="#2dd4bf", color="#14b8a6", fontsize=9, fontcolor="#1e293b", label="Loss Function"];
+    "node_root_training_eval" -> "node_train_loss" [penwidth=2, color="#14b8a655"];
+    "node_loss_cross_entropy" [pos="10.06,0.7!", width=0.35, height=0.35, fillcolor="#a5b4fc", color="#a5b4fc", fontsize=0, label="", tooltip="Cross-Entropy"];
+    "node_train_loss" -> "node_loss_cross_entropy" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_loss_label_smoothing" [pos="11.02,0.7!", width=0.35, height=0.35, fillcolor="#c4b5fd", color="#c4b5fd", fontsize=0, label="", tooltip="Label Smoothing"];
+    "node_train_loss" -> "node_loss_label_smoothing" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_loss_z_loss" [pos="11.98,0.7!", width=0.35, height=0.35, fillcolor="#a5b4fc", color="#a5b4fc", fontsize=0, label="", tooltip="Z-loss / Logit Penalty"];
+    "node_train_loss" -> "node_loss_z_loss" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_train_optimizer" [pos="14.0,2.5!", width=0.7, height=0.7, fillcolor="#fbbf24", color="#f59e0b", fontsize=9, fontcolor="#1e293b", label="Optimizer&"];
+    "node_root_training_eval" -> "node_train_optimizer" [penwidth=2, color="#f59e0b55"];
+    "node_optimizer_state_strategy" [pos="12.56,0.7!", width=0.35, height=0.35, fillcolor="#fda4af", color="#fda4af", fontsize=0, label="", tooltip="Optimizer State Strategy"];
+    "node_train_optimizer" -> "node_optimizer_state_strategy" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_train_precision" [pos="16.5,2.5!", width=0.7, height=0.7, fillcolor="#fb923c", color="#f97316", fontsize=9, fontcolor="#1e293b", label="Numerical Precision"];
+    "node_root_training_eval" -> "node_train_precision" [penwidth=2, color="#f9731655"];
+    "node_precision_fp32" [pos="15.06,0.7!", width=0.35, height=0.35, fillcolor="#86efac", color="#86efac", fontsize=0, label="", tooltip="FP32 Training"];
+    "node_train_precision" -> "node_precision_fp32" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_precision_fp16_bf16" [pos="16.02,0.7!", width=0.35, height=0.35, fillcolor="#bbf7d0", color="#bbf7d0", fontsize=0, label="", tooltip="FP16/BF16 Mixed Precision"];
+    "node_train_precision" -> "node_precision_fp16_bf16" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+    "node_precision_fp8" [pos="16.98,0.7!", width=0.35, height=0.35, fillcolor="#86efac", color="#86efac", fontsize=0, label="", tooltip="FP8 Activations (Advanced)"];
+    "node_train_precision" -> "node_precision_fp8" [penwidth=1, color="#cbd5e155", arrowhead="none"];
+
+
+}

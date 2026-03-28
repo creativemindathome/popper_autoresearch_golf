@@ -1,0 +1,54 @@
+{
+  "run_id": "h001_806cd89c",
+  "hypothesis_number": 1,
+  "start_time": 1774713629.911371,
+  "end_time": 1774713666.558887,
+  "status": "complete",
+  "idea_json": {
+    "theory_id": "entropy-guided-attention",
+    "what_and_why": "Current attention mechanisms compute all pairwise interactions regardless of information content. This wastes computation on low-entropy, predictable patterns. I propose Entropy-Guided Attention (EGA) that dynamically sparsifies attention based on local entropy estimates of the input sequence. The key insight is that high-entropy regions (surprising, information-dense areas) require full attention computation, while low-entropy regions (repetitive, predictable patterns) can use heavily pruned attention or even skip layers entirely.\n\nThe mechanism works by computing running entropy estimates for each token using a lightweight entropy predictor network. Tokens with entropy below a learned threshold trigger 'fast paths' - either sparse attention patterns or direct residual connections that bypass attention entirely. This creates a content-adaptive computational graph where boring sequences use minimal compute while complex sequences get full model capacity. The entropy predictor is trained jointly with the main model using a combination of reconstruction loss and entropy prediction accuracy.",
+    "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\n\nclass EntropyPredictor(nn.Module):\n    def __init__(self, d_model, window_size=8):\n        super().__init__()\n        self.window_size = window_size\n        self.conv = nn.Conv1d(d_model, 64, kernel_size=window_size, padding=window_size//2)\n        self.predictor = nn.Sequential(\n            nn.Linear(64, 32),\n            nn.ReLU(),\n            nn.Linear(32, 1),\n            nn.Sigmoid()\n        )\n        \n    def forward(self, x):\n        # x: (batch, seq_len, d_model)\n        x_conv = self.conv(x.transpose(1, 2))  # (batch, 64, seq_len)\n        x_pooled = F.adaptive_avg_pool1d(x_conv, x_conv.size(2))\n        entropy_scores = self.predictor(x_pooled.transpose(1, 2))\n        return entropy_scores.squeeze(-1)  # (batch, seq_len)\n\nclass EntropyGuidedAttention(nn.Module):\n    def __init__(self, d_model, n_heads, entropy_threshold=0.3, sparse_ratio=0.1):\n        super().__init__()\n        self.d_model = d_model\n        self.n_heads = n_heads\n        self.head_dim = d_model // n_heads\n        self.entropy_threshold = entropy_threshold\n        self.sparse_ratio = sparse_ratio\n        \n        self.q_proj = nn.Linear(d_model, d_model)\n        self.k_proj = nn.Linear(d_model, d_model)\n        self.v_proj = nn.Linear(d_model, d_model)\n        self.out_proj = nn.Linear(d_model, d_model)\n        self.entropy_pred = EntropyPredictor(d_model)\n        \n    def forward(self, x):\n        B, T, C = x.shape\n        \n        # Predict entropy for each position\n        entropy_scores = self.entropy_pred(x)  # (B, T)\n        \n        # Decide computation path per token\n        high_entropy_mask = entropy_scores > self.entropy_threshold\n        \n        # Fast path: direct residual for low-entropy tokens\n        output = x.clone()\n        \n        # Full attention path for high-entropy tokens\n        if high_entropy_mask.any():\n            q = self.q_proj(x).view(B, T, self.n_heads, self.head_dim).transpose(1, 2)\n            k = self.k_proj(x).view(B, T, self.n_heads, self.head_dim).transpose(1, 2)\n            v = self.v_proj(x).view(B, T, self.n_heads, self.head_dim).transpose(1, 2)\n            \n            # Compute attention only for high-entropy positions\n            scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.head_dim)\n            \n            # Sparse attention: mask out low-scoring pairs\n            if self.training:\n                topk = max(1, int(T * self.sparse_ratio))\n                top_scores, _ = torch.topk(scores, topk, dim=-1)\n                threshold = top_scores[..., -1:]\n                sparse_mask = scores >= threshold\n                scores = scores.masked_fill(~sparse_mask, float('-inf'))\n            \n            attn_weights = F.softmax(scores, dim=-1)\n            attn_output = torch.matmul(attn_weights, v)\n            attn_output = attn_output.transpose(1, 2).contiguous().view(B, T, C)\n            attn_output = self.out_proj(attn_output)\n            \n            # Apply attention output only to high-entropy positions\n            high_entropy_mask_expanded = high_entropy_mask.unsqueeze(-1).expand_as(output)\n            output = torch.where(high_entropy_mask_expanded, attn_output, output)\n        \n        return output, entropy_scores\n\nclass EGATransformerBlock(nn.Module):\n    def __init__(self, d_model, n_heads, d_ff, dropout=0.1):\n        super().__init__()\n        self.attn = EntropyGuidedAttention(d_model, n_heads)\n        self.norm1 = nn.LayerNorm(d_model)\n        self.norm2 = nn.LayerNorm(d_model)\n        self.ff = nn.Sequential(\n            nn.Linear(d_model, d_ff),\n            nn.GELU(),\n            nn.Linear(d_ff, d_model),\n            nn.Dropout(dropout)\n        )\n        \n    def forward(self, x):\n        attn_out, entropy_scores = self.attn(self.norm1(x))\n        x = x + attn_out\n        x = x + self.ff(self.norm2(x))\n        return x, entropy_scores\n\nclass EGATransformer(nn.Module):\n    def __init__(self, vocab_size=50257, d_model=512, n_heads=8, n_layers=6, d_ff=2048, max_seq_len=1024):\n        super().__init__()\n        self.token_emb = nn.Embedding(vocab_size, d_model)\n        self.pos_emb = nn.Embedding(max_seq_len, d_model)\n        self.blocks = nn.ModuleList([EGATransformerBlock(d_model, n_heads, d_ff) for _ in range(n_layers)])\n        self.ln_f = nn.LayerNorm(d_model)\n        self.head = nn.Linear(d_model, vocab_size, bias=False)\n        \n    def forward(self, x):\n        B, T = x.shape\n        pos = torch.arange(T, device=x.device)\n        \n        x = self.token_emb(x) + self.pos_emb(pos)\n        \n        all_entropy_scores = []\n        for block in self.blocks:\n            x, entropy_scores = block(x)\n            all_entropy_scores.append(entropy_scores)\n            \n        x = self.ln_f(x)\n        logits = self.head(x)\n        \n        return logits, torch.stack(all_entropy_scores)\n\n# Training setup\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = EGATransformer().to(device)\noptimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=0.1)\n\n# Simple training loop with entropy regularization\nfor step in range(1000):\n    # Generate dummy data\n    batch_size, seq_len = 4, 128\n    x = torch.randint(0, 50257, (batch_size, seq_len)).to(device)\n    targets = torch.roll(x, -1, dims=1)\n    \n    logits, entropy_scores = model(x)\n    \n    # Main language modeling loss\n    lm_loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))\n    \n    # Entropy diversity regularization (encourage varied entropy predictions)\n    entropy_diversity = -torch.var(entropy_scores.mean(dim=0))  # Want high variance across positions\n    \n    total_loss = lm_loss + 0.01 * entropy_diversity\n    \n    optimizer.zero_grad()\n    total_loss.backward()\n    optimizer.step()\n    \n    if step % 100 == 0:\n        print(f'Step {step}, Loss: {lm_loss.item():.4f}, Entropy Div: {entropy_diversity.item():.4f}')\n        print(f'Avg Entropy Score: {entropy_scores.mean().item():.3f}')",
+    "parent_architecture": "GPT-2 small",
+    "novelty_claims": [
+      "Dynamic attention sparsification based on learned entropy estimates rather than fixed patterns",
+      "Content-adaptive computational paths that bypass attention for low-entropy sequences",
+      "Joint training of entropy prediction with main language modeling objective",
+      "Per-token computation routing that adapts to input complexity in real-time",
+      "Integration of information theory (entropy) directly into attention mechanism design"
+    ],
+    "expected_behavior": "Training should show initially high entropy diversity loss as the model learns to differentiate content complexity, then stabilization. The entropy predictor should learn to assign high scores to beginnings of sentences, rare words, and complex linguistic structures while assigning low scores to function words and repetitive patterns. We expect 20-40% computational savings on typical text with minimal perplexity degradation, and the model should show faster inference on repetitive sequences while maintaining quality on complex passages."
+  },
+  "stage1_result": {
+    "verdict": "REFUTED",
+    "killed_by": "T2",
+    "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "tags": [],
+    "t2_budget": {
+      "status": "FAIL_FATAL",
+      "test_id": "T2",
+      "estimated_params": 17046016,
+      "estimated_artifact_bytes": 10233637,
+      "budget_remaining_bytes": 6543579,
+      "budget_utilization": 0.6099722981452942,
+      "flops_ratio": 1.0,
+      "estimated_training_seconds": 14843.406974976,
+      "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+      "tags": [],
+      "wall_seconds": 0.005205374996876344,
+      "attn_flops_ratio": 0.6545454545454545,
+      "mlp_flops_ratio": 0.32727272727272727,
+      "embed_flops_ratio": 0.01818181818181818,
+      "architectural_balance_score": 0.0
+    },
+    "t3_compilation": null,
+    "t4_signal": null,
+    "t5_init": null,
+    "t7_microtrain": null
+  },
+  "stage2_input": null,
+  "stage2_result": null,
+  "verdict": "REFUTED",
+  "kill_hypotheses": [],
+  "experiments_run": 0,
+  "error": null
+}

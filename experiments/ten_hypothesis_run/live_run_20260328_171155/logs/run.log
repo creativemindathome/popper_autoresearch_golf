@@ -1,0 +1,49 @@
+[2026-03-28T17:11:55.815840] [INFO] ======================================================================
+[2026-03-28T17:11:55.816933] [INFO] FULL LIVE EXPERIMENT WITH SEPARATE STAGE MODELS
+[2026-03-28T17:11:55.816972] [INFO] ======================================================================
+[2026-03-28T17:11:55.817002] [INFO] Output directory: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_171155
+[2026-03-28T17:11:55.817031] [INFO] Stage 0 (Ideation): claude-sonnet-4-20250514
+[2026-03-28T17:11:55.817057] [INFO] Stage 2 (Falsifier): ENABLED
+[2026-03-28T17:11:55.817081] [INFO]   Model: claude-sonnet-4-20250514
+[2026-03-28T17:11:55.817104] [INFO]   Max hypotheses: 5
+[2026-03-28T17:11:55.817129] [INFO] 
+[2026-03-28T17:11:55.817161] [INFO] Starting experiment: 10 hypotheses
+[2026-03-28T17:11:55.819714] [INFO] Estimated time: 30-50 minutes
+[2026-03-28T17:11:55.819748] [INFO] 
+[2026-03-28T17:11:55.819776] [INFO] 
+======================================================================
+[2026-03-28T17:11:55.819802] [INFO] HYPOTHESIS 1/10
+[2026-03-28T17:11:55.820222] [INFO] ======================================================================
+[2026-03-28T17:11:55.820270] [INFO] 
+[2026-03-28T17:11:55.820293] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:11:55.820317] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:11:55.820346] [INFO]   Hypothesis #1
+[2026-03-28T17:11:55.820413] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:11:55.820490] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:12:36.298117] [INFO] ✓ Generated hypothesis #1: rotational-attention-sharing
+[2026-03-28T17:12:36.299457] [INFO]   Parameter estimate: Explicit count: ~5.8M parameters (verified <10M). Breakdown: embeddings ~3.2M, rotational attention ~1.5M, FFN ~1.0M, other ~0.1M
+[2026-03-28T17:12:36.299539] [INFO]   Novelty: 3 claims
+[2026-03-28T17:12:36.299625] [INFO]   Code: ~161 lines
+[2026-03-28T17:12:36.299778] [INFO]   ✓ Parameter estimate 5.8M is within 10M budget
+[2026-03-28T17:12:36.299834] [INFO]   ✓ Parameter estimate 10.0M is within 10M budget
+[2026-03-28T17:12:36.299887] [INFO]   ✓ Parameter estimate 3.2M is within 10M budget
+[2026-03-28T17:12:36.299932] [INFO]   ✓ Parameter estimate 1.5M is within 10M budget
+[2026-03-28T17:12:36.299986] [INFO]   ✓ Parameter estimate 1.0M is within 10M budget
+[2026-03-28T17:12:36.300034] [INFO]   ✓ Parameter estimate 0.1M is within 10M budget
+[2026-03-28T17:12:36.300513] [ERROR] ✗ Hypothesis #1 failed: 'str' object has no attribute 'get'
+[2026-03-28T17:12:36.300582] [INFO] 
+✓ Hypothesis #1 complete in 40.5s
+[2026-03-28T17:12:36.300629] [INFO]   Verdict: None
+[2026-03-28T17:12:36.303184] [INFO]   [Graph Sync] Created new node: rotational-attention-sharing
+[2026-03-28T17:12:36.303740] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:12:39.305959] [INFO] 
+======================================================================
+[2026-03-28T17:12:39.306175] [INFO] HYPOTHESIS 2/10
+[2026-03-28T17:12:39.306260] [INFO] ======================================================================
+[2026-03-28T17:12:39.306357] [INFO] 
+[2026-03-28T17:12:39.306428] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:12:39.306468] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:12:39.306498] [INFO]   Hypothesis #2
+[2026-03-28T17:12:39.306525] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:12:39.306586] [INFO] Calling Anthropic API (Sonnet)...

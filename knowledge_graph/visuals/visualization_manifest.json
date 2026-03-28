@@ -1,0 +1,12 @@
+{
+  "experiment": "experiments/ten_hypothesis_run/live_run_20260328_170317",
+  "files": {
+    "evolution_movie_v2": "knowledge_graph/visuals/evolution_movie_v2.mp4",
+    "evolution_timeline": "knowledge_graph/visuals/evolution_timeline.png",
+    "hypothesis_registry": "knowledge_graph/history/registry_live_run_20260328_170317.json",
+    "kg_with_dead_ends": "knowledge_graph/visuals/kg_with_dead_ends.png",
+    "executive": "knowledge_graph/visuals/kg_executive_with_research.png"
+  },
+  "success": true,
+  "errors": []
+}

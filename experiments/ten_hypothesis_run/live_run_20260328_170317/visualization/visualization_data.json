@@ -1,0 +1,814 @@
+{
+  "timeline": [
+    {
+      "time": 0.0004763603210449219,
+      "hypothesis": 1,
+      "event": "start",
+      "theory_id": "entropy-guided-sparse-attention"
+    },
+    {
+      "time": 35.239917039871216,
+      "hypothesis": 1,
+      "event": "complete",
+      "verdict": "REFUTED",
+      "status": "complete",
+      "stage1_verdict": "REFUTED",
+      "stage2_verdict": null
+    },
+    {
+      "time": 38.245463132858276,
+      "hypothesis": 2,
+      "event": "start",
+      "theory_id": "differential-attention-routing"
+    },
+    {
+      "time": 79.0252411365509,
+      "hypothesis": 2,
+      "event": "complete",
+      "verdict": "REFUTED",
+      "status": "complete",
+      "stage1_verdict": "REFUTED",
+      "stage2_verdict": null
+    },
+    {
+      "time": 82.03088903427124,
+      "hypothesis": 3,
+      "event": "start",
+      "theory_id": "gradient-guided-sparse-attention"
+    },
+    {
+      "time": 120.3364622592926,
+      "hypothesis": 3,
+      "event": "complete",
+      "verdict": "REFUTED",
+      "status": "complete",
+      "stage1_verdict": "REFUTED",
+      "stage2_verdict": null
+    },
+    {
+      "time": 123.33976340293884,
+      "hypothesis": 4,
+      "event": "start",
+      "theory_id": "fourier-attention-gates"
+    },
+    {
+      "time": 155.5047402381897,
+      "hypothesis": 4,
+      "event": "complete",
+      "verdict": "REFUTED",
+      "status": "complete",
+      "stage1_verdict": "REFUTED",
+      "stage2_verdict": null
+    },
+    {
+      "time": 158.5085482597351,
+      "hypothesis": 5,
+      "event": "start",
+      "theory_id": "temporal-depth-modulation"
+    },
+    {
+      "time": 194.35168313980103,
+      "hypothesis": 5,
+      "event": "complete",
+      "verdict": "REFUTED",
+      "status": "complete",
+      "stage1_verdict": "REFUTED",
+      "stage2_verdict": null
+    },
+    {
+      "time": 197.35746932029724,
+      "hypothesis": 6,
+      "event": "start",
+      "theory_id": "adaptive-sparse-moe-6"
+    },
+    {
+      "time": 237.27754020690918,
+      "hypothesis": 6,
+      "event": "complete",
+      "verdict": "REFUTED",
+      "status": "complete",
+      "stage1_verdict": "REFUTED",
+      "stage2_verdict": null
+    },
+    {
+      "time": 240.28302216529846,
+      "hypothesis": 7,
+      "event": "start",
+      "theory_id": "gradient-informed-attention-v7"
+    },
+    {
+      "time": 282.00499415397644,
+      "hypothesis": 7,
+      "event": "complete",
+      "verdict": "REFUTED",
+      "status": "complete",
+      "stage1_verdict": "REFUTED",
+      "stage2_verdict": null
+    },
+    {
+      "time": 285.0108013153076,
+      "hypothesis": 8,
+      "event": "start",
+      "theory_id": "gradient-conditioned-attention-v8"
+    },
+    {
+      "time": 322.95991230010986,
+      "hypothesis": 8,
+      "event": "complete",
+      "verdict": "REFUTED",
+      "status": "complete",
+      "stage1_verdict": "REFUTED",
+      "stage2_verdict": null
+    },
+    {
+      "time": 325.966185092926,
+      "hypothesis": 9,
+      "event": "start",
+      "theory_id": "spiral-attention-h9"
+    },
+    {
+      "time": 354.6557581424713,
+      "hypothesis": 9,
+      "event": "complete",
+      "verdict": null,
+      "status": "failed",
+      "stage1_verdict": null,
+      "stage2_verdict": null
+    },
+    {
+      "time": 357.66201400756836,
+      "hypothesis": 10,
+      "event": "start",
+      "theory_id": "fractal-depth-transformer"
+    },
+    {
+      "time": 397.8293192386627,
+      "hypothesis": 10,
+      "event": "complete",
+      "verdict": null,
+      "status": "failed",
+      "stage1_verdict": null,
+      "stage2_verdict": null
+    }
+  ],
+  "evolution": [
+    {
+      "frame": 0,
+      "timestamp": 35.23495817184448,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 1,
+      "timestamp": 35.23979616165161,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 2,
+      "timestamp": 79.00128102302551,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 3,
+      "timestamp": 79.02508115768433,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 4,
+      "timestamp": 120.29797124862671,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 5,
+      "timestamp": 120.33616518974304,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 6,
+      "timestamp": 155.50162816047668,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 7,
+      "timestamp": 155.504643201828,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 8,
+      "timestamp": 194.3473379611969,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 9,
+      "timestamp": 194.35156726837158,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 10,
+      "timestamp": 237.27348518371582,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 11,
+      "timestamp": 237.27741622924805,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 12,
+      "timestamp": 281.997750043869,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 13,
+      "timestamp": 282.0048472881317,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 14,
+      "timestamp": 322.9553940296173,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    },
+    {
+      "frame": 15,
+      "timestamp": 322.9595992565155,
+      "total_ideas": 0,
+      "approved": 0,
+      "falsified": 0,
+      "stage1_passed": 0,
+      "stage2_triggered": 0,
+      "stage2_passed": 0
+    }
+  ],
+  "start_time": 1774713797.1708338,
+  "runs": [
+    {
+      "run_id": "h001_50c038c4",
+      "hypothesis_number": 1,
+      "start_time": 1774713797.1713102,
+      "end_time": 1774713832.4107509,
+      "status": "complete",
+      "idea_json": {
+        "theory_id": "entropy-guided-sparse-attention",
+        "what_and_why": "This architecture introduces 'Entropy-Guided Sparse Attention' where attention heads dynamically prune connections based on the entropy of their attention distributions. The key insight is that high-entropy attention (nearly uniform distributions) often indicates the model is attending to irrelevant information, while low-entropy attention indicates focused, meaningful connections. Each attention head maintains a running estimate of its entropy and uses this to gate connections - heads with consistently high entropy get increasingly sparse, while focused heads remain dense.\n\nThe mechanism works by computing attention entropy per head, then using a learnable threshold to determine sparsity levels. This creates a self-organizing system where useful attention patterns are preserved while noisy ones are pruned. Unlike fixed sparse attention patterns, this adapts to the data and task, potentially discovering optimal sparsity patterns automatically. The entropy signal provides a principled way to distinguish signal from noise in attention, which could lead to both efficiency gains and better generalization.",
+        "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\nfrom torch.utils.data import DataLoader\nimport numpy as np\n\nclass EntropyGuidedAttention(nn.Module):\n    def __init__(self, d_model, n_heads, entropy_alpha=0.9, min_sparsity=0.1):\n        super().__init__()\n        self.d_model = d_model\n        self.n_heads = n_heads\n        self.d_head = d_model // n_heads\n        self.entropy_alpha = entropy_alpha\n        self.min_sparsity = min_sparsity\n        \n        self.q_proj = nn.Linear(d_model, d_model)\n        self.k_proj = nn.Linear(d_model, d_model)\n        self.v_proj = nn.Linear(d_model, d_model)\n        self.out_proj = nn.Linear(d_model, d_model)\n        \n        # Entropy tracking and threshold parameters\n        self.register_buffer('entropy_ema', torch.ones(n_heads))\n        self.entropy_threshold = nn.Parameter(torch.ones(n_heads) * 2.0)\n        \n    def forward(self, x, mask=None):\n        B, L, D = x.shape\n        \n        q = self.q_proj(x).view(B, L, self.n_heads, self.d_head).transpose(1, 2)\n        k = self.k_proj(x).view(B, L, self.n_heads, self.d_head).transpose(1, 2)\n        v = self.v_proj(x).view(B, L, self.n_heads, self.d_head).transpose(1, 2)\n        \n        # Compute attention scores\n        scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_head)\n        \n        if mask is not None:\n            scores = scores.masked_fill(mask == 0, -1e9)\n            \n        attn_weights = F.softmax(scores, dim=-1)\n        \n        # Compute entropy per head (average across batch and sequence)\n        entropy = -torch.sum(attn_weights * torch.log(attn_weights + 1e-10), dim=-1)\n        head_entropy = entropy.mean(dim=[0, 2])  # Average over batch and sequence\n        \n        # Update entropy EMA\n        if self.training:\n            self.entropy_ema = self.entropy_alpha * self.entropy_ema + (1 - self.entropy_alpha) * head_entropy\n        \n        # Compute sparsity ratio based on entropy\n        sparsity_ratio = torch.sigmoid(self.entropy_ema - self.entropy_threshold)\n        sparsity_ratio = self.min_sparsity + (1 - self.min_sparsity) * sparsity_ratio\n        \n        # Apply entropy-guided sparsity\n        for h in range(self.n_heads):\n            if self.training or True:  # Apply during inference too\n                # Keep top-k attention weights based on sparsity ratio\n                k_keep = max(1, int(L * (1 - sparsity_ratio[h])))\n                _, top_indices = torch.topk(attn_weights[:, h], k_keep, dim=-1)\n                \n                # Create sparse mask\n                sparse_mask = torch.zeros_like(attn_weights[:, h])\n                sparse_mask.scatter_(-1, top_indices, 1.0)\n                \n                # Apply sparsity\n                attn_weights[:, h] = attn_weights[:, h] * sparse_mask\n                # Renormalize\n                attn_weights[:, h] = attn_weights[:, h] / (attn_weights[:, h].sum(dim=-1, keepdim=True) + 1e-10)\n        \n        out = torch.matmul(attn_weights, v)\n        out = out.transpose(1, 2).contiguous().view(B, L, D)\n        \n        return self.out_proj(out)\n\nclass EntropyTransformerBlock(nn.Module):\n    def __init__(self, d_model, n_heads, d_ff, dropout=0.1):\n        super().__init__()\n        self.attention = EntropyGuidedAttention(d_model, n_heads)\n        self.norm1 = nn.LayerNorm(d_model)\n        self.norm2 = nn.LayerNorm(d_model)\n        self.ff = nn.Sequential(\n            nn.Linear(d_model, d_ff),\n            nn.GELU(),\n            nn.Linear(d_ff, d_model),\n            nn.Dropout(dropout)\n        )\n        self.dropout = nn.Dropout(dropout)\n        \n    def forward(self, x, mask=None):\n        x = x + self.dropout(self.attention(self.norm1(x), mask))\n        x = x + self.dropout(self.ff(self.norm2(x)))\n        return x\n\nclass EntropyGPT(nn.Module):\n    def __init__(self, vocab_size, d_model=256, n_heads=8, n_layers=6, max_len=512):\n        super().__init__()\n        self.embedding = nn.Embedding(vocab_size, d_model)\n        self.pos_embedding = nn.Embedding(max_len, d_model)\n        self.blocks = nn.ModuleList([\n            EntropyTransformerBlock(d_model, n_heads, d_model * 4)\n            for _ in range(n_layers)\n        ])\n        self.ln_f = nn.LayerNorm(d_model)\n        self.head = nn.Linear(d_model, vocab_size)\n        \n    def forward(self, x, targets=None):\n        B, L = x.shape\n        pos = torch.arange(L, device=x.device).unsqueeze(0)\n        \n        x = self.embedding(x) + self.pos_embedding(pos)\n        \n        # Causal mask\n        mask = torch.tril(torch.ones(L, L, device=x.device)).unsqueeze(0).unsqueeze(0)\n        \n        for block in self.blocks:\n            x = block(x, mask)\n            \n        x = self.ln_f(x)\n        logits = self.head(x)\n        \n        if targets is not None:\n            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))\n            return logits, loss\n        \n        return logits\n\n# Training setup\nvocab_size = 1000\nmodel = EntropyGPT(vocab_size, d_model=128, n_heads=4, n_layers=4, max_len=64)\noptimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)\n\n# Synthetic data\ndef generate_batch(batch_size=16, seq_len=32):\n    x = torch.randint(0, vocab_size, (batch_size, seq_len))\n    targets = torch.roll(x, -1, dims=1)\n    return x, targets\n\n# Training loop\nmodel.train()\nfor step in range(1000):\n    x, targets = generate_batch()\n    \n    logits, loss = model(x, targets)\n    \n    optimizer.zero_grad()\n    loss.backward()\n    optimizer.step()\n    \n    if step % 100 == 0:\n        # Print entropy statistics\n        entropies = [block.attention.entropy_ema.cpu().numpy() for block in model.blocks]\n        thresholds = [block.attention.entropy_threshold.detach().cpu().numpy() for block in model.blocks]\n        print(f'Step {step}, Loss: {loss.item():.4f}')\n        print(f'Layer 0 entropies: {entropies[0]}')\n        print(f'Layer 0 thresholds: {thresholds[0]}')\n        print()",
+        "parent_architecture": "GPT-2 small",
+        "novelty_claims": [
+          "First use of attention entropy as a dynamic sparsity criterion",
+          "Self-organizing sparse attention that adapts to data patterns",
+          "Learnable entropy thresholds per attention head",
+          "EMA-based entropy tracking for stable sparsity decisions",
+          "Principled method to distinguish signal from noise in attention"
+        ],
+        "expected_behavior": "We should see attention heads naturally segregate into high-sparsity (noisy) and low-sparsity (focused) groups. Training loss should decrease while sparsity patterns emerge. Entropy values should stabilize after initial training, with some heads consistently showing low entropy (focused attention) and others high entropy (becoming sparse). The model should achieve comparable or better perplexity than dense attention while using fewer computations in the attention mechanism."
+      },
+      "stage1_result": {
+        "verdict": "REFUTED",
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "tags": [],
+        "t2_budget": {
+          "status": "FAIL_FATAL",
+          "test_id": "T2",
+          "estimated_params": 17046016,
+          "estimated_artifact_bytes": 10233556,
+          "budget_remaining_bytes": 6543660,
+          "budget_utilization": 0.6099674701690674,
+          "flops_ratio": 1.0,
+          "estimated_training_seconds": 14843.406974976,
+          "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+          "tags": [],
+          "wall_seconds": 0.0035857089969795197,
+          "attn_flops_ratio": 0.6545454545454545,
+          "mlp_flops_ratio": 0.32727272727272727,
+          "embed_flops_ratio": 0.01818181818181818,
+          "architectural_balance_score": 0.0
+        },
+        "t3_compilation": null,
+        "t4_signal": null,
+        "t5_init": null,
+        "t7_microtrain": null
+      },
+      "stage2_input": null,
+      "stage2_result": null,
+      "verdict": "REFUTED",
+      "kill_hypotheses": [],
+      "experiments_run": 0,
+      "error": null
+    },
+    {
+      "run_id": "h002_5a459764",
+      "hypothesis_number": 2,
+      "start_time": 1774713835.416297,
+      "end_time": 1774713876.196075,
+      "status": "complete",
+      "idea_json": {
+        "theory_id": "differential-attention-routing",
+        "what_and_why": "Most transformer attention is redundant - different heads often learn similar patterns, and many attention weights approach uniform distribution (entropy collapse). This architecture introduces 'Differential Attention Routing' where attention heads are dynamically pruned and merged during forward pass based on their information content divergence. Instead of fixed multi-head attention, we maintain a pool of attention 'kernels' and route tokens through only the most informative subset, determined by measuring KL divergence of attention distributions from uniform. The key insight is that attention entropy is a real-time signal of head utility - low entropy heads are doing useful work, high entropy heads are noise.\n\nThe mechanism works by computing attention weights normally, measuring entropy, then using a learned router to select which heads to actually apply and which to bypass with residual connections. This creates a dynamic, sparse attention pattern that adapts per layer and per token, potentially achieving better efficiency than fixed architectures while maintaining expressiveness. The router itself is trained with a combination of task loss and an entropy-based auxiliary loss that rewards diverse, low-entropy attention patterns.",
+        "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\nfrom torch.utils.data import DataLoader, TensorDataset\n\nclass DifferentialAttentionHead(nn.Module):\n    def __init__(self, d_model, d_k):\n        super().__init__()\n        self.d_k = d_k\n        self.q_proj = nn.Linear(d_model, d_k)\n        self.k_proj = nn.Linear(d_model, d_k)\n        self.v_proj = nn.Linear(d_model, d_k)\n        \n    def forward(self, x):\n        q, k, v = self.q_proj(x), self.k_proj(x), self.v_proj(x)\n        attn_weights = torch.softmax(q @ k.transpose(-2, -1) / math.sqrt(self.d_k), dim=-1)\n        \n        # Compute attention entropy\n        eps = 1e-8\n        entropy = -torch.sum(attn_weights * torch.log(attn_weights + eps), dim=-1).mean()\n        \n        output = attn_weights @ v\n        return output, attn_weights, entropy\n\nclass DifferentialAttentionLayer(nn.Module):\n    def __init__(self, d_model, n_heads, head_pool_size=16):\n        super().__init__()\n        self.d_model = d_model\n        self.n_heads = n_heads\n        self.head_pool_size = head_pool_size\n        self.d_k = d_model // n_heads\n        \n        # Pool of attention heads (more than we'll use)\n        self.head_pool = nn.ModuleList([\n            DifferentialAttentionHead(d_model, self.d_k) \n            for _ in range(head_pool_size)\n        ])\n        \n        # Router network\n        self.router = nn.Sequential(\n            nn.Linear(d_model, head_pool_size),\n            nn.LayerNorm(head_pool_size),\n            nn.ReLU(),\n            nn.Linear(head_pool_size, head_pool_size)\n        )\n        \n        self.output_proj = nn.Linear(d_model, d_model)\n        self.norm = nn.LayerNorm(d_model)\n        \n    def forward(self, x):\n        batch_size, seq_len, d_model = x.shape\n        \n        # Compute routing scores based on input\n        route_scores = self.router(x.mean(dim=1))  # [batch, head_pool_size]\n        \n        # Select top-k heads using Gumbel softmax for differentiability\n        temperature = 0.5\n        gumbel_noise = torch.rand_like(route_scores).log().neg().log().neg()\n        route_logits = (route_scores + gumbel_noise) / temperature\n        route_weights = F.softmax(route_logits, dim=-1)\n        \n        # Get top-k head indices\n        _, top_indices = torch.topk(route_weights, self.n_heads, dim=-1)\n        \n        outputs = []\n        entropies = []\n        \n        for i in range(batch_size):\n            batch_outputs = []\n            batch_entropies = []\n            \n            for head_idx in top_indices[i]:\n                head_out, _, entropy = self.head_pool[head_idx](x[i:i+1])\n                batch_outputs.append(head_out)\n                batch_entropies.append(entropy)\n            \n            outputs.append(torch.cat(batch_outputs, dim=-1))\n            entropies.extend(batch_entropies)\n        \n        # Combine outputs\n        multi_head_out = torch.cat(outputs, dim=0)\n        output = self.output_proj(multi_head_out)\n        \n        # Residual connection and normalization\n        output = self.norm(x + output)\n        \n        avg_entropy = sum(entropies) / len(entropies)\n        return output, avg_entropy\n\nclass DifferentialTransformerBlock(nn.Module):\n    def __init__(self, d_model, n_heads, d_ff):\n        super().__init__()\n        self.attention = DifferentialAttentionLayer(d_model, n_heads)\n        self.feed_forward = nn.Sequential(\n            nn.Linear(d_model, d_ff),\n            nn.ReLU(),\n            nn.Linear(d_ff, d_model)\n        )\n        self.norm = nn.LayerNorm(d_model)\n        \n    def forward(self, x):\n        attn_out, entropy = self.attention(x)\n        ff_out = self.feed_forward(attn_out)\n        output = self.norm(attn_out + ff_out)\n        return output, entropy\n\nclass DifferentialGPT(nn.Module):\n    def __init__(self, vocab_size=1000, d_model=256, n_layers=6, n_heads=8, d_ff=1024, max_seq_len=128):\n        super().__init__()\n        self.d_model = d_model\n        \n        self.token_embedding = nn.Embedding(vocab_size, d_model)\n        self.pos_embedding = nn.Parameter(torch.randn(max_seq_len, d_model))\n        \n        self.blocks = nn.ModuleList([\n            DifferentialTransformerBlock(d_model, n_heads, d_ff)\n            for _ in range(n_layers)\n        ])\n        \n        self.ln_f = nn.LayerNorm(d_model)\n        self.lm_head = nn.Linear(d_model, vocab_size)\n        \n    def forward(self, x):\n        seq_len = x.shape[1]\n        \n        # Embeddings\n        token_emb = self.token_embedding(x)\n        pos_emb = self.pos_embedding[:seq_len]\n        x = token_emb + pos_emb\n        \n        entropies = []\n        for block in self.blocks:\n            x, entropy = block(x)\n            entropies.append(entropy)\n        \n        x = self.ln_f(x)\n        logits = self.lm_head(x)\n        \n        return logits, entropies\n\n# Training script\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\n\n# Create synthetic data\nvocab_size = 1000\nseq_len = 64\nbatch_size = 16\nn_samples = 1000\n\ndata = torch.randint(0, vocab_size, (n_samples, seq_len))\ntargets = torch.roll(data, -1, dims=1)\ndataset = TensorDataset(data, targets)\ndataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)\n\n# Initialize model\nmodel = DifferentialGPT(vocab_size=vocab_size, d_model=256, n_layers=4, n_heads=4, d_ff=512, max_seq_len=seq_len).to(device)\noptimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)\nscheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100)\n\n# Training loop\nmodel.train()\nfor epoch in range(100):\n    total_loss = 0\n    total_entropy_loss = 0\n    \n    for batch_idx, (data_batch, targets_batch) in enumerate(dataloader):\n        data_batch, targets_batch = data_batch.to(device), targets_batch.to(device)\n        \n        optimizer.zero_grad()\n        \n        logits, entropies = model(data_batch)\n        \n        # Language modeling loss\n        lm_loss = F.cross_entropy(logits.reshape(-1, vocab_size), targets_batch.reshape(-1))\n        \n        # Entropy regularization (encourage diverse, low-entropy attention)\n        entropy_loss = sum(entropies) / len(entropies)\n        entropy_regularization = 0.01 * entropy_loss  # Penalize high entropy\n        \n        total_loss_val = lm_loss + entropy_regularization\n        total_loss_val.backward()\n        \n        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)\n        optimizer.step()\n        \n        total_loss += lm_loss.item()\n        total_entropy_loss += entropy_loss.item()\n    \n    scheduler.step()\n    \n    if epoch % 10 == 0:\n        avg_loss = total_loss / len(dataloader)\n        avg_entropy = total_entropy_loss / len(dataloader)\n        print(f'Epoch {epoch}: Loss = {avg_loss:.4f}, Avg Entropy = {avg_entropy:.4f}')\n\nprint('Training completed!')",
+        "parent_architecture": "GPT-2 small",
+        "novelty_claims": [
+          "Dynamic attention head selection based on real-time entropy measurement",
+          "Differentiable routing network that selects optimal attention kernels per forward pass",
+          "Entropy-based auxiliary loss for training attention diversity",
+          "Pool of attention heads larger than active set, enabling specialization",
+          "Per-token adaptive sparsity without fixed sparsity patterns"
+        ],
+        "expected_behavior": "Training should show decreasing language modeling loss with oscillating entropy values that gradually stabilize at low values (indicating focused attention). The router should learn to consistently select different head combinations for different input patterns. We expect faster convergence than baseline GPT due to reduced attention noise, and the entropy regularization should prevent attention collapse while maintaining task performance. Memory usage should be similar to baseline despite larger head pool due to sparse activation."
+      },
+      "stage1_result": {
+        "verdict": "REFUTED",
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "tags": [],
+        "t2_budget": {
+          "status": "FAIL_FATAL",
+          "test_id": "T2",
+          "estimated_params": 17046016,
+          "estimated_artifact_bytes": 10234393,
+          "budget_remaining_bytes": 6542823,
+          "budget_utilization": 0.6100173592567444,
+          "flops_ratio": 1.0,
+          "estimated_training_seconds": 14843.406974976,
+          "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+          "tags": [],
+          "wall_seconds": 0.022067332989536226,
+          "attn_flops_ratio": 0.6545454545454545,
+          "mlp_flops_ratio": 0.32727272727272727,
+          "embed_flops_ratio": 0.01818181818181818,
+          "architectural_balance_score": 0.0
+        },
+        "t3_compilation": null,
+        "t4_signal": null,
+        "t5_init": null,
+        "t7_microtrain": null
+      },
+      "stage2_input": null,
+      "stage2_result": null,
+      "verdict": "REFUTED",
+      "kill_hypotheses": [],
+      "experiments_run": 0,
+      "error": null
+    },
+    {
+      "run_id": "h003_6a420b32",
+      "hypothesis_number": 3,
+      "start_time": 1774713879.2017229,
+      "end_time": 1774713917.507296,
+      "status": "complete",
+      "idea_json": {
+        "theory_id": "gradient-guided-sparse-attention",
+        "what_and_why": "Current sparse attention patterns (local, random, strided) are fixed and don't adapt to what the model is actually learning. This architecture introduces 'gradient-guided sparsity' where attention patterns evolve based on gradient magnitudes during training. The key insight is that tokens with high gradient magnitudes during backpropagation are informationally important and should receive more attention bandwidth in future forward passes. We maintain a running exponential average of gradient magnitudes per position and use this to dynamically route attention connections.\n\nThe mechanism works by computing a 'gradient importance score' for each token position based on recent gradient history. During attention computation, we use these scores to create adaptive sparse patterns - high-importance tokens get dense attention while low-importance regions use sparser patterns. This creates a feedback loop where the model's own learning signal guides its attention allocation, potentially discovering more efficient information pathways than hand-designed patterns.",
+        "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.optim as optim\nimport math\nfrom torch.nn import functional as F\n\nclass GradientGuidedAttention(nn.Module):\n    def __init__(self, d_model, n_heads, seq_len, sparsity_ratio=0.3):\n        super().__init__()\n        self.d_model = d_model\n        self.n_heads = n_heads\n        self.seq_len = seq_len\n        self.head_dim = d_model // n_heads\n        self.sparsity_ratio = sparsity_ratio\n        \n        self.q_proj = nn.Linear(d_model, d_model, bias=False)\n        self.k_proj = nn.Linear(d_model, d_model, bias=False)\n        self.v_proj = nn.Linear(d_model, d_model, bias=False)\n        self.out_proj = nn.Linear(d_model, d_model, bias=False)\n        \n        # Gradient importance tracking\n        self.register_buffer('grad_importance', torch.ones(seq_len))\n        self.importance_decay = 0.95\n        self.grad_scale = 100.0\n        \n    def update_importance_scores(self, x_grad):\n        if x_grad is not None:\n            # Compute gradient magnitude per position\n            pos_grad_mag = torch.norm(x_grad, dim=-1).mean(0)  # [seq_len]\n            # Update exponential moving average\n            self.grad_importance = self.importance_decay * self.grad_importance + \\\n                                 (1 - self.importance_decay) * pos_grad_mag.detach()\n    \n    def create_sparse_mask(self, seq_len, batch_size):\n        # Create attention mask based on gradient importance\n        importance_probs = F.softmax(self.grad_importance[:seq_len] * self.grad_scale, dim=0)\n        \n        # Each position gets attention based on importance\n        keep_prob = 1 - self.sparsity_ratio\n        base_connections = int(seq_len * keep_prob)\n        \n        mask = torch.zeros(seq_len, seq_len, device=self.grad_importance.device)\n        \n        for i in range(seq_len):\n            # Always attend to self and local neighbors\n            mask[i, max(0, i-1):min(seq_len, i+2)] = 1\n            \n            # Add importance-weighted random connections\n            n_extra = max(0, base_connections - 3)  # minus local connections\n            if n_extra > 0:\n                # Sample based on importance scores\n                candidates = torch.arange(seq_len, device=mask.device)\n                weights = importance_probs.clone()\n                weights[max(0, i-1):min(seq_len, i+2)] = 0  # exclude already connected\n                \n                if weights.sum() > 0:\n                    selected = torch.multinomial(weights, min(n_extra, (weights > 0).sum()), replacement=False)\n                    mask[i, selected] = 1\n        \n        return mask.unsqueeze(0).expand(batch_size, -1, -1)\n    \n    def forward(self, x):\n        B, T, C = x.shape\n        \n        q = self.q_proj(x).view(B, T, self.n_heads, self.head_dim).transpose(1, 2)\n        k = self.k_proj(x).view(B, T, self.n_heads, self.head_dim).transpose(1, 2)\n        v = self.v_proj(x).view(B, T, self.n_heads, self.head_dim).transpose(1, 2)\n        \n        # Compute attention scores\n        scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.head_dim)\n        \n        # Apply gradient-guided sparse mask\n        sparse_mask = self.create_sparse_mask(T, B)\n        scores = scores.masked_fill(sparse_mask.unsqueeze(1) == 0, float('-inf'))\n        \n        # Causal mask\n        causal_mask = torch.triu(torch.ones(T, T, device=x.device), diagonal=1).bool()\n        scores = scores.masked_fill(causal_mask.unsqueeze(0).unsqueeze(0), float('-inf'))\n        \n        attn = F.softmax(scores, dim=-1)\n        out = torch.matmul(attn, v)\n        \n        out = out.transpose(1, 2).contiguous().view(B, T, C)\n        return self.out_proj(out)\n\nclass GradientGuidedTransformerBlock(nn.Module):\n    def __init__(self, d_model, n_heads, seq_len):\n        super().__init__()\n        self.attn = GradientGuidedAttention(d_model, n_heads, seq_len)\n        self.mlp = nn.Sequential(\n            nn.Linear(d_model, 4 * d_model),\n            nn.GELU(),\n            nn.Linear(4 * d_model, d_model)\n        )\n        self.ln1 = nn.LayerNorm(d_model)\n        self.ln2 = nn.LayerNorm(d_model)\n        \n    def forward(self, x):\n        x_norm = self.ln1(x)\n        x = x + self.attn(x_norm)\n        x = x + self.mlp(self.ln2(x))\n        return x\n\nclass GradientGuidedGPT(nn.Module):\n    def __init__(self, vocab_size=50257, d_model=384, n_heads=6, n_layers=6, seq_len=256):\n        super().__init__()\n        self.seq_len = seq_len\n        self.tok_emb = nn.Embedding(vocab_size, d_model)\n        self.pos_emb = nn.Embedding(seq_len, d_model)\n        self.blocks = nn.ModuleList([GradientGuidedTransformerBlock(d_model, n_heads, seq_len) for _ in range(n_layers)])\n        self.ln_f = nn.LayerNorm(d_model)\n        self.head = nn.Linear(d_model, vocab_size, bias=False)\n        \n    def forward(self, x):\n        B, T = x.shape\n        pos = torch.arange(T, device=x.device)\n        \n        x = self.tok_emb(x) + self.pos_emb(pos)\n        \n        for block in self.blocks:\n            x = block(x)\n            \n        x = self.ln_f(x)\n        return self.head(x)\n    \n    def update_gradient_importance(self):\n        # Update importance scores in all attention layers\n        for block in self.blocks:\n            if hasattr(block.attn.tok_emb, 'grad') and block.attn.tok_emb.grad is not None:\n                block.attn.update_importance_scores(block.attn.tok_emb.grad)\n\n# Training code\ndevice = 'cuda' if torch.cuda.is_available() else 'cpu'\nmodel = GradientGuidedGPT().to(device)\noptimizer = optim.AdamW(model.parameters(), lr=3e-4, weight_decay=0.1)\n\n# Dummy data for micro-training\nseq_len = 256\nbatch_size = 4\nnum_steps = 1000\n\nlosses = []\nfor step in range(num_steps):\n    # Generate random data\n    x = torch.randint(0, 50257, (batch_size, seq_len), device=device)\n    y = torch.cat([x[:, 1:], torch.randint(0, 50257, (batch_size, 1), device=device)], dim=1)\n    \n    optimizer.zero_grad()\n    logits = model(x)\n    loss = F.cross_entropy(logits.view(-1, logits.size(-1)), y.view(-1))\n    loss.backward()\n    \n    # Update gradient importance scores\n    model.update_gradient_importance()\n    \n    optimizer.step()\n    losses.append(loss.item())\n    \n    if step % 100 == 0:\n        print(f'Step {step}, Loss: {loss.item():.4f}')\n\nprint(f'Final loss: {losses[-1]:.4f}, Improvement: {losses[0] - losses[-1]:.4f}')",
+        "parent_architecture": "GPT-2 small with sparse attention",
+        "novelty_claims": [
+          "Gradient-magnitude-driven attention sparsity patterns that adapt during training",
+          "Exponential moving average tracking of positional gradient importance",
+          "Feedback loop between backpropagation signals and forward pass attention routing",
+          "Dynamic sparse masks based on learned token importance rather than fixed patterns",
+          "Self-organizing attention connectivity guided by optimization dynamics"
+        ],
+        "expected_behavior": "Training should show initial high loss as the model learns baseline patterns, followed by accelerated convergence as gradient-guided sparsity identifies important connections. Loss curves should be smoother than fixed sparse attention due to adaptive routing. Attention patterns should evolve from random to structured, with high-gradient positions receiving more attention bandwidth. The model should achieve similar or better performance than dense attention while using significantly fewer attention operations."
+      },
+      "stage1_result": {
+        "verdict": "REFUTED",
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "tags": [],
+        "t2_budget": {
+          "status": "FAIL_FATAL",
+          "test_id": "T2",
+          "estimated_params": 17046016,
+          "estimated_artifact_bytes": 10233953,
+          "budget_remaining_bytes": 6543263,
+          "budget_utilization": 0.6099911332130432,
+          "flops_ratio": 1.0,
+          "estimated_training_seconds": 14843.406974976,
+          "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+          "tags": [],
+          "wall_seconds": 0.0362294579972513,
+          "attn_flops_ratio": 0.6545454545454545,
+          "mlp_flops_ratio": 0.32727272727272727,
+          "embed_flops_ratio": 0.01818181818181818,
+          "architectural_balance_score": 0.0
+        },
+        "t3_compilation": null,
+        "t4_signal": null,
+        "t5_init": null,
+        "t7_microtrain": null
+      },
+      "stage2_input": null,
+      "stage2_result": null,
+      "verdict": "REFUTED",
+      "kill_hypotheses": [],
+      "experiments_run": 0,
+      "error": null
+    },
+    {
+      "run_id": "h004_7cb113a4",
+      "hypothesis_number": 4,
+      "start_time": 1774713920.5105972,
+      "end_time": 1774713952.675574,
+      "status": "complete",
+      "idea_json": {
+        "theory_id": "fourier-attention-gates",
+        "what_and_why": "Traditional attention mechanisms compute pairwise similarities between all tokens, creating O(n\u00b2) complexity. This architecture replaces standard attention with Fourier Transform-based global attention gates that operate in frequency domain. The key insight is that many natural language patterns (syntax, rhythm, periodicity) have strong frequency domain representations. By applying FFT to token embeddings, we can identify global patterns more efficiently than pairwise attention.\n\nThe mechanism works by: (1) Taking FFT of token embeddings along sequence dimension, (2) Learning frequency-domain filters that act as global attention gates, (3) Applying inverse FFT to get spatially-aware representations. This achieves global context awareness with O(n log n) complexity. The frequency filters can learn to attend to different linguistic scales - high frequencies for local syntax, low frequencies for document structure.",
+        "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\nfrom torch.utils.data import DataLoader, TensorDataset\n\nclass FourierAttentionBlock(nn.Module):\n    def __init__(self, d_model, num_freq_filters=64):\n        super().__init__()\n        self.d_model = d_model\n        self.num_freq_filters = num_freq_filters\n        \n        # Frequency domain gates\n        self.freq_gates = nn.Parameter(torch.randn(num_freq_filters, d_model) * 0.02)\n        self.freq_bias = nn.Parameter(torch.zeros(num_freq_filters, d_model))\n        \n        # Mixing weights for combining frequency components\n        self.freq_mix = nn.Linear(num_freq_filters, 1, bias=False)\n        \n        # Traditional components\n        self.norm1 = nn.LayerNorm(d_model)\n        self.norm2 = nn.LayerNorm(d_model)\n        self.ffn = nn.Sequential(\n            nn.Linear(d_model, 4 * d_model),\n            nn.GELU(),\n            nn.Linear(4 * d_model, d_model)\n        )\n        \n    def forward(self, x):\n        # x: [batch, seq_len, d_model]\n        residual = x\n        x = self.norm1(x)\n        \n        # Apply FFT along sequence dimension\n        x_freq = torch.fft.fft(x, dim=1)  # Complex tensor\n        seq_len = x.size(1)\n        \n        # Take only meaningful frequency components\n        n_freqs = min(self.num_freq_filters, seq_len // 2 + 1)\n        x_freq_trunc = x_freq[:, :n_freqs, :]\n        \n        # Apply frequency-domain gates\n        gates = torch.sigmoid(self.freq_gates[:n_freqs] + self.freq_bias[:n_freqs])\n        x_gated = x_freq_trunc * gates.unsqueeze(0)\n        \n        # Reconstruct full frequency representation\n        x_freq_full = torch.zeros_like(x_freq)\n        x_freq_full[:, :n_freqs, :] = x_gated\n        \n        # Inverse FFT\n        x_spatial = torch.fft.ifft(x_freq_full, dim=1).real\n        \n        # Mix frequency information\n        freq_weights = F.softmax(self.freq_mix.weight[:n_freqs], dim=0)\n        x_mixed = torch.sum(x_gated.real * freq_weights.view(1, -1, 1), dim=1, keepdim=True)\n        x_mixed = x_mixed.expand(-1, seq_len, -1)\n        \n        # Combine spatial and frequency representations\n        x = x_spatial + 0.1 * x_mixed\n        x = x + residual\n        \n        # FFN\n        residual = x\n        x = self.norm2(x)\n        x = self.ffn(x)\n        x = x + residual\n        \n        return x\n\nclass FourierGPT(nn.Module):\n    def __init__(self, vocab_size=1000, d_model=256, num_layers=6, max_seq_len=512):\n        super().__init__()\n        self.d_model = d_model\n        self.max_seq_len = max_seq_len\n        \n        self.token_embedding = nn.Embedding(vocab_size, d_model)\n        self.pos_embedding = nn.Embedding(max_seq_len, d_model)\n        \n        self.layers = nn.ModuleList([\n            FourierAttentionBlock(d_model) for _ in range(num_layers)\n        ])\n        \n        self.final_norm = nn.LayerNorm(d_model)\n        self.output_projection = nn.Linear(d_model, vocab_size)\n        \n        self.apply(self._init_weights)\n        \n    def _init_weights(self, module):\n        if isinstance(module, nn.Linear):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            if module.bias is not None:\n                torch.nn.init.zeros_(module.bias)\n        elif isinstance(module, nn.Embedding):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            \n    def forward(self, x, targets=None):\n        seq_len = x.size(1)\n        pos_ids = torch.arange(seq_len, device=x.device)\n        \n        x = self.token_embedding(x) + self.pos_embedding(pos_ids)\n        \n        for layer in self.layers:\n            x = layer(x)\n            \n        x = self.final_norm(x)\n        logits = self.output_projection(x)\n        \n        loss = None\n        if targets is not None:\n            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))\n            \n        return logits, loss\n\n# Training setup\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = FourierGPT(vocab_size=1000, d_model=256, num_layers=6).to(device)\noptimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.01)\n\n# Generate synthetic data\nbatch_size = 8\nseq_len = 128\nnum_batches = 100\n\n# Create training data with some periodic patterns\ntrain_data = []\nfor _ in range(num_batches):\n    # Add some periodic structure to test frequency domain learning\n    base = torch.randint(0, 1000, (batch_size, seq_len))\n    # Add periodic pattern every 16 tokens\n    for i in range(0, seq_len, 16):\n        if i + 8 < seq_len:\n            base[:, i:i+8] = torch.randint(100, 200, (batch_size, 8))\n    train_data.append(base)\n\n# Training loop\nmodel.train()\ntrain_losses = []\n\nfor epoch in range(20):\n    epoch_losses = []\n    \n    for batch_idx, batch in enumerate(train_data):\n        batch = batch.to(device)\n        inputs = batch[:, :-1]\n        targets = batch[:, 1:]\n        \n        optimizer.zero_grad()\n        logits, loss = model(inputs, targets)\n        loss.backward()\n        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)\n        optimizer.step()\n        \n        epoch_losses.append(loss.item())\n        \n    avg_loss = sum(epoch_losses) / len(epoch_losses)\n    train_losses.append(avg_loss)\n    print(f'Epoch {epoch+1}, Loss: {avg_loss:.4f}')\n\nprint('Training completed!')\nprint(f'Final loss: {train_losses[-1]:.4f}')",
+        "parent_architecture": "GPT-2 small",
+        "novelty_claims": [
+          "Replaces O(n\u00b2) attention with O(n log n) FFT-based global attention",
+          "Learns frequency-domain gates that capture linguistic patterns at different scales",
+          "Combines spatial and frequency domain representations for richer context modeling",
+          "Uses learnable frequency filters instead of fixed attention patterns",
+          "Exploits natural language's periodic/rhythmic structure through frequency analysis"
+        ],
+        "expected_behavior": "Should show faster convergence on sequences with periodic patterns. Training loss should decrease more rapidly than standard GPT on synthetic data with embedded periodicities. Memory usage should scale better with sequence length. Frequency gates should learn interpretable patterns - low frequencies for global structure, high frequencies for local syntax. May show unique capability to model long-range dependencies in structured text."
+      },
+      "stage1_result": {
+        "verdict": "REFUTED",
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "tags": [],
+        "t2_budget": {
+          "status": "FAIL_FATAL",
+          "test_id": "T2",
+          "estimated_params": 17046016,
+          "estimated_artifact_bytes": 10232990,
+          "budget_remaining_bytes": 6544226,
+          "budget_utilization": 0.6099337339401245,
+          "flops_ratio": 1.0,
+          "estimated_training_seconds": 14843.406974976,
+          "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+          "tags": [],
+          "wall_seconds": 0.0019471659907139838,
+          "attn_flops_ratio": 0.6545454545454545,
+          "mlp_flops_ratio": 0.32727272727272727,
+          "embed_flops_ratio": 0.01818181818181818,
+          "architectural_balance_score": 0.0
+        },
+        "t3_compilation": null,
+        "t4_signal": null,
+        "t5_init": null,
+        "t7_microtrain": null
+      },
+      "stage2_input": null,
+      "stage2_result": null,
+      "verdict": "REFUTED",
+      "kill_hypotheses": [],
+      "experiments_run": 0,
+      "error": null
+    },
+    {
+      "run_id": "h005_3f1b76df",
+      "hypothesis_number": 5,
+      "start_time": 1774713955.679382,
+      "end_time": 1774713991.522517,
+      "status": "complete",
+      "idea_json": {
+        "theory_id": "temporal-depth-modulation",
+        "what_and_why": "Current transformers use fixed depth throughout training and inference, but this may be suboptimal. Early in training, when the model is learning basic patterns, shallow networks might be more efficient and less prone to optimization difficulties. As training progresses and more complex relationships need to be captured, deeper processing becomes beneficial. This architecture implements 'Temporal Depth Modulation' where the effective depth of the transformer increases dynamically during training based on gradient flow patterns and loss plateaus. The key insight is that we can start with only the first few layers active, then progressively 'unlock' deeper layers when the gradient magnitude in active layers drops below a threshold, indicating the current depth has saturated its learning capacity. This could dramatically improve training efficiency by avoiding early-training optimization difficulties associated with very deep networks, while still achieving the representational power of deep models.",
+        "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\n\nclass TemporalDepthGPT(nn.Module):\n    def __init__(self, vocab_size=50257, n_embd=768, n_head=12, n_layer=12, max_seq_len=1024):\n        super().__init__()\n        self.n_layer = n_layer\n        self.active_layers = 2  # Start with only 2 layers active\n        self.gradient_threshold = 1e-3\n        self.patience_counter = 0\n        self.patience_limit = 100  # Steps to wait before adding layer\n        \n        # Token and position embeddings\n        self.wte = nn.Embedding(vocab_size, n_embd)\n        self.wpe = nn.Embedding(max_seq_len, n_embd)\n        \n        # All transformer blocks (but not all will be active initially)\n        self.blocks = nn.ModuleList([\n            TransformerBlock(n_embd, n_head) for _ in range(n_layer)\n        ])\n        \n        # Layer norm and output head\n        self.ln_f = nn.LayerNorm(n_embd)\n        self.lm_head = nn.Linear(n_embd, vocab_size, bias=False)\n        \n        # Track gradient magnitudes for depth decisions\n        self.grad_magnitudes = []\n        \n    def forward(self, idx, targets=None):\n        b, t = idx.size()\n        pos = torch.arange(0, t, dtype=torch.long, device=idx.device)\n        \n        # Embeddings\n        tok_emb = self.wte(idx)\n        pos_emb = self.wpe(pos)\n        x = tok_emb + pos_emb\n        \n        # Forward through only active layers\n        for i in range(min(self.active_layers, self.n_layer)):\n            x = self.blocks[i](x)\n        \n        x = self.ln_f(x)\n        \n        if targets is not None:\n            logits = self.lm_head(x)\n            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)\n            return logits, loss\n        else:\n            logits = self.lm_head(x[:, [-1], :])\n            return logits\n    \n    def update_depth(self):\n        \"\"\"Called after backward pass to potentially increase depth\"\"\"\n        if self.active_layers >= self.n_layer:\n            return\n        \n        # Calculate average gradient magnitude in active layers\n        total_grad_mag = 0\n        param_count = 0\n        for i in range(self.active_layers):\n            for param in self.blocks[i].parameters():\n                if param.grad is not None:\n                    total_grad_mag += param.grad.abs().mean().item()\n                    param_count += 1\n        \n        if param_count > 0:\n            avg_grad_mag = total_grad_mag / param_count\n            self.grad_magnitudes.append(avg_grad_mag)\n            \n            # If gradients are small, we might have saturated current depth\n            if avg_grad_mag < self.gradient_threshold:\n                self.patience_counter += 1\n                if self.patience_counter >= self.patience_limit:\n                    self.active_layers = min(self.active_layers + 1, self.n_layer)\n                    self.patience_counter = 0\n                    print(f\"Increased active layers to {self.active_layers}\")\n            else:\n                self.patience_counter = 0\n\nclass TransformerBlock(nn.Module):\n    def __init__(self, n_embd, n_head):\n        super().__init__()\n        self.ln1 = nn.LayerNorm(n_embd)\n        self.attn = MultiHeadAttention(n_embd, n_head)\n        self.ln2 = nn.LayerNorm(n_embd)\n        self.mlp = MLP(n_embd)\n        \n    def forward(self, x):\n        x = x + self.attn(self.ln1(x))\n        x = x + self.mlp(self.ln2(x))\n        return x\n\nclass MultiHeadAttention(nn.Module):\n    def __init__(self, n_embd, n_head):\n        super().__init__()\n        self.n_head = n_head\n        self.n_embd = n_embd\n        self.head_dim = n_embd // n_head\n        \n        self.qkv = nn.Linear(n_embd, 3 * n_embd)\n        self.proj = nn.Linear(n_embd, n_embd)\n        \n    def forward(self, x):\n        B, T, C = x.size()\n        \n        qkv = self.qkv(x)\n        q, k, v = qkv.chunk(3, dim=-1)\n        \n        q = q.view(B, T, self.n_head, self.head_dim).transpose(1, 2)\n        k = k.view(B, T, self.n_head, self.head_dim).transpose(1, 2)\n        v = v.view(B, T, self.n_head, self.head_dim).transpose(1, 2)\n        \n        att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(self.head_dim))\n        att = att.masked_fill(torch.tril(torch.ones(T, T, device=x.device)) == 0, float('-inf'))\n        att = F.softmax(att, dim=-1)\n        \n        y = att @ v\n        y = y.transpose(1, 2).contiguous().view(B, T, C)\n        y = self.proj(y)\n        return y\n\nclass MLP(nn.Module):\n    def __init__(self, n_embd):\n        super().__init__()\n        self.c_fc = nn.Linear(n_embd, 4 * n_embd)\n        self.c_proj = nn.Linear(4 * n_embd, n_embd)\n        \n    def forward(self, x):\n        x = F.gelu(self.c_fc(x))\n        x = self.c_proj(x)\n        return x\n\n# Training loop\ndef train_temporal_depth_gpt():\n    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\n    model = TemporalDepthGPT(vocab_size=1000, n_embd=256, n_head=8, n_layer=8).to(device)\n    optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=0.1)\n    \n    # Dummy data\n    batch_size, seq_len = 4, 128\n    \n    losses = []\n    active_layers_history = []\n    \n    for step in range(1000):\n        # Generate random data\n        x = torch.randint(0, 1000, (batch_size, seq_len), device=device)\n        y = torch.randint(0, 1000, (batch_size, seq_len), device=device)\n        \n        optimizer.zero_grad()\n        logits, loss = model(x, y)\n        loss.backward()\n        \n        # Update depth based on gradient analysis\n        model.update_depth()\n        \n        optimizer.step()\n        \n        losses.append(loss.item())\n        active_layers_history.append(model.active_layers)\n        \n        if step % 100 == 0:\n            print(f\"Step {step}, Loss: {loss.item():.4f}, Active layers: {model.active_layers}\")\n    \n    return losses, active_layers_history\n\nif __name__ == '__main__':\n    losses, active_layers_history = train_temporal_depth_gpt()\n    print(f\"Final active layers: {active_layers_history[-1]}\")\n    print(f\"Final loss: {losses[-1]:.4f}\")",
+        "parent_architecture": "GPT-2 small",
+        "novelty_claims": [
+          "Dynamic depth adjustment during training based on gradient flow analysis",
+          "Progressive layer activation mechanism that starts shallow and grows deeper",
+          "Gradient magnitude threshold system for determining optimal depth expansion timing",
+          "Patience-based layer unlocking to avoid premature depth increases",
+          "Training efficiency optimization through adaptive architecture complexity"
+        ],
+        "expected_behavior": "Training should start with faster convergence in early steps due to shallow depth, then show periodic improvements as new layers activate. We should see step-wise drops in loss when layers are added, and the active_layers count should gradually increase from 2 to the full depth. The model should achieve similar final performance to a full-depth baseline but with significantly faster early training and better gradient flow."
+      },
+      "stage1_result": {
+        "verdict": "REFUTED",
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "tags": [],
+        "t2_budget": {
+          "status": "FAIL_FATAL",
+          "test_id": "T2",
+          "estimated_params": 17046016,
+          "estimated_artifact_bytes": 10233667,
+          "budget_remaining_bytes": 6543549,
+          "budget_utilization": 0.6099740862846375,
+          "flops_ratio": 1.0,
+          "estimated_training_seconds": 14843.406974976,
+          "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+          "tags": [],
+          "wall_seconds": 0.0028287079912843183,
+          "attn_flops_ratio": 0.6545454545454545,
+          "mlp_flops_ratio": 0.32727272727272727,
+          "embed_flops_ratio": 0.01818181818181818,
+          "architectural_balance_score": 0.0
+        },
+        "t3_compilation": null,
+        "t4_signal": null,
+        "t5_init": null,
+        "t7_microtrain": null
+      },
+      "stage2_input": null,
+      "stage2_result": null,
+      "verdict": "REFUTED",
+      "kill_hypotheses": [],
+      "experiments_run": 0,
+      "error": null
+    },
+    {
+      "run_id": "h006_5d5580ee",
+      "hypothesis_number": 6,
+      "start_time": 1774713994.5283031,
+      "end_time": 1774714034.448374,
+      "status": "complete",
+      "idea_json": {
+        "theory_id": "adaptive-sparse-moe-6",
+        "what_and_why": "Traditional transformers process all tokens with the same computational budget, but not all tokens are equally difficult to predict. This architecture introduces Adaptive Sparse Mixture of Experts (AdaMoE) where the model dynamically allocates computational resources based on token-level uncertainty. The key insight is that uncertainty can be estimated cheaply using gradient magnitude during training, and tokens with higher uncertainty should receive more expert capacity.\n\nThe mechanism works by maintaining a lightweight uncertainty estimator that tracks per-token gradient magnitudes across layers. Based on this uncertainty, tokens are routed to different numbers of experts (1-4) within each MoE layer. Uncertain tokens get routed to multiple experts whose outputs are weighted by uncertainty scores, while certain tokens use single experts. This creates a natural curriculum where the model learns to identify which tokens need more computation and adapts accordingly.",
+        "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\nfrom torch.optim import AdamW\nfrom torch.utils.data import DataLoader, TensorDataset\n\nclass UncertaintyEstimator(nn.Module):\n    def __init__(self, d_model):\n        super().__init__()\n        self.ema_decay = 0.99\n        self.register_buffer('grad_ema', torch.zeros(1))\n        self.uncertainty_head = nn.Linear(d_model, 1)\n        \n    def forward(self, x, training=True):\n        if training and x.requires_grad:\n            # Estimate uncertainty from gradient magnitude\n            uncertainty_raw = self.uncertainty_head(x)\n            uncertainty = torch.sigmoid(uncertainty_raw).squeeze(-1)\n            \n            # Update EMA of gradient magnitude\n            if self.grad_ema.sum() > 0:\n                grad_mag = torch.norm(torch.autograd.grad(uncertainty.sum(), x, retain_graph=True)[0], dim=-1)\n                self.grad_ema = self.ema_decay * self.grad_ema + (1 - self.ema_decay) * grad_mag.mean()\n            \n            return uncertainty\n        else:\n            return torch.sigmoid(self.uncertainty_head(x)).squeeze(-1)\n\nclass AdaptiveMoELayer(nn.Module):\n    def __init__(self, d_model, d_ff, num_experts=4):\n        super().__init__()\n        self.d_model = d_model\n        self.num_experts = num_experts\n        \n        # Create experts\n        self.experts = nn.ModuleList([\n            nn.Sequential(\n                nn.Linear(d_model, d_ff),\n                nn.ReLU(),\n                nn.Linear(d_ff, d_model)\n            ) for _ in range(num_experts)\n        ])\n        \n        # Uncertainty-based routing\n        self.uncertainty_estimator = UncertaintyEstimator(d_model)\n        \n    def forward(self, x):\n        batch_size, seq_len, d_model = x.shape\n        \n        # Estimate uncertainty for each token\n        uncertainty = self.uncertainty_estimator(x, self.training)\n        \n        # Determine number of experts per token based on uncertainty\n        # High uncertainty -> more experts (up to 4)\n        num_experts_per_token = torch.clamp(torch.ceil(uncertainty * self.num_experts), 1, self.num_experts).long()\n        \n        output = torch.zeros_like(x)\n        \n        for i in range(1, self.num_experts + 1):\n            # Mask for tokens that should use i experts\n            mask = (num_experts_per_token >= i)\n            if not mask.any():\n                continue\n                \n            # Select expert based on token position and uncertainty\n            expert_idx = ((torch.arange(seq_len, device=x.device).unsqueeze(0) + i - 1) % self.num_experts)\n            \n            for j in range(self.num_experts):\n                expert_mask = mask & (expert_idx == j)\n                if expert_mask.any():\n                    expert_input = x[expert_mask]\n                    expert_output = self.experts[j](expert_input)\n                    \n                    # Weight by normalized uncertainty\n                    weight = uncertainty[expert_mask].unsqueeze(-1) / i\n                    output[expert_mask] += expert_output * weight\n        \n        return output\n\nclass AdaptiveMoEBlock(nn.Module):\n    def __init__(self, d_model, d_ff, n_heads, num_experts=4):\n        super().__init__()\n        self.ln1 = nn.LayerNorm(d_model)\n        self.attn = nn.MultiheadAttention(d_model, n_heads, batch_first=True)\n        self.ln2 = nn.LayerNorm(d_model)\n        self.moe = AdaptiveMoELayer(d_model, d_ff, num_experts)\n        \n    def forward(self, x, attn_mask=None):\n        # Attention\n        attn_out, _ = self.attn(self.ln1(x), self.ln1(x), self.ln1(x), attn_mask=attn_mask)\n        x = x + attn_out\n        \n        # Adaptive MoE\n        moe_out = self.moe(self.ln2(x))\n        x = x + moe_out\n        \n        return x\n\nclass AdaptiveMoETransformer(nn.Module):\n    def __init__(self, vocab_size, d_model=384, n_heads=6, n_layers=6, d_ff=1536, max_len=512, num_experts=4):\n        super().__init__()\n        self.d_model = d_model\n        \n        self.token_emb = nn.Embedding(vocab_size, d_model)\n        self.pos_emb = nn.Embedding(max_len, d_model)\n        \n        self.blocks = nn.ModuleList([\n            AdaptiveMoEBlock(d_model, d_ff, n_heads, num_experts) for _ in range(n_layers)\n        ])\n        \n        self.ln_f = nn.LayerNorm(d_model)\n        self.head = nn.Linear(d_model, vocab_size, bias=False)\n        \n        self.apply(self._init_weights)\n        \n    def _init_weights(self, module):\n        if isinstance(module, nn.Linear):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            if module.bias is not None:\n                torch.nn.init.zeros_(module.bias)\n        elif isinstance(module, nn.Embedding):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            \n    def forward(self, x, targets=None):\n        seq_len = x.size(1)\n        pos = torch.arange(seq_len, device=x.device)\n        \n        # Embeddings\n        x = self.token_emb(x) + self.pos_emb(pos)\n        \n        # Create causal mask\n        causal_mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=1).bool().to(x.device)\n        \n        # Transformer blocks\n        for block in self.blocks:\n            x = block(x, attn_mask=causal_mask)\n            \n        x = self.ln_f(x)\n        logits = self.head(x)\n        \n        loss = None\n        if targets is not None:\n            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)\n            \n        return logits, loss\n\n# Training code\ndef train_adaptive_moe():\n    # Simple text data (character-level)\n    text = \"hello world this is a test of the adaptive mixture of experts architecture that dynamically allocates computation based on uncertainty estimates\" * 100\n    chars = sorted(list(set(text)))\n    char_to_idx = {ch: i for i, ch in enumerate(chars)}\n    \n    # Prepare data\n    seq_len = 128\n    data = [char_to_idx[ch] for ch in text]\n    sequences = []\n    for i in range(0, len(data) - seq_len, seq_len//4):\n        sequences.append(data[i:i+seq_len])\n    \n    sequences = torch.tensor(sequences[:100])  # Limit for micro-training\n    \n    # Create dataset\n    dataset = TensorDataset(sequences[:, :-1], sequences[:, 1:])\n    dataloader = DataLoader(dataset, batch_size=4, shuffle=True)\n    \n    # Model and optimizer\n    model = AdaptiveMoETransformer(vocab_size=len(chars), d_model=256, n_heads=4, n_layers=4, num_experts=4)\n    optimizer = AdamW(model.parameters(), lr=3e-4, weight_decay=0.1)\n    \n    model.train()\n    losses = []\n    \n    print(f\"Training Adaptive MoE Transformer with {sum(p.numel() for p in model.parameters())/1e6:.1f}M parameters\")\n    \n    for epoch in range(50):\n        epoch_losses = []\n        for batch_idx, (input_ids, targets) in enumerate(dataloader):\n            optimizer.zero_grad()\n            \n            logits, loss = model(input_ids, targets)\n            loss.backward()\n            \n            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)\n            optimizer.step()\n            \n            epoch_losses.append(loss.item())\n            \n        avg_loss = sum(epoch_losses) / len(epoch_losses)\n        losses.append(avg_loss)\n        \n        if epoch % 10 == 0:\n            print(f\"Epoch {epoch}, Loss: {avg_loss:.4f}\")\n    \n    return losses\n\nif __name__ == \"__main__\":\n    losses = train_adaptive_moe()\n    print(f\"Final loss: {losses[-1]:.4f}\")",
+        "parent_architecture": "GPT-2 small with Mixture of Experts",
+        "novelty_claims": [
+          "Uncertainty-driven adaptive expert routing based on gradient magnitude estimation",
+          "Dynamic per-token computational allocation where uncertain tokens receive more experts",
+          "Lightweight uncertainty estimator using exponential moving average of gradient norms",
+          "Variable expert count per token (1-4) rather than fixed routing",
+          "Self-supervised curriculum learning through uncertainty-based resource allocation"
+        ],
+        "expected_behavior": "Training should show faster initial convergence as the model learns to allocate more computation to difficult tokens. Loss curves should be smoother due to adaptive difficulty-based processing. We expect to see computational efficiency gains where easy tokens use minimal resources while hard tokens get more expert capacity. The uncertainty estimates should correlate with prediction difficulty, creating natural curriculum effects."
+      },
+      "stage1_result": {
+        "verdict": "REFUTED",
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "tags": [],
+        "t2_budget": {
+          "status": "FAIL_FATAL",
+          "test_id": "T2",
+          "estimated_params": 17046016,
+          "estimated_artifact_bytes": 10235023,
+          "budget_remaining_bytes": 6542193,
+          "budget_utilization": 0.6100549101829529,
+          "flops_ratio": 1.0,
+          "estimated_training_seconds": 14843.406974976,
+          "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+          "tags": [],
+          "wall_seconds": 0.0026820829953067005,
+          "attn_flops_ratio": 0.6545454545454545,
+          "mlp_flops_ratio": 0.32727272727272727,
+          "embed_flops_ratio": 0.01818181818181818,
+          "architectural_balance_score": 0.0
+        },
+        "t3_compilation": null,
+        "t4_signal": null,
+        "t5_init": null,
+        "t7_microtrain": null
+      },
+      "stage2_input": null,
+      "stage2_result": null,
+      "verdict": "REFUTED",
+      "kill_hypotheses": [],
+      "experiments_run": 0,
+      "error": null
+    },
+    {
+      "run_id": "h007_4a6cdf34",
+      "hypothesis_number": 7,
+      "start_time": 1774714037.453856,
+      "end_time": 1774714079.175828,
+      "status": "complete",
+      "idea_json": {
+        "theory_id": "gradient-informed-attention-v7",
+        "what_and_why": "This architecture introduces 'Gradient-Informed Attention' (GIA) - a mechanism where attention patterns are dynamically modulated by the gradient flow during training. The key insight is that gradients carry information about which tokens are most important for the current learning objective, but this information is typically only used for parameter updates. Instead, we propose using gradient magnitudes to directly influence attention weights in real-time. Each attention head maintains a 'gradient memory' that tracks the L2 norm of gradients flowing through each token position over a sliding window. This gradient information is then used to bias attention scores, creating a feedback loop where the model's learning dynamics directly inform its attention patterns.\n\nThe mechanism works by computing a gradient-based bias term that amplifies attention to tokens that have historically received high gradients (indicating importance for learning). This should create more efficient learning by focusing computational resources on the most informative parts of sequences. Unlike static positional encodings or learned attention patterns, this system adapts dynamically based on what the model is actually learning at each moment, potentially leading to faster convergence and better sample efficiency.",
+        "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nfrom torch.utils.data import DataLoader, Dataset\nimport math\nimport numpy as np\n\nclass GradientInformedAttention(nn.Module):\n    def __init__(self, d_model, n_heads, gradient_memory_size=100, gradient_weight=0.1):\n        super().__init__()\n        self.d_model = d_model\n        self.n_heads = n_heads\n        self.d_k = d_model // n_heads\n        self.gradient_memory_size = gradient_memory_size\n        self.gradient_weight = gradient_weight\n        \n        self.q_linear = nn.Linear(d_model, d_model)\n        self.k_linear = nn.Linear(d_model, d_model)\n        self.v_linear = nn.Linear(d_model, d_model)\n        self.out_linear = nn.Linear(d_model, d_model)\n        \n        # Gradient memory buffers (not parameters)\n        self.register_buffer('gradient_memory', torch.zeros(gradient_memory_size, 512))  # max seq len 512\n        self.register_buffer('memory_index', torch.zeros(1, dtype=torch.long))\n        \n    def forward(self, x):\n        batch_size, seq_len, d_model = x.shape\n        \n        # Standard QKV computation\n        Q = self.q_linear(x).view(batch_size, seq_len, self.n_heads, self.d_k).transpose(1, 2)\n        K = self.k_linear(x).view(batch_size, seq_len, self.n_heads, self.d_k).transpose(1, 2)\n        V = self.v_linear(x).view(batch_size, seq_len, self.n_heads, self.d_k).transpose(1, 2)\n        \n        # Compute attention scores\n        scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.d_k)\n        \n        # Gradient-based bias computation\n        if self.training and x.requires_grad:\n            # Compute gradient norms for current tokens\n            grad_norms = self._compute_gradient_bias(x, seq_len)\n            # Add gradient bias to attention scores\n            scores = scores + self.gradient_weight * grad_norms.unsqueeze(1).unsqueeze(1)\n        \n        # Apply softmax and attention\n        attn_weights = F.softmax(scores, dim=-1)\n        attended = torch.matmul(attn_weights, V)\n        \n        # Reshape and project output\n        attended = attended.transpose(1, 2).contiguous().view(batch_size, seq_len, d_model)\n        output = self.out_linear(attended)\n        \n        # Store gradients for next iteration (during backward pass)\n        if self.training:\n            output.register_hook(self._gradient_hook)\n        \n        return output\n    \n    def _compute_gradient_bias(self, x, seq_len):\n        # Use historical gradient information\n        recent_grads = self.gradient_memory[:min(self.memory_index.item(), self.gradient_memory_size)]\n        if recent_grads.shape[0] > 0:\n            avg_grad_norms = recent_grads.mean(dim=0)[:seq_len]\n            return avg_grad_norms.unsqueeze(0)  # broadcast for batch\n        else:\n            return torch.zeros(1, seq_len, device=x.device)\n    \n    def _gradient_hook(self, grad):\n        if grad is not None:\n            # Compute L2 norm of gradients for each position\n            grad_norms = torch.norm(grad, dim=-1).mean(dim=0)  # average over batch\n            \n            # Update gradient memory in circular buffer\n            idx = self.memory_index.item() % self.gradient_memory_size\n            if grad_norms.shape[0] <= self.gradient_memory.shape[1]:\n                self.gradient_memory[idx, :grad_norms.shape[0]] = grad_norms.detach()\n                self.memory_index.add_(1)\n\nclass GIATransformerBlock(nn.Module):\n    def __init__(self, d_model, n_heads, d_ff, dropout=0.1):\n        super().__init__()\n        self.attention = GradientInformedAttention(d_model, n_heads)\n        self.norm1 = nn.LayerNorm(d_model)\n        self.norm2 = nn.LayerNorm(d_model)\n        \n        self.ffn = nn.Sequential(\n            nn.Linear(d_model, d_ff),\n            nn.ReLU(),\n            nn.Linear(d_ff, d_model),\n            nn.Dropout(dropout)\n        )\n        self.dropout = nn.Dropout(dropout)\n    \n    def forward(self, x):\n        # Attention with residual connection\n        attn_out = self.attention(x)\n        x = self.norm1(x + self.dropout(attn_out))\n        \n        # FFN with residual connection\n        ffn_out = self.ffn(x)\n        x = self.norm2(x + ffn_out)\n        \n        return x\n\nclass GIATransformer(nn.Module):\n    def __init__(self, vocab_size, d_model=256, n_heads=8, n_layers=6, d_ff=1024, max_len=512):\n        super().__init__()\n        self.d_model = d_model\n        self.embedding = nn.Embedding(vocab_size, d_model)\n        self.pos_encoding = nn.Parameter(torch.randn(max_len, d_model))\n        \n        self.layers = nn.ModuleList([\n            GIATransformerBlock(d_model, n_heads, d_ff) for _ in range(n_layers)\n        ])\n        \n        self.ln_f = nn.LayerNorm(d_model)\n        self.head = nn.Linear(d_model, vocab_size)\n        \n    def forward(self, x):\n        seq_len = x.shape[1]\n        \n        # Embedding and positional encoding\n        x = self.embedding(x) + self.pos_encoding[:seq_len]\n        \n        # Pass through transformer layers\n        for layer in self.layers:\n            x = layer(x)\n        \n        x = self.ln_f(x)\n        return self.head(x)\n\n# Simple dataset for micro-training\nclass SimpleTextDataset(Dataset):\n    def __init__(self, vocab_size=1000, seq_len=64, size=1000):\n        self.vocab_size = vocab_size\n        self.seq_len = seq_len\n        self.data = torch.randint(0, vocab_size, (size, seq_len))\n    \n    def __len__(self):\n        return len(self.data)\n    \n    def __getitem__(self, idx):\n        return self.data[idx]\n\n# Training setup\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nvocab_size = 1000\nmodel = GIATransformer(vocab_size=vocab_size, d_model=256, n_heads=8, n_layers=4).to(device)\n\n# Dataset and dataloader\ndataset = SimpleTextDataset(vocab_size=vocab_size, seq_len=64, size=2000)\ndataloader = DataLoader(dataset, batch_size=16, shuffle=True)\n\noptimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)\ncriterion = nn.CrossEntropyLoss()\n\n# Training loop\nmodel.train()\nlosses = []\n\nfor epoch in range(10):\n    epoch_loss = 0\n    for batch_idx, batch in enumerate(dataloader):\n        batch = batch.to(device)\n        \n        # Language modeling: predict next token\n        input_ids = batch[:, :-1]\n        targets = batch[:, 1:]\n        \n        optimizer.zero_grad()\n        outputs = model(input_ids)\n        \n        loss = criterion(outputs.reshape(-1, vocab_size), targets.reshape(-1))\n        loss.backward()\n        optimizer.step()\n        \n        epoch_loss += loss.item()\n        \n        if batch_idx % 50 == 0:\n            print(f'Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item():.4f}')\n    \n    avg_loss = epoch_loss / len(dataloader)\n    losses.append(avg_loss)\n    print(f'Epoch {epoch} completed. Average loss: {avg_loss:.4f}')\n\nprint('Training completed!')\nprint(f'Final loss trajectory: {losses}')",
+        "parent_architecture": "GPT-2 small",
+        "novelty_claims": [
+          "First architecture to use gradient flow information to dynamically modulate attention patterns during training",
+          "Introduction of gradient memory buffers that track historical gradient norms per token position",
+          "Real-time feedback loop between learning dynamics (gradients) and computational allocation (attention)",
+          "Novel gradient-based bias term that amplifies attention to tokens with high historical gradient norms",
+          "Architecture that adapts its attention patterns based on what it's currently learning rather than static patterns"
+        ],
+        "expected_behavior": "Training should show faster initial convergence compared to standard transformers as the gradient-informed attention quickly identifies important tokens. We expect to see more stable loss curves with fewer oscillations since attention focuses on learning-relevant tokens. The gradient memory should create a form of 'attention momentum' where consistently important positions receive sustained focus. Loss should decrease more rapidly in early epochs, potentially reaching lower final values with the same compute budget. Gradient norms should show decreasing variance over training as the model learns more efficient attention patterns."
+      },
+      "stage1_result": {
+        "verdict": "REFUTED",
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "tags": [],
+        "t2_budget": {
+          "status": "FAIL_FATAL",
+          "test_id": "T2",
+          "estimated_params": 17046016,
+          "estimated_artifact_bytes": 10234448,
+          "budget_remaining_bytes": 6542768,
+          "budget_utilization": 0.610020637512207,
+          "flops_ratio": 1.0,
+          "estimated_training_seconds": 14843.406974976,
+          "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+          "tags": [],
+          "wall_seconds": 0.004296125000109896,
+          "attn_flops_ratio": 0.6545454545454545,
+          "mlp_flops_ratio": 0.32727272727272727,
+          "embed_flops_ratio": 0.01818181818181818,
+          "architectural_balance_score": 0.0
+        },
+        "t3_compilation": null,
+        "t4_signal": null,
+        "t5_init": null,
+        "t7_microtrain": null
+      },
+      "stage2_input": null,
+      "stage2_result": null,
+      "verdict": "REFUTED",
+      "kill_hypotheses": [],
+      "experiments_run": 0,
+      "error": null
+    },
+    {
+      "run_id": "h008_c956b9e1",
+      "hypothesis_number": 8,
+      "start_time": 1774714082.1816351,
+      "end_time": 1774714120.1307461,
+      "status": "complete",
+      "idea_json": {
+        "theory_id": "gradient-conditioned-attention-v8",
+        "what_and_why": "Traditional attention mechanisms compute attention weights based solely on current activations. This approach proposes Gradient-Conditioned Attention (GCA), where attention weights are modulated by the recent gradient history of key-value pairs. The core insight is that gradients contain information about which tokens are most useful for prediction - tokens with high gradient magnitudes are actively being updated to improve performance. By incorporating this gradient information directly into the attention computation, the model can dynamically prioritize tokens that are currently most relevant for learning.\n\nThe mechanism works by maintaining exponential moving averages of squared gradients for each token's key and value representations. These gradient statistics are then used to compute 'learning importance scores' that modulate the standard attention weights. This creates a feedback loop where the optimization process directly informs the attention mechanism about which representations are most valuable. Unlike standard attention which only sees current token relationships, GCA leverages the optimization dynamics to guide attention toward tokens that are actively contributing to learning progress.",
+        "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\nfrom torch.utils.data import DataLoader, TensorDataset\nimport matplotlib.pyplot as plt\n\nclass GradientConditionedAttention(nn.Module):\n    def __init__(self, d_model, n_heads, gradient_decay=0.99):\n        super().__init__()\n        self.d_model = d_model\n        self.n_heads = n_heads\n        self.head_dim = d_model // n_heads\n        self.gradient_decay = gradient_decay\n        \n        self.q_proj = nn.Linear(d_model, d_model)\n        self.k_proj = nn.Linear(d_model, d_model)\n        self.v_proj = nn.Linear(d_model, d_model)\n        self.out_proj = nn.Linear(d_model, d_model)\n        \n        # Gradient tracking buffers\n        self.register_buffer('k_grad_ema', torch.zeros(1024, d_model))  # max seq len\n        self.register_buffer('v_grad_ema', torch.zeros(1024, d_model))\n        self.register_buffer('step_count', torch.tensor(0))\n        \n        # Importance projection\n        self.importance_proj = nn.Linear(d_model, n_heads)\n        \n    def forward(self, x):\n        batch_size, seq_len, _ = x.shape\n        \n        q = self.q_proj(x).view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)\n        k = self.k_proj(x).view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)\n        v = self.v_proj(x).view(batch_size, seq_len, self.n_heads, self.head_dim).transpose(1, 2)\n        \n        # Store k,v for gradient tracking\n        self.current_k = k.clone().detach().requires_grad_(True)\n        self.current_v = v.clone().detach().requires_grad_(True)\n        self.seq_len = seq_len\n        \n        # Compute standard attention scores\n        scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.head_dim)\n        \n        # Apply causal mask\n        mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=1).bool().to(x.device)\n        scores.masked_fill_(mask, float('-inf'))\n        \n        # Compute gradient-based importance scores\n        k_importance = self.importance_proj(self.k_grad_ema[:seq_len]).transpose(0, 1)  # n_heads x seq_len\n        v_importance = self.importance_proj(self.v_grad_ema[:seq_len]).transpose(0, 1)\n        \n        # Combine importance scores and add to attention\n        importance_bias = (k_importance.unsqueeze(-1) + v_importance.unsqueeze(-2)) / 2\n        scores = scores + 0.1 * importance_bias.unsqueeze(0)  # scale factor\n        \n        attn_weights = F.softmax(scores, dim=-1)\n        out = torch.matmul(attn_weights, v)\n        \n        out = out.transpose(1, 2).contiguous().view(batch_size, seq_len, self.d_model)\n        return self.out_proj(out)\n    \n    def update_gradient_stats(self):\n        if hasattr(self, 'current_k') and self.current_k.grad is not None:\n            # Update EMA of squared gradients\n            k_grad_norm = torch.norm(self.current_k.grad, dim=(0, 2, 3))  # seq_len\n            v_grad_norm = torch.norm(self.current_v.grad, dim=(0, 2, 3))\n            \n            seq_len = min(self.seq_len, self.k_grad_ema.size(0))\n            self.k_grad_ema[:seq_len] = (self.gradient_decay * self.k_grad_ema[:seq_len] + \n                                       (1 - self.gradient_decay) * k_grad_norm[:seq_len].unsqueeze(1))\n            self.v_grad_ema[:seq_len] = (self.gradient_decay * self.v_grad_ema[:seq_len] + \n                                       (1 - self.gradient_decay) * v_grad_norm[:seq_len].unsqueeze(1))\n\nclass GCATransformerBlock(nn.Module):\n    def __init__(self, d_model, n_heads, d_ff):\n        super().__init__()\n        self.attn = GradientConditionedAttention(d_model, n_heads)\n        self.norm1 = nn.LayerNorm(d_model)\n        self.norm2 = nn.LayerNorm(d_model)\n        \n        self.ff = nn.Sequential(\n            nn.Linear(d_model, d_ff),\n            nn.ReLU(),\n            nn.Linear(d_ff, d_model)\n        )\n        \n    def forward(self, x):\n        x = x + self.attn(self.norm1(x))\n        x = x + self.ff(self.norm2(x))\n        return x\n\nclass GCATransformer(nn.Module):\n    def __init__(self, vocab_size=1000, d_model=256, n_heads=8, n_layers=6, max_len=512):\n        super().__init__()\n        self.embedding = nn.Embedding(vocab_size, d_model)\n        self.pos_embedding = nn.Parameter(torch.randn(max_len, d_model) * 0.02)\n        self.blocks = nn.ModuleList([GCATransformerBlock(d_model, n_heads, d_model*4) for _ in range(n_layers)])\n        self.norm = nn.LayerNorm(d_model)\n        self.lm_head = nn.Linear(d_model, vocab_size)\n        \n    def forward(self, x):\n        seq_len = x.size(1)\n        x = self.embedding(x) + self.pos_embedding[:seq_len]\n        \n        for block in self.blocks:\n            x = block(x)\n            \n        x = self.norm(x)\n        return self.lm_head(x)\n    \n    def update_all_gradient_stats(self):\n        for block in self.blocks:\n            block.attn.update_gradient_stats()\n\n# Training setup\ndef create_dummy_data(vocab_size=1000, seq_len=128, num_samples=1000):\n    data = torch.randint(0, vocab_size, (num_samples, seq_len))\n    return data\n\ndef train_model():\n    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\n    \n    # Model setup\n    model = GCATransformer(vocab_size=1000, d_model=256, n_heads=8, n_layers=4).to(device)\n    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0.01)\n    \n    # Data\n    train_data = create_dummy_data()\n    dataloader = DataLoader(TensorDataset(train_data), batch_size=16, shuffle=True)\n    \n    losses = []\n    \n    model.train()\n    for epoch in range(20):\n        epoch_loss = 0\n        for batch_idx, (batch,) in enumerate(dataloader):\n            batch = batch.to(device)\n            \n            optimizer.zero_grad()\n            \n            # Forward pass\n            logits = model(batch[:, :-1])\n            targets = batch[:, 1:]\n            \n            loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), targets.reshape(-1))\n            \n            # Backward pass\n            loss.backward()\n            \n            # Update gradient statistics BEFORE optimizer step\n            model.update_all_gradient_stats()\n            \n            optimizer.step()\n            \n            epoch_loss += loss.item()\n            \n            if batch_idx % 10 == 0:\n                print(f'Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item():.4f}')\n        \n        avg_loss = epoch_loss / len(dataloader)\n        losses.append(avg_loss)\n        print(f'Epoch {epoch} completed, Avg Loss: {avg_loss:.4f}')\n    \n    return losses\n\nif __name__ == '__main__':\n    losses = train_model()\n    print('Training completed!')",
+        "parent_architecture": "GPT-2 small",
+        "novelty_claims": [
+          "First attention mechanism to incorporate gradient history into attention weight computation",
+          "Dynamic attention prioritization based on learning progress rather than just token similarity",
+          "Exponential moving average of gradient norms to create learning importance scores",
+          "Feedback loop between optimization dynamics and attention mechanism",
+          "Gradient-conditioned bias terms that modulate standard attention scores"
+        ],
+        "expected_behavior": "If successful, we should see faster initial convergence as the model quickly identifies which tokens are most important for learning. Training curves should show steeper early drops in loss compared to standard transformers. The gradient importance scores should stabilize after several epochs, creating consistent attention patterns. We may observe more focused attention on informative tokens and reduced attention on less relevant positions. The model might also show better sample efficiency, requiring fewer training steps to reach comparable performance."
+      },
+      "stage1_result": {
+        "verdict": "REFUTED",
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "tags": [],
+        "t2_budget": {
+          "status": "FAIL_FATAL",
+          "test_id": "T2",
+          "estimated_params": 17046016,
+          "estimated_artifact_bytes": 10234217,
+          "budget_remaining_bytes": 6542999,
+          "budget_utilization": 0.6100068688392639,
+          "flops_ratio": 1.0,
+          "estimated_training_seconds": 14843.406974976,
+          "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+          "tags": [],
+          "wall_seconds": 0.0028809999930672348,
+          "attn_flops_ratio": 0.6545454545454545,
+          "mlp_flops_ratio": 0.32727272727272727,
+          "embed_flops_ratio": 0.01818181818181818,
+          "architectural_balance_score": 0.0
+        },
+        "t3_compilation": null,
+        "t4_signal": null,
+        "t5_init": null,
+        "t7_microtrain": null
+      },
+      "stage2_input": null,
+      "stage2_result": null,
+      "verdict": "REFUTED",
+      "kill_hypotheses": [],
+      "experiments_run": 0,
+      "error": null
+    },
+    {
+      "run_id": "h009_9a2968bd",
+      "hypothesis_number": 9,
+      "start_time": 1774714123.137019,
+      "end_time": 1774714151.826592,
+      "status": "failed",
+      "idea_json": {
+        "theory_id": "spiral-attention-h9",
+        "what_and_why": "Standard attention computes all token interactions simultaneously, creating O(n\u00b2) complexity. What if attention could be computed as a spiral traversal through token space, where each position attends to a logarithmically expanding set of previous tokens in a spiral pattern? This 'Spiral Attention' mechanism uses a geometric progression of attention radii: position i attends to tokens at distances 1, 2, 4, 8, ..., up to sequence length. The key insight is that information flow in language often follows hierarchical patterns - immediate context, phrase-level context, sentence-level context, etc. By organizing attention in expanding spirals, we capture multi-scale dependencies while reducing complexity to O(n log n). The spiral pattern ensures every token can reach every other token through a logarithmic number of hops, maintaining global connectivity while being computationally efficient. Each spiral 'ring' uses different learned projection matrices, allowing the model to specialize attention patterns for different scales of context.",
+        "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\nfrom torch.optim import AdamW\nfrom torch.utils.data import DataLoader, TensorDataset\nimport numpy as np\n\nclass SpiralAttention(nn.Module):\n    def __init__(self, d_model, n_heads):\n        super().__init__()\n        self.d_model = d_model\n        self.n_heads = n_heads\n        self.d_k = d_model // n_heads\n        \n        # Different projections for different spiral rings\n        self.max_rings = 8  # log2(max_seq_len)\n        self.q_proj = nn.Linear(d_model, d_model)\n        self.k_projs = nn.ModuleList([nn.Linear(d_model, d_model) for _ in range(self.max_rings)])\n        self.v_projs = nn.ModuleList([nn.Linear(d_model, d_model) for _ in range(self.max_rings)])\n        self.out_proj = nn.Linear(d_model, d_model)\n        \n    def forward(self, x):\n        B, T, C = x.shape\n        \n        q = self.q_proj(x).view(B, T, self.n_heads, self.d_k).transpose(1, 2)\n        \n        attn_output = torch.zeros_like(q)\n        \n        for ring in range(self.max_rings):\n            radius = 2 ** ring\n            if radius >= T:\n                break\n                \n            k = self.k_projs[ring](x).view(B, T, self.n_heads, self.d_k).transpose(1, 2)\n            v = self.v_projs[ring](x).view(B, T, self.n_heads, self.d_k).transpose(1, 2)\n            \n            # Create spiral attention mask\n            mask = torch.zeros(T, T, device=x.device)\n            for i in range(T):\n                for j in range(max(0, i - radius), min(T, i + 1)):\n                    if (i - j) & (radius - 1) == 0 or j == i:  # Spiral pattern\n                        mask[i, j] = 1\n            \n            scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)\n            scores = scores.masked_fill(mask == 0, float('-inf'))\n            attn_weights = F.softmax(scores, dim=-1)\n            \n            ring_output = torch.matmul(attn_weights, v)\n            attn_output += ring_output / self.max_rings\n        \n        attn_output = attn_output.transpose(1, 2).contiguous().view(B, T, C)\n        return self.out_proj(attn_output)\n\nclass SpiralBlock(nn.Module):\n    def __init__(self, d_model, n_heads, d_ff):\n        super().__init__()\n        self.attn = SpiralAttention(d_model, n_heads)\n        self.ln1 = nn.LayerNorm(d_model)\n        self.ln2 = nn.LayerNorm(d_model)\n        self.mlp = nn.Sequential(\n            nn.Linear(d_model, d_ff),\n            nn.GELU(),\n            nn.Linear(d_ff, d_model)\n        )\n        \n    def forward(self, x):\n        x = x + self.attn(self.ln1(x))\n        x = x + self.mlp(self.ln2(x))\n        return x\n\nclass SpiralGPT(nn.Module):\n    def __init__(self, vocab_size=1000, d_model=128, n_heads=8, n_layers=6, max_len=256):\n        super().__init__()\n        self.embedding = nn.Embedding(vocab_size, d_model)\n        self.pos_embedding = nn.Embedding(max_len, d_model)\n        self.blocks = nn.ModuleList([SpiralBlock(d_model, n_heads, d_model*4) for _ in range(n_layers)])\n        self.ln_f = nn.LayerNorm(d_model)\n        self.head = nn.Linear(d_model, vocab_size)\n        \n    def forward(self, x):\n        B, T = x.shape\n        pos = torch.arange(T, device=x.device).unsqueeze(0)\n        \n        x = self.embedding(x) + self.pos_embedding(pos)\n        \n        for block in self.blocks:\n            x = block(x)\n            \n        x = self.ln_f(x)\n        return self.head(x)\n\n# Training setup\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = SpiralGPT().to(device)\noptimizer = AdamW(model.parameters(), lr=1e-3)\n\n# Generate synthetic data\nseq_len = 64\nbatch_size = 32\nvocab_size = 1000\nnum_batches = 1000\n\nlosses = []\nfor step in range(num_batches):\n    # Random sequences\n    x = torch.randint(0, vocab_size, (batch_size, seq_len), device=device)\n    targets = torch.roll(x, -1, dims=1)\n    \n    logits = model(x)\n    loss = F.cross_entropy(logits.view(-1, vocab_size), targets.view(-1))\n    \n    optimizer.zero_grad()\n    loss.backward()\n    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)\n    optimizer.step()\n    \n    losses.append(loss.item())\n    \n    if step % 100 == 0:\n        print(f'Step {step}, Loss: {loss.item():.4f}')\n\nprint(f'Final loss: {losses[-1]:.4f}')\nprint(f'Parameters: {sum(p.numel() for p in model.parameters()):,}')",
+        "parent_architecture": "GPT-2 small",
+        "novelty_claims": [
+          "Spiral attention pattern with logarithmic complexity O(n log n) instead of quadratic",
+          "Ring-specific projection matrices that specialize for different context scales",
+          "Geometric progression of attention radii (1, 2, 4, 8...) matching hierarchical language structure",
+          "Multi-scale attention fusion where each ring contributes equally to final output",
+          "Sparse attention mask based on powers-of-two distance pattern ensuring global connectivity"
+        ],
+        "expected_behavior": "Training should show faster convergence than standard attention due to better inductive bias for hierarchical patterns. Loss curves should be smoother with fewer oscillations. Memory usage should scale better with sequence length. The model should show strong performance on tasks requiring long-range dependencies while being more efficient than full attention."
+      },
+      "stage1_result": null,
+      "stage2_input": null,
+      "stage2_result": null,
+      "verdict": null,
+      "kill_hypotheses": [],
+      "experiments_run": 0,
+      "error": "'str' object has no attribute 'get'"
+    },
+    {
+      "run_id": "h010_e2aabbfb",
+      "hypothesis_number": 10,
+      "start_time": 1774714154.8328478,
+      "end_time": 1774714195.000153,
+      "status": "failed",
+      "idea_json": {
+        "theory_id": "fractal-depth-transformer",
+        "what_and_why": "Current transformers use fixed depth throughout training, but this may be suboptimal for learning dynamics. This architecture implements 'Fractal Depth' - layers that can dynamically split and merge during training based on gradient flow patterns. Each layer contains a 'depth controller' that monitors its own gradient magnitudes and learning rate. When gradients are large (indicating the layer is learning rapidly), it can spawn a 'child layer' that processes a subset of the representation space. When gradients are small, child layers can be pruned or merged back. The key insight is that different parts of the network need different effective depths at different times during training. Early training might need shallow networks for basic pattern recognition, while later training benefits from deeper processing for complex reasoning. The fractal structure allows the network to grow and shrink organically based on learning needs rather than human architectural decisions.\n\nThe mechanism works through learnable 'branching gates' that decide whether to route information through additional depth or bypass it. Unlike typical skip connections, these gates can actually instantiate new parameters when needed and deallocate them when not. This creates a living architecture that adapts its own topology during training, potentially achieving better parameter efficiency than fixed-depth networks.",
+        "train_gpt_code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nfrom torch.utils.data import DataLoader, Dataset\nimport math\nimport numpy as np\n\nclass FractalDepthLayer(nn.Module):\n    def __init__(self, d_model, n_head, growth_threshold=0.1, prune_threshold=0.01):\n        super().__init__()\n        self.d_model = d_model\n        self.growth_threshold = growth_threshold\n        self.prune_threshold = prune_threshold\n        \n        # Core layer components\n        self.self_attn = nn.MultiheadAttention(d_model, n_head, batch_first=True)\n        self.norm1 = nn.LayerNorm(d_model)\n        self.norm2 = nn.LayerNorm(d_model)\n        self.mlp = nn.Sequential(\n            nn.Linear(d_model, 4 * d_model),\n            nn.ReLU(),\n            nn.Linear(4 * d_model, d_model)\n        )\n        \n        # Fractal components\n        self.branch_gate = nn.Linear(d_model, 1)\n        self.child_layers = nn.ModuleList()\n        self.gradient_history = []\n        self.max_children = 3\n        \n    def forward(self, x, training_step=0):\n        # Standard transformer layer\n        residual = x\n        x = self.norm1(x)\n        attn_out, _ = self.self_attn(x, x, x)\n        x = residual + attn_out\n        \n        residual = x\n        x = self.norm2(x)\n        x = residual + self.mlp(x)\n        \n        # Fractal branching decision\n        if self.training and len(self.child_layers) < self.max_children:\n            branch_score = torch.sigmoid(self.branch_gate(x.mean(dim=1))).mean()\n            \n            # Check if we should grow\n            if (len(self.gradient_history) > 10 and \n                np.mean(self.gradient_history[-10:]) > self.growth_threshold and\n                branch_score > 0.5):\n                self._spawn_child()\n                \n        # Process through child layers if they exist\n        child_outputs = []\n        for i, child in enumerate(self.child_layers):\n            if self.training:\n                child_out = child(x, training_step)\n                child_outputs.append(child_out)\n            else:\n                child_outputs.append(child(x, training_step))\n                \n        # Prune underperforming children\n        if self.training and training_step % 100 == 0:\n            self._prune_children()\n            \n        # Combine outputs\n        if child_outputs:\n            child_stack = torch.stack(child_outputs, dim=0)\n            child_weights = F.softmax(self.branch_gate(x).mean(dim=1), dim=0)\n            child_weighted = (child_stack * child_weights.unsqueeze(-1).unsqueeze(-1)).sum(dim=0)\n            x = 0.7 * x + 0.3 * child_weighted\n            \n        return x\n    \n    def _spawn_child(self):\n        child = FractalDepthLayer(self.d_model, 8, self.growth_threshold * 1.5, self.prune_threshold)\n        self.child_layers.append(child)\n        print(f\"Spawned child layer, now have {len(self.child_layers)} children\")\n    \n    def _prune_children(self):\n        if len(self.gradient_history) < 20:\n            return\n        \n        recent_grad = np.mean(self.gradient_history[-20:])\n        if recent_grad < self.prune_threshold and len(self.child_layers) > 0:\n            self.child_layers.pop()\n            print(f\"Pruned child layer, now have {len(self.child_layers)} children\")\n    \n    def update_gradient_history(self, grad_norm):\n        self.gradient_history.append(grad_norm)\n        if len(self.gradient_history) > 100:\n            self.gradient_history.pop(0)\n\nclass FractalDepthTransformer(nn.Module):\n    def __init__(self, vocab_size=1000, d_model=256, n_layers=6, n_head=8, max_seq_len=128):\n        super().__init__()\n        self.d_model = d_model\n        self.token_embedding = nn.Embedding(vocab_size, d_model)\n        self.position_embedding = nn.Embedding(max_seq_len, d_model)\n        \n        self.layers = nn.ModuleList([\n            FractalDepthLayer(d_model, n_head) for _ in range(n_layers)\n        ])\n        \n        self.ln_f = nn.LayerNorm(d_model)\n        self.head = nn.Linear(d_model, vocab_size)\n        self.training_step = 0\n        \n    def forward(self, input_ids):\n        seq_len = input_ids.size(1)\n        pos_ids = torch.arange(seq_len, device=input_ids.device).unsqueeze(0)\n        \n        x = self.token_embedding(input_ids) + self.position_embedding(pos_ids)\n        \n        for layer in self.layers:\n            x = layer(x, self.training_step)\n            \n        x = self.ln_f(x)\n        logits = self.head(x)\n        return logits\n    \n    def update_gradient_stats(self):\n        self.training_step += 1\n        for layer in self.layers:\n            if hasattr(layer, 'self_attn'):\n                total_grad_norm = 0\n                param_count = 0\n                for param in layer.parameters():\n                    if param.grad is not None:\n                        total_grad_norm += param.grad.data.norm(2).item()\n                        param_count += 1\n                if param_count > 0:\n                    avg_grad_norm = total_grad_norm / param_count\n                    layer.update_gradient_history(avg_grad_norm)\n\nclass SimpleDataset(Dataset):\n    def __init__(self, seq_len=128, vocab_size=1000, num_samples=10000):\n        self.seq_len = seq_len\n        self.vocab_size = vocab_size\n        self.num_samples = num_samples\n        \n    def __len__(self):\n        return self.num_samples\n        \n    def __getitem__(self, idx):\n        sequence = torch.randint(0, self.vocab_size, (self.seq_len,))\n        return sequence[:-1], sequence[1:]\n\ndef train_fractal_transformer():\n    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\n    print(f\"Using device: {device}\")\n    \n    model = FractalDepthTransformer().to(device)\n    dataset = SimpleDataset()\n    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)\n    \n    optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=0.01)\n    criterion = nn.CrossEntropyLoss()\n    \n    model.train()\n    losses = []\n    \n    for epoch in range(50):\n        epoch_losses = []\n        for batch_idx, (inputs, targets) in enumerate(dataloader):\n            inputs, targets = inputs.to(device), targets.to(device)\n            \n            optimizer.zero_grad()\n            outputs = model(inputs)\n            loss = criterion(outputs.view(-1, outputs.size(-1)), targets.view(-1))\n            loss.backward()\n            \n            # Update gradient statistics for fractal growth/pruning\n            model.update_gradient_stats()\n            \n            optimizer.step()\n            \n            epoch_losses.append(loss.item())\n            \n            if batch_idx % 50 == 0:\n                print(f\"Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item():.4f}\")\n                \n        avg_loss = np.mean(epoch_losses)\n        losses.append(avg_loss)\n        print(f\"Epoch {epoch} completed, Average Loss: {avg_loss:.4f}\")\n        \n        # Print current architecture state\n        total_children = sum(len(layer.child_layers) for layer in model.layers)\n        print(f\"Total child layers across all layers: {total_children}\")\n    \n    return model, losses\n\nif __name__ == \"__main__\":\n    model, losses = train_fractal_transformer()\n    print(f\"Training completed. Final loss: {losses[-1]:.4f}\")",
+        "parent_architecture": "GPT-2 small",
+        "novelty_claims": [
+          "Dynamic layer spawning/pruning during training based on gradient flow patterns",
+          "Learnable branching gates that can instantiate new parameters mid-training",
+          "Architecture that grows and shrinks organically rather than fixed depth",
+          "Gradient-driven topology adaptation with automatic child layer management",
+          "Fractal depth structure allowing different effective depths for different learning phases"
+        ],
+        "expected_behavior": "We should see initial rapid loss decrease as base layers learn, followed by periods of slower improvement punctuated by sudden drops when new child layers spawn. Architecture complexity should increase early in training when gradients are large, then stabilize or decrease as learning plateaus. The model should achieve better final performance than fixed-depth baselines while using fewer average parameters due to dynamic pruning. Training curves should show characteristic 'growth spurts' corresponding to architectural expansion."
+      },
+      "stage1_result": null,
+      "stage2_input": null,
+      "stage2_result": null,
+      "verdict": null,
+      "kill_hypotheses": [],
+      "experiments_run": 0,
+      "error": "'str' object has no attribute 'get'"
+    }
+  ],
+  "stage2_config": {
+    "enabled": true,
+    "model": "claude-sonnet-4-20250514",
+    "max_hypotheses": 5,
+    "max_tokens": 4000,
+    "temperature": 0.7
+  }
+}

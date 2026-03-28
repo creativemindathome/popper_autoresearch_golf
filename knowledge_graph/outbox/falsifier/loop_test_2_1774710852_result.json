@@ -1,0 +1,38 @@
+{
+  "theory_id": "loop_test_2_1774710852",
+  "verdict": "REFUTED",
+  "killed_by": "T2",
+  "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+  "t2_budget": {
+    "status": "FAIL_FATAL",
+    "test_id": "T2",
+    "estimated_params": 16554496,
+    "estimated_artifact_bytes": 9934233,
+    "budget_remaining_bytes": 6842983,
+    "budget_utilization": 0.5921264290809631,
+    "flops_ratio": 1.0,
+    "estimated_training_seconds": 14843.406974976,
+    "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "tags": [],
+    "wall_seconds": 0.0006651250005234033,
+    "attn_flops_ratio": 0.6658959537572254,
+    "mlp_flops_ratio": 0.3329479768786127,
+    "embed_flops_ratio": 0.0011560693641618498,
+    "architectural_balance_score": 0.0
+  },
+  "t3_compilation": null,
+  "t4_signal": null,
+  "t5_init": null,
+  "t7_microtrain": null,
+  "s2_results": null,
+  "tags": [],
+  "feedback": {
+    "one_line": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "stage_reached": 0,
+    "failure_analysis": null,
+    "suggested_directions": [],
+    "key_measurements": {}
+  },
+  "total_wall_seconds": 0.0006809234619140625,
+  "total_gpu_seconds": 0.0
+}

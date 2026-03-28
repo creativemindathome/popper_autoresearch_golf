@@ -1,0 +1,9 @@
+{
+  "theory_id": "good_student_test",
+  "what_and_why": "Test baseline model with standard architecture and training configuration. Should pass both stages.",
+  "config_delta": {},
+  "proposed_train_gpt": "",
+  "sota_train_gpt": "",
+  "train_gpt_path": "tests/candidates/good_student.py",
+  "theory_type": "architectural"
+}
