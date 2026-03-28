@@ -1,0 +1,143 @@
+{
+  "schema_version": "ideator.idea.v2",
+  "idea_id": "layer-wise-gated-shared-mlp",
+  "title": "Layer-wise Gated Shared MLP for Transformer Blocks",
+  "novelty_summary": "This idea introduces a novel parameter efficiency mechanism by globally sharing a single MLP instance across all Transformer blocks, but augmenting *each* block with its own unique, learnable 'gating' module. This `LayerGating` module applies a layer-specific affine transformation (element-wise scale and shift) to the input activations before they enter the globally shared MLP. Unlike standard weight tying, which offers no per-layer customization, or full hypernetworks, this approach allows the shared MLP's behavior to be dynamically specialized for each layer based on learned, distinct gating parameters, thereby capturing layer-specific nuances while maintaining significant parameter reduction. This addresses the reviewer's feedback for a new mechanism beyond common weight sharing, incorporating layer-specific adaptation.",
+  "parent_implementation": {
+    "repo_url": "https://github.com/openai/parameter-golf",
+    "git_ref": "main",
+    "primary_file": "train_gpt.py",
+    "run_command": "GATED_SHARED_MLP=1 RUN_ID=gated_shared_mlp DATA_PATH=./data/datasets/fineweb10B_sp1024/ TOKENIZER_PATH=./data/tokenizers/fineweb_1024_bpe.model VOCAB_SIZE=1024 torchrun --standalone --nproc_per_node=1 train_gpt.py",
+    "code_search_hints": [
+      "class GPT(nn.Module):",
+      "class Block(nn.Module):",
+      "self.mlp = MLP(config)",
+      "nn.ModuleList([Block(config) for _ in range(config.n_layer)])",
+      "x = x + self.mlp(self.ln_2(x))",
+      "def __init__(self, config):"
+    ]
+  },
+  "implementation_steps": [
+    {
+      "step_id": "add-gated-shared-mlp-config",
+      "file": "train_gpt.py",
+      "locate": "def train(args):",
+      "change": "        config = GPTConfig(vocab_size=config_args['vocab_size'], **model_args)\n        config.gated_shared_mlp = int(os.environ.get('GATED_SHARED_MLP', '0'))",
+      "done_when": "`config.gated_shared_mlp` is correctly set within the `train` function based on the `GATED_SHARED_MLP` environment variable."
+    },
+    {
+      "step_id": "define-layer-gating-module",
+      "file": "train_gpt.py",
+      "locate": "class Conv1D(nn.Module):",
+      "change": "import torch.nn.functional as F\n\nclass LayerGating(nn.Module):\n    def __init__(self, n_embd):\n        super().__init__()\n        self.scale = nn.Parameter(torch.ones(n_embd))\n        self.shift = nn.Parameter(torch.zeros(n_embd))\n\n    def forward(self, x):\n        return x * self.scale + self.shift\n\n\nclass Conv1D(nn.Module):",
+      "done_when": "The `LayerGating` class is defined above `Conv1D`, implementing `scale` and `shift` as `nn.Parameter`s and applying them element-wise in `forward`."
+    },
+    {
+      "step_id": "modify-gpt-constructor-for-shared-gated-mlp",
+      "file": "train_gpt.py",
+      "locate": "self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)",
+      "change": "        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)\n        if config.gated_shared_mlp:\n            self.shared_mlp = MLP(config)\n            self.layer_gating_modules = nn.ModuleList([LayerGating(config.n_embd) for _ in range(config.n_layer)])\n            self.transformer.h = nn.ModuleList([Block(config, shared_mlp=self.shared_mlp, layer_gating_module=self.layer_gating_modules[i]) for i in range(config.n_layer)])\n        else:\n            self.transformer.h = nn.ModuleList([Block(config) for _ in range(config.n_layer)])",
+      "done_when": "The `GPT` constructor now conditionally initializes `self.shared_mlp` and `self.layer_gating_modules` as a `ModuleList`, passing the appropriate instance to each `Block` in `self.transformer.h`."
+    },
+    {
+      "step_id": "modify-block-constructor-for-shared-gated-mlp",
+      "file": "train_gpt.py",
+      "locate": "class Block(nn.Module):",
+      "change": "class Block(nn.Module):\n    def __init__(self, config, shared_mlp=None, layer_gating_module=None):\n        super().__init__()\n        self.ln_1 = LayerNorm(config.n_embd, bias=config.bias)\n        self.attn = CausalSelfAttention(config)\n        self.ln_2 = LayerNorm(config.n_embd, bias=config.bias)\n        if shared_mlp is not None and layer_gating_module is not None:\n            self.mlp = shared_mlp # Use the globally shared MLP\n            self.layer_gating_module = layer_gating_module # Use this block's specific gating module\n        else:\n            self.mlp = MLP(config) # Fallback to independent MLP\n            self.layer_gating_module = None",
+      "done_when": "The `Block` constructor is updated to accept optional `shared_mlp` and `layer_gating_module` parameters, assigning them if provided, or falling back to independent initialization."
+    },
+    {
+      "step_id": "modify-block-forward-pass",
+      "file": "train_gpt.py",
+      "locate": "x = x + self.mlp(self.ln_2(x))",
+      "change": "        ln2_out = self.ln_2(x)\n        if self.layer_gating_module is not None:\n            gated_ln2_out = self.layer_gating_module(ln2_out)\n            x = x + self.mlp(gated_ln2_out)\n        else:\n            x = x + self.mlp(ln2_out)",
+      "done_when": "The `Block`'s `forward` method now applies the `self.layer_gating_module` to the `ln_2` output before passing it to `self.mlp`, conditional on its presence."
+    },
+    {
+      "step_id": "modify-train-argparser",
+      "file": "train_gpt.py",
+      "locate": "parser.add_argument('--max_iters', type=int, default=6000)",
+      "change": "    parser.add_argument('--max_iters', type=int, default=6000)\n    parser.add_argument('--n_layer', type=int, default=12, help='Number of transformer layers') # Ensure n_layer is in args",
+      "done_when": "The argument parser is updated to explicitly include `n_layer` so `GPTConfig` can use it from `model_args`."
+    }
+  ],
+  "falsifier_smoke_tests": [
+    "Execute the proposed `run_command` (`GATED_SHARED_MLP=1 ...`). The training run completes without Python or PyTorch errors.",
+    "Execute a baseline run (without `GATED_SHARED_MLP=1`). Compare the 'number of parameters' reported in the logger output. The proposed run should show a significantly lower parameter count, reflecting the shared MLP parameters.",
+    "Verify that the total number of parameters specific to `LayerGating` modules (scale and shift vectors) amounts to `config.n_layer * 2 * config.n_embd`, confirming they are unique per layer and minimal.",
+    "Confirm the final output for the proposed run reports 'val_bpb' and 'compressed model size', indicating a complete training and evaluation run. The 'compressed model size' must be substantially smaller than the baseline."
+  ],
+  "expected_metric_change": "A substantial reduction in the 'compressed model size' is expected, as the majority of MLP parameters are globally shared. While each layer adds a small number of parameters for its gating module (`2 * n_embd`), this is far less than an entire MLP layer. This parameter reduction should lead to a much smaller artifact, directly improving the Parameter Golf metric. For 'val_bpb', the layer-specific gating provides additional expressive capacity and adaptability compared to purely tied weights. This balance is hypothesized to mitigate the performance loss typically associated with simple weight tying, potentially leading to a competitive or even improved BBP compared to a naive smaller model.",
+  "run_id": "20260328T182603Z_layer-wise-gated-shared-mlp",
+  "parents": [
+    {
+      "kind": "local",
+      "repo_url": "https://github.com/openai/parameter-golf",
+      "git_ref": "main",
+      "file_path": "train_gpt.py",
+      "run_id": null,
+      "sha256": "c6cae5e767aa0464e8767620f3bbdb08048c99f4b7ae0f0e146dd9b17e68e673"
+    }
+  ],
+  "artifacts": {
+    "run_dir": "knowledge_graph/outbox/ideator/runs/20260328T182603Z_layer-wise-gated-shared-mlp",
+    "idea_json": "knowledge_graph/outbox/ideator/runs/20260328T182603Z_layer-wise-gated-shared-mlp/idea.json",
+    "train_gpt_py": {
+      "path": "knowledge_graph/outbox/ideator/runs/20260328T182603Z_layer-wise-gated-shared-mlp/train_gpt.py",
+      "sha256": "012eb7b840465e07730ef6a3504a1d35935bd6b8ad23a6a3d96c73ba2b32fe18",
+      "bytes": 49447
+    },
+    "train_gpt_patch": {
+      "path": "knowledge_graph/outbox/ideator/runs/20260328T182603Z_layer-wise-gated-shared-mlp/train_gpt.patch",
+      "sha256": "356d094a26f162264be7b8a369ce398410d7bef30da77c42ddb07b931c656398",
+      "bytes": 5286
+    },
+    "parent_train_gpt_py": {
+      "path": "knowledge_graph/outbox/ideator/runs/20260328T182603Z_layer-wise-gated-shared-mlp/parent_train_gpt.py",
+      "sha256": "c6cae5e767aa0464e8767620f3bbdb08048c99f4b7ae0f0e146dd9b17e68e673",
+      "bytes": 47686
+    },
+    "review_json": "knowledge_graph/outbox/ideator/runs/20260328T182603Z_layer-wise-gated-shared-mlp/review.json",
+    "approved_idea_json": "knowledge_graph/outbox/ideator/layer-wise-gated-shared-mlp.json",
+    "approved_review_json": "knowledge_graph/outbox/ideator/layer-wise-gated-shared-mlp_review.json",
+    "approved_train_gpt_py": {
+      "path": "knowledge_graph/outbox/ideator/layer-wise-gated-shared-mlp_train_gpt.py",
+      "sha256": "012eb7b840465e07730ef6a3504a1d35935bd6b8ad23a6a3d96c73ba2b32fe18",
+      "bytes": 49447
+    },
+    "approved_train_gpt_patch": {
+      "path": "knowledge_graph/outbox/ideator/layer-wise-gated-shared-mlp_train_gpt.patch",
+      "sha256": "356d094a26f162264be7b8a369ce398410d7bef30da77c42ddb07b931c656398",
+      "bytes": 5286
+    },
+    "approved_parent_train_gpt_py": {
+      "path": "knowledge_graph/outbox/ideator/layer-wise-gated-shared-mlp_parent_train_gpt.py",
+      "sha256": "c6cae5e767aa0464e8767620f3bbdb08048c99f4b7ae0f0e146dd9b17e68e673",
+      "bytes": 47686
+    }
+  },
+  "falsifier_instructions": {
+    "assumed_repo_dir": "parameter-golf",
+    "steps": [
+      "cp knowledge_graph/outbox/ideator/layer-wise-gated-shared-mlp_train_gpt.py parameter-golf/train_gpt.py",
+      "cd parameter-golf",
+      "GATED_SHARED_MLP=1 RUN_ID=gated_shared_mlp DATA_PATH=./data/datasets/fineweb10B_sp1024/ TOKENIZER_PATH=./data/tokenizers/fineweb_1024_bpe.model VOCAB_SIZE=1024 torchrun --standalone --nproc_per_node=1 train_gpt.py"
+    ]
+  },
+  "meta": {
+    "generated_at": "2026-03-28T18:26:03.939557+00:00",
+    "model": "gemini-2.5-flash",
+    "reviewer": {
+      "model": "gpt-4o-mini",
+      "decision": "pass",
+      "novelty_score": 6,
+      "primary_reasons": [
+        "Mechanism is similar to existing weight sharing techniques.",
+        "Layer-specific gating is a minor adaptation of established methods.",
+        "Implementation lacks clarity on how it significantly diverges from known approaches."
+      ]
+    },
+    "patch_applied": true,
+    "patch_model": "gemini-2.5-flash"
+  }
+}

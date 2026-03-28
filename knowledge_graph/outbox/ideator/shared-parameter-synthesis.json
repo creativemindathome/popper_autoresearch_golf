@@ -1,0 +1,144 @@
+{
+  "schema_version": "ideator.idea.v2",
+  "idea_id": "shared-parameter-synthesis",
+  "title": "Shared Parameter Synthesis for Transformer MLP Layers",
+  "novelty_summary": "This idea introduces a novel architecture where the weights and biases of all Transformer MLP layers are dynamically *generated* by a single, compact `ParameterSynthesizer` network, rather than being stored directly as unique `nn.Parameter`s. Each MLP layer queries this synthesizer using a unique, learned 'layer embedding'. This significantly reduces the total parameter count by factorizing the parameter space across layers and eliminates redundant weight storage, offering a distinct approach from low-rank approximations, quantization, or token-adaptive methods based on Gumbel-Softmax seen in prior ideas.",
+  "parent_implementation": {
+    "repo_url": "https://github.com/openai/parameter-golf",
+    "git_ref": "main",
+    "primary_file": "train_gpt.py",
+    "run_command": "SYNTH_EMBED_DIM=64 SYNTH_HIDDEN_DIM=256 RUN_ID=shared_synth DATA_PATH=./data/datasets/fineweb10B_sp1024/ TOKENIZER_PATH=./data/tokenizers/fineweb_1024_bpe.model VOCAB_SIZE=1024 torchrun --standalone --nproc_per_node=1 train_gpt.py",
+    "code_search_hints": [
+      "class GPT(nn.Module):",
+      "class Block(nn.Module):",
+      "class MLP(nn.Module):",
+      "self.c_fc = Conv1D(4 * config.n_embd, config.n_embd)",
+      "self.c_proj = Conv1D(config.n_embd, 4 * config.n_embd)",
+      "self.transformer = nn.ModuleDict(dict(",
+      "torch.empty(nx, nf)",
+      "F.gelu"
+    ]
+  },
+  "implementation_steps": [
+    {
+      "step_id": "add-synthesizer-class",
+      "file": "train_gpt.py",
+      "locate": "class Conv1D(nn.Module):",
+      "change": "import torch.nn.functional as F\n\nclass ParameterSynthesizer(nn.Module):\n    def __init__(self, input_dim, output_w_dim, output_b_dim, hidden_dim):\n        super().__init__()\n        self.output_w_dim = output_w_dim\n        self.output_b_dim = output_b_dim\n        self.linear1 = nn.Linear(input_dim, hidden_dim)\n        self.gelu = nn.GELU()\n        self.linear2 = nn.Linear(hidden_dim, output_w_dim + output_b_dim) \n        nn.init.kaiming_normal_(self.linear1.weight, mode='fan_in', nonlinearity='relu')\n        nn.init.constant_(self.linear1.bias, 0)\n        nn.init.kaiming_normal_(self.linear2.weight, mode='fan_in', nonlinearity='relu')\n        nn.init.constant_(self.linear2.bias, 0)\n\n    def forward(self, layer_embedding):\n        x = self.linear1(layer_embedding)\n        x = self.gelu(x)\n        generated_params = self.linear2(x)\n        generated_w = generated_params[..., :self.output_w_dim]\n        generated_b = generated_params[..., self.output_w_dim:]\n        return generated_w, generated_b\n\nclass Conv1D(nn.Module):",
+      "done_when": "`ParameterSynthesizer` class is defined immediately above `Conv1D`, including `linear1`, `gelu`, `linear2` and its `forward` method correctly splitting generated parameters."
+    },
+    {
+      "step_id": "modify-gpt-init-synthesizer",
+      "file": "train_gpt.py",
+      "locate": "        self.config = config\n\n        self.transformer = nn.ModuleDict(dict(",
+      "change": "        self.config = config\n\n        import os\n        synthesizer_embed_dim = int(os.environ.get('SYNTH_EMBED_DIM', '64'))\n        synthesizer_hidden_dim = int(os.environ.get('SYNTH_HIDDEN_DIM', '256'))\n        config.synthesizer_embed_dim = synthesizer_embed_dim\n        config.synthesizer_hidden_dim = synthesizer_hidden_dim\n\n        max_mlp_w_dim = 4 * config.n_embd * config.n_embd # Max for c_fc or c_proj\n        max_mlp_b_dim = 4 * config.n_embd # Max for c_fc or c_proj\n\n        self.parameter_synthesizer = ParameterSynthesizer(\n            input_dim=config.synthesizer_embed_dim, output_w_dim=max_mlp_w_dim, output_b_dim=max_mlp_b_dim,\n            hidden_dim=config.synthesizer_hidden_dim\n        )\n        self.mlp_layer_embeddings = nn.Parameter(torch.randn(config.n_layer, 2, config.synthesizer_embed_dim))\n        nn.init.normal_(self.mlp_layer_embeddings, std=0.01) \n        \n        config.parameter_synthesizer = self.parameter_synthesizer\n        config.mlp_layer_embeddings = self.mlp_layer_embeddings\n        \n        self.transformer = nn.ModuleDict(dict(",
+      "done_when": "`GPT`'s constructor successfully initializes `self.parameter_synthesizer` and `self.mlp_layer_embeddings` and passes them via `config`."
+    },
+    {
+      "step_id": "modify-gpt-block-instantiation",
+      "file": "train_gpt.py",
+      "locate": "            h = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),",
+      "change": "            h = nn.ModuleList([Block(config, i) for i in range(config.n_layer)]),",
+      "done_when": "The `Block` module list in `GPT` is instantiated by passing `config` and the layer index `i`."
+    },
+    {
+      "step_id": "modify-block-init",
+      "file": "train_gpt.py",
+      "locate": "class Block(nn.Module):\n    def __init__(self, config):",
+      "change": "class Block(nn.Module):\n    def __init__(self, config, block_idx): # Added block_idx\n        super().__init__()\n        self.ln_1 = LayerNorm(config.n_embd, bias=config.bias)\n        self.attn = CausalSelfAttention(config)\n        self.ln_2 = LayerNorm(config.n_embd, bias=config.bias)\n        self.mlp = MLP(config, block_idx) # Pass block_idx",
+      "done_when": "`Block`'s constructor accepts `block_idx` and passes it to the `MLP` constructor."
+    },
+    {
+      "step_id": "modify-mlp-init",
+      "file": "train_gpt.py",
+      "locate": "class MLP(nn.Module):\n    def __init__(self, config):",
+      "change": "class MLP(nn.Module):\n    def __init__(self, config, block_idx):\n        super().__init__()\n        self.config = config\n        self.block_idx = block_idx\n        self.gelu = nn.GELU()\n        self.c_fc_nf = 4 * config.n_embd; self.c_fc_nx = config.n_embd\n        self.c_proj_nf = config.n_embd; self.c_proj_nx = 4 * config.n_embd",
+      "done_when": "`MLP`'s constructor accepts `block_idx` and stores necessary dimensions; `c_fc` and `c_proj` `Conv1D` instantiations are removed."
+    },
+    {
+      "step_id": "modify-mlp-forward",
+      "file": "train_gpt.py",
+      "locate": "    def forward(self, x):\n        x = self.c_fc(x)\n        x = self.gelu(x)\n        x = self.c_proj(x)\n        return x",
+      "change": "    def forward(self, x):\n        fc_embedding = self.config.mlp_layer_embeddings[self.block_idx, 0]\n        w_fc_flat, b_fc = self.config.parameter_synthesizer(fc_embedding)\n        w_fc = w_fc_flat.view(self.c_fc_nx, self.c_fc_nf)\n        x = F.linear(x, w_fc, b_fc)\n        \n        x = self.gelu(x)\n\n        proj_embedding = self.config.mlp_layer_embeddings[self.block_idx, 1]\n        w_proj_flat, b_proj = self.config.parameter_synthesizer(proj_embedding)\n        w_proj = w_proj_flat.view(self.c_proj_nx, self.c_proj_nf)\n        x = F.linear(x, w_proj, b_proj)\n\n        return x",
+      "done_when": "`MLP`'s `forward` method correctly retrieves layer embeddings, calls the `ParameterSynthesizer`, reshapes the generated parameters, and uses `F.linear` for computation."
+    }
+  ],
+  "falsifier_smoke_tests": [
+    "Execute the proposed `run_command` (including `SYNTH_EMBED_DIM` and `SYNTH_HIDDEN_DIM` environment variables). The training run completes without Python or PyTorch errors.",
+    "Verify the logger output reports 'number of parameters' for the model. It should be significantly lower than the baseline (e.g., millions fewer), reflecting the shared synthesizer and embeddings.",
+    "Confirm that the final output reports 'val_bpb' and 'compressed model size', indicating a complete training and evaluation run. The 'compressed model size' should also be substantially smaller than the baseline."
+  ],
+  "expected_metric_change": "A substantial reduction in the 'compressed model size' is expected, potentially by an order of magnitude, as the numerous MLP `Conv1D` weights are replaced by a single, small `ParameterSynthesizer` network and a few small layer embeddings. For 'val_bpb', the change is less certain; it might slightly degrade due to the inductive bias of parameter generation, or it could potentially improve if the shared, compact representation acts as a form of regularization. We expect `val_bpb` to remain competitive with the baseline while achieving significant parameter reduction.",
+  "run_id": "20260328T180456Z_shared-parameter-synthesis",
+  "parents": [
+    {
+      "kind": "local",
+      "repo_url": "https://github.com/openai/parameter-golf",
+      "git_ref": "main",
+      "file_path": "train_gpt.py",
+      "run_id": null,
+      "sha256": "c6cae5e767aa0464e8767620f3bbdb08048c99f4b7ae0f0e146dd9b17e68e673"
+    }
+  ],
+  "artifacts": {
+    "run_dir": "knowledge_graph/outbox/ideator/runs/20260328T180456Z_shared-parameter-synthesis",
+    "idea_json": "knowledge_graph/outbox/ideator/runs/20260328T180456Z_shared-parameter-synthesis/idea.json",
+    "train_gpt_py": {
+      "path": "knowledge_graph/outbox/ideator/runs/20260328T180456Z_shared-parameter-synthesis/train_gpt.py",
+      "sha256": "5c8dc763d84b3e99d1948a3f8f79e91a077fe7f0a1a6f8fe8f24b4103910fbca",
+      "bytes": 50859
+    },
+    "train_gpt_patch": {
+      "path": "knowledge_graph/outbox/ideator/runs/20260328T180456Z_shared-parameter-synthesis/train_gpt.patch",
+      "sha256": "0f28a296cc7ac95aedbc77f7266fef4d6c75005558eb69491655927b851ef17e",
+      "bytes": 6687
+    },
+    "parent_train_gpt_py": {
+      "path": "knowledge_graph/outbox/ideator/runs/20260328T180456Z_shared-parameter-synthesis/parent_train_gpt.py",
+      "sha256": "c6cae5e767aa0464e8767620f3bbdb08048c99f4b7ae0f0e146dd9b17e68e673",
+      "bytes": 47686
+    },
+    "review_json": "knowledge_graph/outbox/ideator/runs/20260328T180456Z_shared-parameter-synthesis/review.json",
+    "approved_idea_json": "knowledge_graph/outbox/ideator/shared-parameter-synthesis.json",
+    "approved_review_json": "knowledge_graph/outbox/ideator/shared-parameter-synthesis_review.json",
+    "approved_train_gpt_py": {
+      "path": "knowledge_graph/outbox/ideator/shared-parameter-synthesis_train_gpt.py",
+      "sha256": "5c8dc763d84b3e99d1948a3f8f79e91a077fe7f0a1a6f8fe8f24b4103910fbca",
+      "bytes": 50859
+    },
+    "approved_train_gpt_patch": {
+      "path": "knowledge_graph/outbox/ideator/shared-parameter-synthesis_train_gpt.patch",
+      "sha256": "0f28a296cc7ac95aedbc77f7266fef4d6c75005558eb69491655927b851ef17e",
+      "bytes": 6687
+    },
+    "approved_parent_train_gpt_py": {
+      "path": "knowledge_graph/outbox/ideator/shared-parameter-synthesis_parent_train_gpt.py",
+      "sha256": "c6cae5e767aa0464e8767620f3bbdb08048c99f4b7ae0f0e146dd9b17e68e673",
+      "bytes": 47686
+    }
+  },
+  "falsifier_instructions": {
+    "assumed_repo_dir": "parameter-golf",
+    "steps": [
+      "cp knowledge_graph/outbox/ideator/shared-parameter-synthesis_train_gpt.py parameter-golf/train_gpt.py",
+      "cd parameter-golf",
+      "SYNTH_EMBED_DIM=64 SYNTH_HIDDEN_DIM=256 RUN_ID=shared_synth DATA_PATH=./data/datasets/fineweb10B_sp1024/ TOKENIZER_PATH=./data/tokenizers/fineweb_1024_bpe.model VOCAB_SIZE=1024 torchrun --standalone --nproc_per_node=1 train_gpt.py"
+    ]
+  },
+  "meta": {
+    "generated_at": "2026-03-28T18:04:56.674976+00:00",
+    "model": "gemini-2.5-flash",
+    "reviewer": {
+      "model": "gpt-4o-mini",
+      "decision": "pass",
+      "novelty_score": 6,
+      "primary_reasons": [
+        "Mechanism is somewhat novel but resembles existing adaptive methods.",
+        "Implementation lacks clarity on how it differs from low-rank or quantization techniques.",
+        "Expected metric change is uncertain and may not be competitive."
+      ]
+    },
+    "patch_applied": true,
+    "patch_model": "gemini-2.5-flash"
+  }
+}

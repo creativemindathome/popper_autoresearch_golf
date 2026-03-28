@@ -1,0 +1,126 @@
+--- a/train_gpt.py
++++ b/train_gpt.py
+@@ -59,6 +59,7 @@
+     max_wallclock_seconds = float(os.environ.get("MAX_WALLCLOCK_SECONDS", 600.0))
+     qk_gain_init = float(os.environ.get("QK_GAIN_INIT", 1.5))
+ 
++    gated_shared_mlp = bool(int(os.environ.get("GATED_SHARED_MLP", "0")))
+     # Model shape.
+     vocab_size = int(os.environ.get("VOCAB_SIZE", 1024))
+     num_layers = int(os.environ.get("NUM_LAYERS", 9))
+@@ -506,6 +507,17 @@
+         return F.rms_norm(x, (x.size(-1),), eps=self.eps)
+ 
+ 
++class LayerGating(nn.Module):
++    def __init__(self, dim: int):
++        super().__init__()
++        # Initialize scale to ones and shift to zeros for identity transformation at start
++        self.scale = nn.Parameter(torch.ones(dim, dtype=torch.float32))
++        self.shift = nn.Parameter(torch.zeros(dim, dtype=torch.float32))
++
++    def forward(self, x: Tensor) -> Tensor:
++        return x * self.scale.to(dtype=x.dtype) + self.shift.to(dtype=x.dtype)
++
++
+ class CastedLinear(nn.Linear):
+     # Keep weights in fp32 for optimizer/state quality, cast at matmul time for bf16 compute.
+     def forward(self, x: Tensor) -> Tensor:
+@@ -626,12 +638,19 @@
+         mlp_mult: int,
+         rope_base: float,
+         qk_gain_init: float,
++        shared_mlp: MLP | None = None,
++        layer_gating_module: LayerGating | None = None,
+     ):
+         super().__init__()
+         self.attn_norm = RMSNorm()
+         self.mlp_norm = RMSNorm()
+         self.attn = CausalSelfAttention(dim, num_heads, num_kv_heads, rope_base, qk_gain_init)
+-        self.mlp = MLP(dim, mlp_mult)
++        if shared_mlp is not None and layer_gating_module is not None:
++            self.mlp = shared_mlp
++            self.layer_gating_module = layer_gating_module
++        else:
++            self.mlp = MLP(dim, mlp_mult)
++            self.layer_gating_module = None
+         self.attn_scale = nn.Parameter(torch.ones(dim, dtype=torch.float32))
+         self.mlp_scale = nn.Parameter(torch.ones(dim, dtype=torch.float32))
+         self.resid_mix = nn.Parameter(torch.stack((torch.ones(dim), torch.zeros(dim))).float())
+@@ -641,7 +660,12 @@
+         x = mix[0][None, None, :] * x + mix[1][None, None, :] * x0
+         attn_out = self.attn(self.attn_norm(x))
+         x = x + self.attn_scale.to(dtype=x.dtype)[None, None, :] * attn_out
+-        x = x + self.mlp_scale.to(dtype=x.dtype)[None, None, :] * self.mlp(self.mlp_norm(x))
++        mlp_input = self.mlp_norm(x)
++        if self.layer_gating_module is not None:
++            gated_mlp_input = self.layer_gating_module(mlp_input)
++            x = x + self.mlp_scale.to(dtype=x.dtype)[None, None, :] * self.mlp(gated_mlp_input)
++        else:
++            x = x + self.mlp_scale.to(dtype=x.dtype)[None, None, :] * self.mlp(mlp_input)
+         return x
+ 
+ 
+@@ -659,6 +683,7 @@
+         logit_softcap: float,
+         rope_base: float,
+         qk_gain_init: float,
++        gated_shared_mlp: bool,
+     ):
+         super().__init__()
+         if logit_softcap <= 0.0:
+@@ -667,23 +692,33 @@
+         self.tied_embed_init_std = tied_embed_init_std
+         self.logit_softcap = logit_softcap
+         self.tok_emb = nn.Embedding(vocab_size, model_dim)
++        self.gated_shared_mlp = gated_shared_mlp
+         self.num_encoder_layers = num_layers // 2
+         self.num_decoder_layers = num_layers - self.num_encoder_layers
+         self.num_skip_weights = min(self.num_encoder_layers, self.num_decoder_layers)
+         self.skip_weights = nn.Parameter(torch.ones(self.num_skip_weights, model_dim, dtype=torch.float32))
+-        self.blocks = nn.ModuleList(
+-            [
+-                Block(
+-                    model_dim,
+-                    num_heads,
+-                    num_kv_heads,
+-                    mlp_mult,
+-                    rope_base,
+-                    qk_gain_init,
+-                )
+-                for i in range(num_layers)
+-            ]
+-        )
++
++        if self.gated_shared_mlp:
++            self.shared_mlp = MLP(model_dim, mlp_mult)
++            self.layer_gating_modules = nn.ModuleList([LayerGating(model_dim) for _ in range(num_layers)])
++            self.blocks = nn.ModuleList(
++                [
++                    Block(
++                        model_dim, num_heads, num_kv_heads, mlp_mult, rope_base, qk_gain_init,
++                        shared_mlp=self.shared_mlp, layer_gating_module=self.layer_gating_modules[i]
++                    )
++                    for i in range(num_layers)
++                ]
++            )
++        else:
++            self.blocks = nn.ModuleList(
++                [
++                    Block(
++                        model_dim, num_heads, num_kv_heads, mlp_mult, rope_base, qk_gain_init
++                    )
++                    for i in range(num_layers)
++                ]
++            )
+         self.final_norm = RMSNorm()
+         self.lm_head = None if tie_embeddings else CastedLinear(model_dim, vocab_size, bias=False)
+         if self.lm_head is not None:
+@@ -835,6 +870,7 @@
+         logit_softcap=args.logit_softcap,
+         rope_base=args.rope_base,
+         qk_gain_init=args.qk_gain_init,
++        gated_shared_mlp=args.gated_shared_mlp,
+     ).to(device).bfloat16()
+     for module in base_model.modules():
+         if isinstance(module, CastedLinear):
