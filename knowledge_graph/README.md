@@ -46,6 +46,29 @@ Options:
 - `--labels none|roots|roots-branches|all` (defaults to `none`)
 - `--engine sfdp|neato|fdp` (recommend: `sfdp`)
 
+### Ideator update animation (interactive)
+
+This viewer animates how the ideator pulls context, adds an idea node, links it into the seed KG, and applies reviewer outcomes (APPROVED / REVISE).
+
+Regenerate the timeline from `knowledge_graph/outbox/ideator/`:
+
+```bash
+python3 knowledge_graph/build_ideator_visual_timeline.py \
+  --max-events 8 \
+  --out knowledge_graph/visuals/ideator_kg_update/timeline.json \
+  --inline-js knowledge_graph/visuals/ideator_kg_update/timeline.inline.js
+```
+
+Open the viewer:
+
+- Directly (uses `timeline.inline.js`): `knowledge_graph/visuals/ideator_kg_update/index.html`
+- Or via a local server:
+
+```bash
+cd knowledge_graph/visuals/ideator_kg_update
+python3 -m http.server 8000
+```
+
 ## Outbox
 
 Generated ideas and candidate implementations are saved to `knowledge_graph/outbox/ideator/`:
