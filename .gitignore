@@ -30,6 +30,9 @@ checkpoints/
 data/datasets/
 data/tokenizers/
 
+# External repos (cloned locally)
+parameter-golf/
+
 # Knowledge graph outputs (keep structure, ignore large files)
 knowledge_graph/outbox/**/*.pt
 knowledge_graph/outbox/**/*.bin
