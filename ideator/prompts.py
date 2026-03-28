@@ -29,6 +29,7 @@ You must:
 - Produce a single JSON object only (no markdown, no extra commentary).
 - All string fields must be single-line (no literal newline characters). If you need a line break, use the two-character escape sequence "\\n".
 - Optimize for the Parameter Golf constraints: tiny artifact, short training wallclock, minimal additional code size.
+- Keep the JSON compact: do NOT paste long code blocks. In `implementation_steps.change`, use brief pseudocode or a small diff-like snippet (keep it under ~800 characters).
 
 Hard constraints:
 - The idea must be implementable by a small team in ~12 hours as an MVP.
@@ -47,6 +48,7 @@ You must:
 - Keep the idea implementable under the Parameter Golf constraints and within ~12 hours as an MVP.
 - Produce a single JSON object only (no markdown, no extra commentary).
 - All string fields must be single-line (no literal newline characters). If you need a line break, use the two-character escape sequence "\\n".
+- Keep the JSON compact: do NOT paste long code blocks. In `implementation_steps.change`, use brief pseudocode or a small diff-like snippet (keep it under ~800 characters).
 """.strip()
 
 
@@ -113,7 +115,7 @@ Return a JSON object with:
   - step_id: short slug
   - file: must be "train_gpt.py" unless you justify otherwise
   - locate: how to find the insertion/edit point (anchor strings to search for)
-  - change: explicit pseudocode or a small diff-like snippet
+  - change: explicit pseudocode or a small diff-like snippet (do NOT paste long code blocks)
   - done_when: measurable acceptance criterion (e.g., script runs; prints val_bpb; artifact size stays under cap)
 - falsifier_smoke_tests: 2–5 quick tests with pass/fail criteria (should run in minutes)
 - expected_metric_change: expected direction/range on val_bpb and why
@@ -205,20 +207,20 @@ def ideator_response_schema() -> Dict[str, Any]:
     return {
         "type": "object",
         "properties": {
-            "schema_version": {"type": "string"},
-            "idea_id": {"type": "string"},
-            "title": {"type": "string"},
-            "novelty_summary": {"type": "string"},
+            "schema_version": {"type": "string", "maxLength": 40},
+            "idea_id": {"type": "string", "maxLength": 80},
+            "title": {"type": "string", "maxLength": 160},
+            "novelty_summary": {"type": "string", "maxLength": 1200},
             "parent_implementation": {
                 "type": "object",
                 "properties": {
-                    "repo_url": {"type": "string"},
-                    "git_ref": {"type": "string"},
-                    "primary_file": {"type": "string"},
-                    "run_command": {"type": "string"},
+                    "repo_url": {"type": "string", "maxLength": 300},
+                    "git_ref": {"type": "string", "maxLength": 120},
+                    "primary_file": {"type": "string", "maxLength": 60},
+                    "run_command": {"type": "string", "maxLength": 1200},
                     "code_search_hints": {
                         "type": "array",
-                        "items": {"type": "string"},
+                        "items": {"type": "string", "maxLength": 140},
                         "minItems": 3,
                         "maxItems": 8,
                     },
@@ -233,11 +235,11 @@ def ideator_response_schema() -> Dict[str, Any]:
                 "items": {
                     "type": "object",
                     "properties": {
-                        "step_id": {"type": "string"},
-                        "file": {"type": "string"},
-                        "locate": {"type": "string"},
-                        "change": {"type": "string"},
-                        "done_when": {"type": "string"},
+                        "step_id": {"type": "string", "maxLength": 80},
+                        "file": {"type": "string", "maxLength": 120},
+                        "locate": {"type": "string", "maxLength": 800},
+                        "change": {"type": "string", "maxLength": 1200},
+                        "done_when": {"type": "string", "maxLength": 800},
                     },
                     "required": ["step_id", "file", "locate", "change", "done_when"],
                     "additionalProperties": False,
@@ -245,11 +247,11 @@ def ideator_response_schema() -> Dict[str, Any]:
             },
             "falsifier_smoke_tests": {
                 "type": "array",
-                "items": {"type": "string"},
+                "items": {"type": "string", "maxLength": 800},
                 "minItems": 2,
                 "maxItems": 5,
             },
-            "expected_metric_change": {"type": "string"},
+            "expected_metric_change": {"type": "string", "maxLength": 1200},
         },
         "required": [
             "schema_version",

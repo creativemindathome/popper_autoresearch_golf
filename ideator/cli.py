@@ -302,6 +302,7 @@ def cmd_idea(
     accepted_review: Optional[Dict[str, Any]] = None
 
     prev_thin_idea: Optional[Dict[str, Any]] = None
+    prev_idea_for_revision: Optional[Dict[str, Any]] = None
     prev_review: Optional[Dict[str, Any]] = None
 
     rounds = max(1, int(max_review_rounds))
@@ -310,29 +311,62 @@ def cmd_idea(
             ideator_system = system_prompt
             ideator_user = user_prompt
         else:
-            if prev_thin_idea is None or prev_review is None:
+            if prev_idea_for_revision is None or prev_review is None:
                 sys.stderr.write("Internal error: missing previous idea/review for revision.\n")
                 return 2
             ideator_system, ideator_user = build_ideator_revision_prompts(
                 knowledge_context=knowledge_context,
                 parent_code_ref=parent_code_ref,
-                previous_idea=prev_thin_idea,
+                previous_idea=prev_idea_for_revision,
                 reviewer_feedback=prev_review,
             )
 
-        try:
-            idea_raw = ideator_client.generate_json(
-                model=model,
-                system_prompt=ideator_system,
-                user_prompt=ideator_user,
-                response_schema=ideator_response_schema(),
-                temperature=temperature,
-                top_p=top_p,
-                max_output_tokens=max_output_tokens,
-                seed=seed,
-            )
-        except GeminiError as e:
-            sys.stderr.write(str(e).rstrip() + "\n")
+        idea_raw: Any = None
+        ideator_attempts = 3
+        last_ideator_err: Optional[GeminiError] = None
+        for attempt_idx in range(ideator_attempts):
+            if attempt_idx:
+                sys.stderr.write(f"ideator: retry {attempt_idx + 1}/{ideator_attempts}\n")
+            try:
+                retry_temperature = temperature if attempt_idx == 0 else min(temperature, 0.8)
+                retry_max_tokens = max_output_tokens if attempt_idx == 0 else min(int(max_output_tokens), 4096)
+                idea_raw = ideator_client.generate_json(
+                    model=model,
+                    system_prompt=ideator_system,
+                    user_prompt=ideator_user
+                    + (
+                        ""
+                        if attempt_idx == 0
+                        else "\n\nIMPORTANT: Return ONLY a single valid JSON object matching the schema. "
+                        "Keep it compact; do NOT paste long code blocks in implementation_steps.change."
+                    ),
+                    response_schema=ideator_response_schema(),
+                    temperature=retry_temperature,
+                    top_p=top_p,
+                    max_output_tokens=retry_max_tokens,
+                    seed=seed,
+                )
+                last_ideator_err = None
+                break
+            except GeminiError as e:
+                last_ideator_err = e
+                msg = str(e)
+                recoverable = "Model did not return valid JSON" in msg
+                if recoverable and attempt_idx + 1 < ideator_attempts:
+                    continue
+                if recoverable and reviewer_enabled and round_idx > 0:
+                    break
+                sys.stderr.write(msg.rstrip() + "\n")
+                sys.stderr.write("Tip: run `python3 -m ideator list-models` to verify model availability.\n")
+                return 2
+        if last_ideator_err is not None:
+            msg = str(last_ideator_err)
+            if reviewer_enabled and round_idx > 0 and "Model did not return valid JSON" in msg:
+                sys.stderr.write(
+                    "ideator: still invalid JSON after retries; treating as revise and continuing to next review round.\n"
+                )
+                continue
+            sys.stderr.write(msg.rstrip() + "\n")
             sys.stderr.write("Tip: run `python3 -m ideator list-models` to verify model availability.\n")
             return 2
 
@@ -348,6 +382,7 @@ def cmd_idea(
                 revision_instructions="Return a single JSON object matching the ideator schema.",
                 must_fix_fields=["schema_version", "parent_implementation", "implementation_steps"],
             )
+            prev_idea_for_revision = prev_thin_idea
             sys.stderr.write(f"review round {round_idx + 1}/{rounds}: revise (non-object JSON)\n")
             continue
 
@@ -412,6 +447,7 @@ def cmd_idea(
             break
 
         prev_thin_idea = thin_candidate
+        prev_idea_for_revision = _thin_idea_for_revision(thin_candidate)
         prev_review = review
 
     if accepted_idea_raw is None:
@@ -804,6 +840,74 @@ def _thin_idea_for_review(
         )
 
     thin["_code_summary"] = summary
+    return thin
+
+
+def _thin_idea_for_revision(
+    idea_raw: Dict[str, Any],
+    *,
+    max_change_chars: int = 260,
+    max_locate_chars: int = 300,
+    max_done_when_chars: int = 260,
+    max_steps: int = 6,
+) -> Dict[str, Any]:
+    """
+    Make a compact version of the previous idea suitable for inclusion in revision prompts.
+
+    The full previous idea (with long `change` strings) can be large enough to cause the next ideator
+    response to truncate, leading to invalid JSON. This function keeps the key intent while bounding size.
+    """
+    thin: Dict[str, Any] = {}
+
+    for k in ("schema_version", "idea_id", "title", "novelty_summary", "expected_metric_change"):
+        if k in idea_raw:
+            thin[k] = idea_raw.get(k)
+
+    parent_impl = idea_raw.get("parent_implementation")
+    if isinstance(parent_impl, dict):
+        keep_parent = {}
+        for k in ("repo_url", "git_ref", "primary_file", "run_command"):
+            if k in parent_impl:
+                keep_parent[k] = parent_impl.get(k)
+        hints = parent_impl.get("code_search_hints")
+        if isinstance(hints, list):
+            keep_parent["code_search_hints"] = [str(x)[:140] for x in hints[:8]]
+        thin["parent_implementation"] = keep_parent
+
+    steps = idea_raw.get("implementation_steps")
+    if isinstance(steps, list):
+        out_steps: List[Dict[str, Any]] = []
+        for s in steps[:max_steps]:
+            if not isinstance(s, dict):
+                continue
+            change = str(s.get("change") or "")
+            if len(change) > max_change_chars:
+                change = change[: max_change_chars - 13] + "...[truncated]"
+            locate = str(s.get("locate") or "")
+            if len(locate) > max_locate_chars:
+                locate = locate[: max_locate_chars - 13] + "...[truncated]"
+            done_when = str(s.get("done_when") or "")
+            if len(done_when) > max_done_when_chars:
+                done_when = done_when[: max_done_when_chars - 13] + "...[truncated]"
+            out_steps.append(
+                {
+                    "step_id": str(s.get("step_id") or ""),
+                    "file": str(s.get("file") or ""),
+                    "locate": locate,
+                    "change": change,
+                    "done_when": done_when,
+                }
+            )
+        thin["implementation_steps"] = out_steps
+
+    tests = idea_raw.get("falsifier_smoke_tests")
+    if isinstance(tests, list):
+        thin["falsifier_smoke_tests"] = [str(x)[:260] for x in tests[:5]]
+
+    cs = idea_raw.get("_code_summary")
+    if isinstance(cs, dict):
+        thin["_code_summary"] = {"parent_sha256": cs.get("parent_sha256")}
+
     return thin
 
 
