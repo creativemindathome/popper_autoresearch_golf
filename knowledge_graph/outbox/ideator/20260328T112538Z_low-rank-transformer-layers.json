@@ -44,7 +44,6 @@
   "expected_metric_change": "Expect a slight decrease in model accuracy (e.g., 1-3% drop in F1 score on GLUE tasks) but a significant reduction in parameter count and potentially faster inference times.",
   "meta": {
     "generated_at": "2026-03-28T11:25:38.829997+00:00",
-    "model": "gemini-2.5-flash",
-    "knowledge_dir": "/Users/masha/Documents/null_hackathon/popper_autoresearch_golf/knowledge_graph"
+    "model": "gemini-2.5-flash"
   }
 }

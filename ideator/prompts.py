@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any, Dict, Tuple
 
 
@@ -35,24 +36,82 @@ Hard constraints:
 """
 
 
-def build_ideator_prompts(*, knowledge_context: str) -> Tuple[str, str]:
+IDEATOR_REVISION_SYSTEM = """\
+You are the Ideator agent in a multi-agent AutoResearch loop. You are revising an idea after a pessimistic novelty review.
+
+Your job is to produce ONE improved, more novel, still-falsifiable, implementation-ready idea.
+
+You must:
+- Address the Reviewer's criticisms explicitly by changing the core mechanism, not just rewording.
+- Avoid marginal tweaks, repackaged known techniques, or tiny hyperparameter changes.
+- Keep the idea implementable under the Parameter Golf constraints and within ~12 hours as an MVP.
+- Produce a single JSON object only (no markdown, no extra commentary).
+- All string fields must be single-line (no literal newline characters). If you need a line break, use the two-character escape sequence "\\n".
+""".strip()
+
+
+REVIEWER_SYSTEM = """\
+You are the Reviewer agent in a multi-agent AutoResearch loop.
+
+Your job is to decide whether the candidate idea is truly novel enough to be worth sending to the falsifier.
+
+Be pessimistic:
+- Default to "revise" unless the idea has a clearly novel mechanism (not a common/standard technique or small variant),
+  and it is concretely implementable and compliant with the Parameter Golf constraints.
+
+Check:
+- Novelty vs knowledge context (do not ignore near-duplicates or common ideas).
+- Not a trivial hyperparameter tweak.
+- Parameter Golf compliance (FineWeb, val_bpb, train_gpt.py, tiny artifact, short run).
+- Implementation specificity (steps and anchors are unambiguous).
+- Falsifiability (quick smoke tests; expected metric change is plausible).
+
+Output a single JSON object only (no markdown, no extra commentary).
+All string fields must be single-line (no literal newline characters). If you need a line break, use the two-character escape sequence "\\n".
+
+Return JSON with fields:
+- decision: "pass" or "revise"
+- novelty_score: integer 0..10
+- primary_reasons: array of 2..6 short strings
+- revision_instructions: a short actionable paragraph telling the Ideator how to make it more novel (>=3 concrete changes)
+- must_fix_fields: array of idea top-level fields that must change (e.g. ["novelty_summary","implementation_steps"])
+- similar_to_knowledge: array of short strings naming any similar prior ideas from the knowledge context (can be empty)
+""".strip()
+
+
+def build_ideator_prompts(
+    *,
+    knowledge_context: str,
+    parent_code_ref: Dict[str, Any],
+    parent_train_gpt_py: str,
+) -> Tuple[str, str]:
     system = IDEATOR_SYSTEM.strip()
+    parent_ref_json = json.dumps(parent_code_ref, ensure_ascii=False)
     user = f"""\
 {PARAMETER_GOLF_CONTEXT.strip()}
 
 Knowledge graph context (may be empty):
 {knowledge_context.strip() or "[empty]"}
 
+Parent code reference (the code you must minimally modify):
+{parent_ref_json}
+
+Parent train_gpt.py (verbatim; keep everything not explicitly changed identical):
+<BEGIN_TRAIN_GPT_PY>
+{parent_train_gpt_py.rstrip()}
+<END_TRAIN_GPT_PY>
+
 Task:
 Generate exactly ONE new research idea to improve Parameter Golf. The idea should not be a trivial hyperparameter tweak.
 
 Return a JSON object with:
-- schema_version: must be "ideator.idea.v1"
+- schema_version: must be "ideator.idea.v2"
 - idea_id: short stable slug (lowercase, hyphens)
 - title: short title
 - novelty_summary: 1–3 sentences describing what's new
 - parent_implementation: pointer to the EXACT parent codebase the falsifier should modify and run
-  - repo_url: must be "https://github.com/openai/parameter-golf"
+  - repo_url: the repo URL from Parent code reference
+  - git_ref: the git ref from Parent code reference (branch or commit)
   - primary_file: must be "train_gpt.py"
   - run_command: a single command (or env-var + command string) the falsifier can run to test
   - code_search_hints: 3–8 ripgrep-style search strings to locate the relevant section(s) in train_gpt.py
@@ -64,12 +123,93 @@ Return a JSON object with:
   - done_when: measurable acceptance criterion (e.g., script runs; prints val_bpb; artifact size stays under cap)
 - falsifier_smoke_tests: 2–5 quick tests with pass/fail criteria (should run in minutes)
 - expected_metric_change: expected direction/range on val_bpb and why
+- train_gpt_py_lines: the FULL updated train_gpt.py file as an array of strings, one element per line, no trailing "\\n" on elements.
 
 IMPORTANT:
 - Do NOT mention CIFAR/ImageNet/other datasets. Only refer to Parameter Golf (FineWeb, train_gpt.py, val_bpb).
 - Make the implementation instructions unambiguous: anchors + what to insert/replace.
+- The updated train_gpt.py must run end-to-end, print val_bpb, and preserve the existing CLI args/options unless your change requires adding a minimal new flag.
+- Keep code additions minimal (code bytes count toward the 16MB artifact budget).
+- Do not output absolute user paths (e.g. "/Users/..."). Use relative paths and/or env vars in run_command.
 
 Output JSON only.
+""".strip()
+    return system, user
+
+
+def build_ideator_revision_prompts(
+    *,
+    knowledge_context: str,
+    parent_code_ref: Dict[str, Any],
+    parent_train_gpt_py: str,
+    previous_idea: Dict[str, Any],
+    reviewer_feedback: Dict[str, Any],
+) -> Tuple[str, str]:
+    system = IDEATOR_REVISION_SYSTEM
+    parent_ref_json = json.dumps(parent_code_ref, ensure_ascii=False)
+    prev_json = json.dumps(previous_idea, ensure_ascii=False)
+    review_json = json.dumps(reviewer_feedback, ensure_ascii=False)
+    user = f"""\
+{PARAMETER_GOLF_CONTEXT.strip()}
+
+Knowledge graph context (may be empty):
+{knowledge_context.strip() or "[empty]"}
+
+Parent code reference (the code you must minimally modify):
+{parent_ref_json}
+
+Parent train_gpt.py (verbatim; keep everything not explicitly changed identical):
+<BEGIN_TRAIN_GPT_PY>
+{parent_train_gpt_py.rstrip()}
+<END_TRAIN_GPT_PY>
+
+Previous idea JSON (rejected or needs revision; may be incomplete):
+{prev_json}
+
+Reviewer feedback JSON:
+{review_json}
+
+Task:
+Revise into ONE more-novel idea that addresses the reviewer's reasons and instructions.
+
+Return a JSON object with the same fields and constraints as the original Ideator output:
+- schema_version: must be "ideator.idea.v2"
+- idea_id: short stable slug (lowercase, hyphens)
+- title
+- novelty_summary
+- parent_implementation: pointer to the EXACT parent codebase the falsifier should modify and run
+  - repo_url: the repo URL from Parent code reference
+  - git_ref: the git ref from Parent code reference (branch or commit)
+  - primary_file: must be "train_gpt.py"
+  - run_command: a single command (or env-var + command string) the falsifier can run to test
+  - code_search_hints: 3–8 ripgrep-style search strings to locate the relevant section(s) in train_gpt.py
+- implementation_steps: 3–7 concrete steps (anchors + explicit changes)
+- falsifier_smoke_tests: 2–5
+- expected_metric_change
+- train_gpt_py_lines: the FULL updated train_gpt.py file as an array of strings
+
+Output JSON only.
+""".strip()
+    return system, user
+
+
+def build_reviewer_prompts(*, knowledge_context: str, idea: Dict[str, Any]) -> Tuple[str, str]:
+    system = REVIEWER_SYSTEM
+    idea_json = json.dumps(idea, ensure_ascii=False)
+    user = f"""\
+Parameter Golf context (for compliance):
+- Goal: improve held-out compression on FineWeb validation, reported as bits-per-byte (lower is better).
+- Constraints: artifact <= 16,000,000 bytes total; run time-capped (10 minutes on 8×H100).
+- Fixed data split: no external data. Primary file is train_gpt.py in https://github.com/openai/parameter-golf.
+
+Knowledge graph context (may be empty):
+{knowledge_context.strip() or "[empty]"}
+
+Candidate idea JSON:
+{idea_json}
+
+Task:
+Return the review JSON described in the system prompt.
 """.strip()
     return system, user
 
@@ -87,6 +227,7 @@ def ideator_response_schema() -> Dict[str, Any]:
                 "type": "object",
                 "properties": {
                     "repo_url": {"type": "string"},
+                    "git_ref": {"type": "string"},
                     "primary_file": {"type": "string"},
                     "run_command": {"type": "string"},
                     "code_search_hints": {
@@ -96,7 +237,7 @@ def ideator_response_schema() -> Dict[str, Any]:
                         "maxItems": 8,
                     },
                 },
-                "required": ["repo_url", "primary_file", "run_command", "code_search_hints"],
+                "required": ["repo_url", "git_ref", "primary_file", "run_command", "code_search_hints"],
                 "additionalProperties": False,
             },
             "implementation_steps": {
@@ -123,6 +264,11 @@ def ideator_response_schema() -> Dict[str, Any]:
                 "maxItems": 5,
             },
             "expected_metric_change": {"type": "string"},
+            "train_gpt_py_lines": {
+                "type": "array",
+                "items": {"type": "string"},
+                "minItems": 1,
+            },
         },
         "required": [
             "schema_version",
@@ -133,6 +279,30 @@ def ideator_response_schema() -> Dict[str, Any]:
             "implementation_steps",
             "falsifier_smoke_tests",
             "expected_metric_change",
+            "train_gpt_py_lines",
+        ],
+        "additionalProperties": False,
+    }
+
+
+def reviewer_response_schema() -> Dict[str, Any]:
+    return {
+        "type": "object",
+        "properties": {
+            "decision": {"type": "string"},
+            "novelty_score": {"type": "integer"},
+            "primary_reasons": {"type": "array", "items": {"type": "string"}, "minItems": 2, "maxItems": 6},
+            "revision_instructions": {"type": "string"},
+            "must_fix_fields": {"type": "array", "items": {"type": "string"}},
+            "similar_to_knowledge": {"type": "array", "items": {"type": "string"}},
+        },
+        "required": [
+            "decision",
+            "novelty_score",
+            "primary_reasons",
+            "revision_instructions",
+            "must_fix_fields",
+            "similar_to_knowledge",
         ],
         "additionalProperties": False,
     }

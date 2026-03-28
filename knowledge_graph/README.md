@@ -12,7 +12,14 @@ The Ideator will include a compact summary when it can parse JSON; otherwise it 
 
 ## Outbox
 
-Generated ideas are saved to `knowledge_graph/outbox/ideator/`:
+Generated ideas and candidate implementations are saved to `knowledge_graph/outbox/ideator/`:
 
-- `latest.json` (most recent idea)
-- `YYYYMMDDTHHMMSSZ_<idea_id>.json` (timestamped history)
+- `latest.json` (most recent idea JSON)
+- `latest_train_gpt.py` (most recent generated `train_gpt.py`)
+- `latest_train_gpt.patch` (diff vs the parent)
+- `latest_review.json` (most recent novelty review, if enabled)
+- `runs/<run_id>/idea.json` (per-run idea JSON)
+- `runs/<run_id>/train_gpt.py` (per-run generated implementation)
+- `runs/<run_id>/train_gpt.patch` (per-run diff vs parent)
+- `runs/<run_id>/parent_train_gpt.py` (archived parent used for diff)
+- `runs/<run_id>/review.json` (per-run novelty review, if enabled)
