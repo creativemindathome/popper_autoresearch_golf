@@ -19,10 +19,10 @@ def generate_feedback(
     if out.verdict in ("REFUTED", "REJECTED"):
         return _generate_failure_feedback(inp, out)
     
-    if out.verdict == "STAGE_2_PASSED":
+    if out.verdict in ("STAGE_2_PASSED", "STAGE_1_PASSED"):
         return _generate_success_feedback(inp, out)
     
-    # IMPLEMENTATION_FAIL
+    # IMPLEMENTATION_FAIL or other unknown verdict
     return _generate_error_feedback(inp, out)
 
 

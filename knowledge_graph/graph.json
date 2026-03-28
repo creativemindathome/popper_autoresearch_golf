@@ -1050,13 +1050,74 @@
       },
       "_created": 1774715380.8969622,
       "_created_by": 51287
+    },
+    "spiral-depth-attention": {
+      "node_id": "spiral-depth-attention",
+      "idea_id": "spiral-depth-attention",
+      "title": "spiral-depth-attention",
+      "theory_type": "architectural",
+      "status": "REFUTED",
+      "status_history": [
+        {
+          "status": "GENERATED",
+          "timestamp": "2026-03-28T17:30:38.457501",
+          "actor": "anthropic-ideator"
+        },
+        {
+          "status": "REFUTED",
+          "timestamp": "2026-03-28T17:31:19.653615",
+          "actor": "falsifier"
+        }
+      ],
+      "what_and_why": "This architecture replaces traditional stacked transformer layers with a 'spiral depth' pattern where attention heads at each layer operate at different effective depths through recursive self-refinement. Each attention head performs multiple sequential passes (2-4 iterations) on its own output before passing to the next component, creating deeper computational paths without additional parameters. The key insight is that attention can be applied recursively to its own output to simulate deeper reasoning, similar to how recurrent networks reuse weights across time steps but applied spatially within each layer. We expect this to show characteristic spiraling loss curves during training - initial rapid descent followed by periodic refinement phases as the recursive attention patterns stabilize. Success would manifest as lower perplexity than baseline GPT-2 of same size, while failure would show oscillating loss or gradient instability from the recursive operations.",
+      "source": {
+        "type": "anthropic-ideator",
+        "generated_at": "2026-03-28T17:30:38.457501",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "falsification": {
+        "outcome": "FAILED",
+        "stage_reached": 1,
+        "killed_by": "T2",
+        "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+        "timing": {
+          "started_at": "2026-03-28T17:30:38.457501",
+          "completed_at": "2026-03-28T17:31:19.653615",
+          "wall_seconds": 41.19611406326294
+        },
+        "test_results": {
+          "T2": {
+            "status": "FAIL_FATAL",
+            "test_id": "T2",
+            "estimated_params": 17046016,
+            "estimated_artifact_bytes": 10234156,
+            "budget_remaining_bytes": 6543060,
+            "budget_utilization": 0.6100032329559326,
+            "flops_ratio": 1.0,
+            "estimated_training_seconds": 14843.406974976,
+            "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+            "tags": [],
+            "wall_seconds": 0.0043373749940656126,
+            "attn_flops_ratio": 0.6545454545454545,
+            "mlp_flops_ratio": 0.32727272727272727,
+            "embed_flops_ratio": 0.01818181818181818,
+            "architectural_balance_score": 0.0
+          },
+          "T3": null,
+          "T4": null,
+          "T5": null,
+          "T7": null
+        }
+      },
+      "_created": 1774715479.654912,
+      "_created_by": 51287
     }
   },
   "edges": [],
   "version": "1.0",
   "metadata": {
-    "last_modified": 1774715380.8969622,
+    "last_modified": 1774715479.654916,
     "last_modified_by": 51287,
-    "node_count": 19
+    "node_count": 20
   }
 }

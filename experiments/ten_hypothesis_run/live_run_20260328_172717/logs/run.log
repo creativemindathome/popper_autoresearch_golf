@@ -178,3 +178,53 @@ Pausing 3 seconds before next hypothesis...
 [2026-03-28T17:30:38.457612] [INFO]   Hypothesis #5
 [2026-03-28T17:30:38.457641] [INFO] ──────────────────────────────────────────────────────────────────────
 [2026-03-28T17:30:38.457668] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:31:19.645546] [INFO] ✓ Generated hypothesis #5: spiral-depth-attention
+[2026-03-28T17:31:19.646197] [INFO]   Parameter estimate: Explicit count: ~6.5M parameters (n_embd=384, n_layer=6, verified safe)
+[2026-03-28T17:31:19.646293] [INFO]   Novelty: 3 claims
+[2026-03-28T17:31:19.646393] [INFO]   Code: ~172 lines
+[2026-03-28T17:31:19.646474] [INFO]   ✓ Parameter estimate 6.5M is within 10M budget
+[2026-03-28T17:31:19.646581] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:31:19.647480] [INFO] 
+[2026-03-28T17:31:19.647541] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:31:19.647618] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:31:19.647677] [INFO]   Theory: spiral-depth-attention
+[2026-03-28T17:31:19.647730] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:31:19.648204] [INFO] Running T2 Budget check...
+[2026-03-28T17:31:19.648259] [INFO] Running T3 Compilation check...
+[2026-03-28T17:31:19.648344] [INFO] Running T4 Signal check...
+[2026-03-28T17:31:19.648388] [INFO] Running T5 Init check...
+[2026-03-28T17:31:19.648431] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:31:19.653215] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:31:19.653619] [INFO] 
+✓ Hypothesis #5 complete in 41.2s
+[2026-03-28T17:31:19.653659] [INFO]   Verdict: REFUTED
+[2026-03-28T17:31:19.655728] [INFO]   [Graph Sync] Created new node: spiral-depth-attention
+[2026-03-28T17:31:19.656105] [INFO] 
+[2026-03-28T17:31:19.656155] [INFO] ======================================================================
+[2026-03-28T17:31:19.656197] [INFO] FINAL SUMMARY
+[2026-03-28T17:31:19.656237] [INFO] ======================================================================
+[2026-03-28T17:31:19.656351] [INFO] 
+[2026-03-28T17:31:19.656396] [INFO] STATISTICS:
+[2026-03-28T17:31:19.656433] [INFO]   Total time: 4.0 minutes
+[2026-03-28T17:31:19.656464] [INFO]   Completed: 4/5
+[2026-03-28T17:31:19.656503] [INFO]   Failed: 1/5
+[2026-03-28T17:31:19.656534] [INFO] 
+[2026-03-28T17:31:19.656567] [INFO] PIPELINE RESULTS:
+[2026-03-28T17:31:19.656600] [INFO]   Generated: 4
+[2026-03-28T17:31:19.656629] [INFO]   Stage 1 Passed: 0 / 4
+[2026-03-28T17:31:19.656659] [INFO]   Stage 1 Killed: 4 / 4
+[2026-03-28T17:31:19.656690] [INFO]   Stage 2 Triggered: 0
+[2026-03-28T17:31:19.656719] [INFO]   Stage 2 Passed: 0 / 0
+[2026-03-28T17:31:19.656746] [INFO]   Stage 2 Killed: 0 / 0
+[2026-03-28T17:31:19.656780] [INFO] 
+[2026-03-28T17:31:19.656873] [INFO] VERDICT BREAKDOWN:
+[2026-03-28T17:31:19.656909] [INFO]   REFUTED: 4
+[2026-03-28T17:31:19.657082] [INFO]   UNKNOWN: 1
+[2026-03-28T17:31:19.657307] [INFO] 
+[2026-03-28T17:31:19.657358] [INFO] ✓ Summary saved to: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_172717/summary.json
+[2026-03-28T17:31:19.657403] [INFO] 
+[2026-03-28T17:31:19.657440] [INFO] Generating visualization data...
+[2026-03-28T17:31:19.658188] [INFO] ✓ Visualization data saved to: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_172717/visualization/visualization_data.json
+[2026-03-28T17:31:19.658248] [INFO]   - Timeline: 9 events
+[2026-03-28T17:31:19.658281] [INFO]   - Evolution frames: 8
+[2026-03-28T17:31:19.658312] [INFO]   - Stage 2 enabled: True

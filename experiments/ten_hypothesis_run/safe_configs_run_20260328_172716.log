@@ -1,0 +1,250 @@
+======================================================================
+FULL LIVE EXPERIMENT
+======================================================================
+Output: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_172717
+Hypotheses: 5
+Stage 2: ENABLED
+  Model: claude-sonnet-4-20250514
+
+[2026-03-28T17:27:17.224561] [INFO] ======================================================================
+[2026-03-28T17:27:17.224656] [INFO] FULL LIVE EXPERIMENT WITH SEPARATE STAGE MODELS
+[2026-03-28T17:27:17.224689] [INFO] ======================================================================
+[2026-03-28T17:27:17.224714] [INFO] Output directory: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_172717
+[2026-03-28T17:27:17.224736] [INFO] Stage 0 (Ideation): claude-sonnet-4-20250514
+[2026-03-28T17:27:17.224758] [INFO] Stage 2 (Falsifier): ENABLED
+[2026-03-28T17:27:17.224779] [INFO]   Model: claude-sonnet-4-20250514
+[2026-03-28T17:27:17.224800] [INFO]   Max hypotheses: 5
+[2026-03-28T17:27:17.224825] [INFO] 
+[2026-03-28T17:27:17.224846] [INFO] Starting experiment: 5 hypotheses
+[2026-03-28T17:27:17.224866] [INFO] Estimated time: 15-25 minutes
+[2026-03-28T17:27:17.224887] [INFO] 
+[2026-03-28T17:27:17.224907] [INFO] 
+======================================================================
+[2026-03-28T17:27:17.224927] [INFO] HYPOTHESIS 1/5
+[2026-03-28T17:27:17.224946] [INFO] ======================================================================
+[2026-03-28T17:27:17.224987] [INFO] 
+[2026-03-28T17:27:17.225007] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:27:17.225028] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:27:17.225052] [INFO]   Hypothesis #1
+[2026-03-28T17:27:17.225071] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:27:17.225090] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:28:02.271953] [INFO] ✓ Generated hypothesis #1: spiral-attention-gates
+[2026-03-28T17:28:02.272309] [INFO]   Parameter estimate: ~6.5M parameters: 2.1M embeddings (tied) + 4 layers * ~1.1M each = 6.5M total
+[2026-03-28T17:28:02.272361] [INFO]   Novelty: 3 claims
+[2026-03-28T17:28:02.272425] [INFO]   Code: ~176 lines
+[2026-03-28T17:28:02.272521] [INFO]   ✓ Parameter estimate 6.5M is within 10M budget
+[2026-03-28T17:28:02.272553] [INFO]   ✓ Parameter estimate 2.1M is within 10M budget
+[2026-03-28T17:28:02.272708] [INFO]   ✓ Parameter estimate 1.1M is within 10M budget
+[2026-03-28T17:28:02.272739] [INFO]   ✓ Parameter estimate 6.5M is within 10M budget
+[2026-03-28T17:28:02.272834] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:28:02.273846] [INFO] 
+[2026-03-28T17:28:02.273966] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:28:02.274014] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:28:02.274285] [INFO]   Theory: spiral-attention-gates
+[2026-03-28T17:28:02.274402] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:28:02.275205] [INFO] Running T2 Budget check...
+[2026-03-28T17:28:02.275415] [INFO] Running T3 Compilation check...
+[2026-03-28T17:28:02.275475] [INFO] Running T4 Signal check...
+[2026-03-28T17:28:02.275511] [INFO] Running T5 Init check...
+[2026-03-28T17:28:02.275626] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:28:02.279948] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:28:02.280272] [INFO] 
+✓ Hypothesis #1 complete in 45.1s
+[2026-03-28T17:28:02.280305] [INFO]   Verdict: REFUTED
+[2026-03-28T17:28:02.282192] [INFO]   [Graph Sync] Created new node: spiral-attention-gates
+[2026-03-28T17:28:02.282442] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:28:05.283757] [INFO] 
+======================================================================
+[2026-03-28T17:28:05.285087] [INFO] HYPOTHESIS 2/5
+[2026-03-28T17:28:05.285231] [INFO] ======================================================================
+[2026-03-28T17:28:05.285349] [INFO] 
+[2026-03-28T17:28:05.285419] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:28:05.285481] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:28:05.285537] [INFO]   Hypothesis #2
+[2026-03-28T17:28:05.285595] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:28:05.285647] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:28:54.130786] [INFO] ✓ Generated hypothesis #2: dual-resolution-attention
+[2026-03-28T17:28:54.133443] [INFO]   Parameter estimate: Explicit count: ~8.1M parameters (n_embd=512, n_layer=6, verified <10M)
+[2026-03-28T17:28:54.134006] [INFO]   Novelty: 3 claims
+[2026-03-28T17:28:54.134515] [INFO]   Code: ~200 lines
+[2026-03-28T17:28:54.134687] [INFO]   ✓ Parameter estimate 8.1M is within 10M budget
+[2026-03-28T17:28:54.134775] [INFO]   ✓ Parameter estimate 10.0M is within 10M budget
+[2026-03-28T17:28:54.134919] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:28:54.136827] [INFO] 
+[2026-03-28T17:28:54.136942] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:28:54.137021] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:28:54.137084] [INFO]   Theory: dual-resolution-attention
+[2026-03-28T17:28:54.137156] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:28:54.137864] [INFO] Running T2 Budget check...
+[2026-03-28T17:28:54.137930] [INFO] Running T3 Compilation check...
+[2026-03-28T17:28:54.137986] [INFO] Running T4 Signal check...
+[2026-03-28T17:28:54.138043] [INFO] Running T5 Init check...
+[2026-03-28T17:28:54.138094] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:28:54.154553] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:28:54.155373] [INFO] 
+✓ Hypothesis #2 complete in 48.9s
+[2026-03-28T17:28:54.155441] [INFO]   Verdict: REFUTED
+[2026-03-28T17:28:54.157485] [INFO]   [Graph Sync] Created new node: dual-resolution-attention
+[2026-03-28T17:28:54.158100] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:28:57.162412] [INFO] 
+======================================================================
+[2026-03-28T17:28:57.163585] [INFO] HYPOTHESIS 3/5
+[2026-03-28T17:28:57.164593] [INFO] ======================================================================
+[2026-03-28T17:28:57.165721] [INFO] 
+[2026-03-28T17:28:57.166268] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:28:57.166637] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:28:57.167031] [INFO]   Hypothesis #3
+[2026-03-28T17:28:57.167341] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:28:57.167773] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:29:40.846001] [INFO] ✓ Generated hypothesis #3: dynamic-sparse-attention
+[2026-03-28T17:29:40.847230] [INFO]   Parameter estimate: Explicit count: ~6.5M parameters (verified <10M)
+[2026-03-28T17:29:40.847611] [INFO]   Novelty: 3 claims
+[2026-03-28T17:29:40.847981] [INFO]   Code: ~165 lines
+[2026-03-28T17:29:40.848207] [INFO]   ✓ Parameter estimate 6.5M is within 10M budget
+[2026-03-28T17:29:40.848382] [INFO]   ✓ Parameter estimate 10.0M is within 10M budget
+[2026-03-28T17:29:40.848585] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:29:40.850324] [INFO] 
+[2026-03-28T17:29:40.850462] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:29:40.850556] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:29:40.850636] [INFO]   Theory: dynamic-sparse-attention
+[2026-03-28T17:29:40.850712] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:29:40.851311] [INFO] Running T2 Budget check...
+[2026-03-28T17:29:40.851388] [INFO] Running T3 Compilation check...
+[2026-03-28T17:29:40.851456] [INFO] Running T4 Signal check...
+[2026-03-28T17:29:40.851522] [INFO] Running T5 Init check...
+[2026-03-28T17:29:40.851587] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:29:40.894928] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:29:40.895535] [INFO] 
+✓ Hypothesis #3 complete in 43.7s
+[2026-03-28T17:29:40.895586] [INFO]   Verdict: REFUTED
+[2026-03-28T17:29:40.897949] [INFO]   [Graph Sync] Created new node: dynamic-sparse-attention
+[2026-03-28T17:29:40.898226] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:29:43.902460] [INFO] 
+======================================================================
+[2026-03-28T17:29:43.902907] [INFO] HYPOTHESIS 4/5
+[2026-03-28T17:29:43.903473] [INFO] ======================================================================
+[2026-03-28T17:29:43.903604] [INFO] 
+[2026-03-28T17:29:43.903691] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:29:43.903780] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:29:43.903856] [INFO]   Hypothesis #4
+[2026-03-28T17:29:43.903926] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:29:43.904001] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:30:35.448122] [ERROR] ✗ Failed to generate hypothesis #4: Unterminated string starting at: line 4 column 21 (char 1399)
+[2026-03-28T17:30:35.451027] [ERROR]   Traceback: Traceback (most recent call last):
+  File "/Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/run_full_live_experiment.py", line 311, in generate_idea
+    idea = json.loads(response)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 363, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/run_full_live_experiment.py", line 321, in generate_idea
+    idea = json.loads(json_match.group(0))
+  File "/opt/homebrew/Cellar/python@3.14/3.14.2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Unterminated string starting at: line 4 column 21 (char 1399)
+
+[2026-03-28T17:30:35.451163] [ERROR] ✗ Hypothesis #4 failed: Unterminated string starting at: line 4 column 21 (char 1399)
+[2026-03-28T17:30:35.451607] [ERROR]   Debug traceback: Traceback (most recent call last):
+  File "/Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/run_full_live_experiment.py", line 311, in generate_idea
+    idea = json.loads(response)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.2/Frameworks/Python.fra
+[2026-03-28T17:30:35.451661] [INFO] 
+✓ Hypothesis #4 complete in 51.5s
+[2026-03-28T17:30:35.451703] [INFO]   Verdict: None
+[2026-03-28T17:30:35.451753] [INFO]   [Graph Sync] Skipping - idea not available or invalid type: <class 'NoneType'>
+[2026-03-28T17:30:35.452016] [INFO] 
+Pausing 3 seconds before next hypothesis...
+[2026-03-28T17:30:38.457112] [INFO] 
+======================================================================
+[2026-03-28T17:30:38.457368] [INFO] HYPOTHESIS 5/5
+[2026-03-28T17:30:38.457412] [INFO] ======================================================================
+[2026-03-28T17:30:38.457509] [INFO] 
+[2026-03-28T17:30:38.457540] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:30:38.457579] [INFO]   STAGE 0: IDEA GENERATION
+[2026-03-28T17:30:38.457612] [INFO]   Hypothesis #5
+[2026-03-28T17:30:38.457641] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:30:38.457668] [INFO] Calling Anthropic API (Sonnet)...
+[2026-03-28T17:31:19.645546] [INFO] ✓ Generated hypothesis #5: spiral-depth-attention
+[2026-03-28T17:31:19.646197] [INFO]   Parameter estimate: Explicit count: ~6.5M parameters (n_embd=384, n_layer=6, verified safe)
+[2026-03-28T17:31:19.646293] [INFO]   Novelty: 3 claims
+[2026-03-28T17:31:19.646393] [INFO]   Code: ~172 lines
+[2026-03-28T17:31:19.646474] [INFO]   ✓ Parameter estimate 6.5M is within 10M budget
+[2026-03-28T17:31:19.646581] [INFO]   DEBUG: About to return idea (type: <class 'dict'>)
+[2026-03-28T17:31:19.647480] [INFO] 
+[2026-03-28T17:31:19.647541] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:31:19.647618] [INFO]   STAGE 1: FALSIFIER GATES (T2-T7)
+[2026-03-28T17:31:19.647677] [INFO]   Theory: spiral-depth-attention
+[2026-03-28T17:31:19.647730] [INFO] ──────────────────────────────────────────────────────────────────────
+[2026-03-28T17:31:19.648204] [INFO] Running T2 Budget check...
+[2026-03-28T17:31:19.648259] [INFO] Running T3 Compilation check...
+[2026-03-28T17:31:19.648344] [INFO] Running T4 Signal check...
+[2026-03-28T17:31:19.648388] [INFO] Running T5 Init check...
+[2026-03-28T17:31:19.648431] [INFO] Running T7 Microtrain check...
+[2026-03-28T17:31:19.653215] [INFO] ✗ Stage 1 KILLED by: T2
+[2026-03-28T17:31:19.653619] [INFO] 
+✓ Hypothesis #5 complete in 41.2s
+[2026-03-28T17:31:19.653659] [INFO]   Verdict: REFUTED
+[2026-03-28T17:31:19.655728] [INFO]   [Graph Sync] Created new node: spiral-depth-attention
+[2026-03-28T17:31:19.656105] [INFO] 
+[2026-03-28T17:31:19.656155] [INFO] ======================================================================
+[2026-03-28T17:31:19.656197] [INFO] FINAL SUMMARY
+[2026-03-28T17:31:19.656237] [INFO] ======================================================================
+[2026-03-28T17:31:19.656351] [INFO] 
+[2026-03-28T17:31:19.656396] [INFO] STATISTICS:
+[2026-03-28T17:31:19.656433] [INFO]   Total time: 4.0 minutes
+[2026-03-28T17:31:19.656464] [INFO]   Completed: 4/5
+[2026-03-28T17:31:19.656503] [INFO]   Failed: 1/5
+[2026-03-28T17:31:19.656534] [INFO] 
+[2026-03-28T17:31:19.656567] [INFO] PIPELINE RESULTS:
+[2026-03-28T17:31:19.656600] [INFO]   Generated: 4
+[2026-03-28T17:31:19.656629] [INFO]   Stage 1 Passed: 0 / 4
+[2026-03-28T17:31:19.656659] [INFO]   Stage 1 Killed: 4 / 4
+[2026-03-28T17:31:19.656690] [INFO]   Stage 2 Triggered: 0
+[2026-03-28T17:31:19.656719] [INFO]   Stage 2 Passed: 0 / 0
+[2026-03-28T17:31:19.656746] [INFO]   Stage 2 Killed: 0 / 0
+[2026-03-28T17:31:19.656780] [INFO] 
+[2026-03-28T17:31:19.656873] [INFO] VERDICT BREAKDOWN:
+[2026-03-28T17:31:19.656909] [INFO]   REFUTED: 4
+[2026-03-28T17:31:19.657082] [INFO]   UNKNOWN: 1
+[2026-03-28T17:31:19.657307] [INFO] 
+[2026-03-28T17:31:19.657358] [INFO] ✓ Summary saved to: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_172717/summary.json
+[2026-03-28T17:31:19.657403] [INFO] 
+[2026-03-28T17:31:19.657440] [INFO] Generating visualization data...
+[2026-03-28T17:31:19.658188] [INFO] ✓ Visualization data saved to: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_172717/visualization/visualization_data.json
+[2026-03-28T17:31:19.658248] [INFO]   - Timeline: 9 events
+[2026-03-28T17:31:19.658281] [INFO]   - Evolution frames: 8
+[2026-03-28T17:31:19.658312] [INFO]   - Stage 2 enabled: True
+
+======================================================================
+✓ EXPERIMENT COMPLETE
+======================================================================
+
+Results: /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_172717
+
+Next steps:
+  1. View summary: cat /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_172717/summary.json
+  2. Generate frames: python3 visualization/generate_frames.py --viz-data /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_172717/visualization/visualization_data.json --output /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_172717/visualization/frames
+  3. Assemble video: python3 visualization/assemble_clip.py --frames /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_172717/visualization/frames --output /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_172717/evolution_timelapse.mp4
+  4. View HTML: open /Users/curiousmind/Desktop/null_fellow_hackathon/experiments/ten_hypothesis_run/live_run_20260328_172717/viewer.html

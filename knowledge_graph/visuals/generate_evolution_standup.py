@@ -115,22 +115,22 @@ def build_standup_dot(
     verified = sum(1 for h in hypotheses if h.get("verdict") == "VERIFIED")
     unknown = n - refuted - verified
 
+    line3 = (
+        f"{n} steps • {refuted} refuted • {verified} verified • {unknown} unknown"
+        + (f" • ~{minutes:.1f} min wall" if minutes is not None else "")
+    )
+    graph_lbl = "\\n".join(
+        [dot_escape(graph_title), f"Run: {dot_escape(run_id)}", dot_escape(line3)]
+    )
+
     lines: list[str] = []
     lines.append("digraph StandupEvolution {")
     lines.append(
         "  graph [rankdir=LR, bgcolor=\"#fafafa\", fontname=\"Helvetica Neue\","
-        f' label="{dot_escape(graph_title)}\\nRun: {dot_escape(run_id)}",'
-        " labelloc=\"t\", labeljust=\"c\", fontsize=22, fontcolor=\"#0f172a\","
-        " nodesep=0.5, ranksep=0.95, splines=line, pad=0.85, margin=0.35,"
+        f' label="{graph_lbl}",'
+        " labelloc=\"t\", labeljust=\"c\", fontsize=20, fontcolor=\"#0f172a\","
+        " nodesep=0.55, ranksep=1.0, splines=line, pad=0.9, margin=0.4,"
         " concentrate=false];"
-    )
-    # Second line of “header” via a tiny title strip node (Graphviz graph label is one fontsize only)
-    stat_strip = (
-        f'<<FONT POINT-SIZE="14" COLOR="#475569">'
-        f"{html_escape(str(n))} steps • refuted {html_escape(str(refuted))} • "
-        f"verified {html_escape(str(verified))} • unknown {html_escape(str(unknown))}"
-        + (html_escape(f" • ~{minutes:.1f} min") if minutes is not None else "")
-        f"</FONT>>"
     )
     lines.append(
         "  node [fontname=\"Helvetica Neue\", style=\"rounded,filled\", penwidth=2.5];"
@@ -138,9 +138,6 @@ def build_standup_dot(
     lines.append(
         "  edge [color=\"#94a3b8\", penwidth=5, arrowsize=1.05, minlen=1.8];"
     )
-    lines.append("")
-    lines.append(f'  stats [shape=plaintext, label={stat_strip}];')
-    lines.append("  stats -> baseline [style=invis];")
     lines.append("")
 
     bl = (
@@ -194,7 +191,7 @@ def build_standup_dot(
         f"{html_escape(str(n))} probes accumulated</FONT></TD></TR>"
         f'<TR><TD ALIGN="CENTER"><FONT POINT-SIZE="10" COLOR="#64748b">'
         f"Legend: slate = baseline • red = refuted • green = verified • grey = unknown"
-        f"</FONT></TD></TR>'
+        f"</FONT></TD></TR>"
         f"</TABLE>>"
     )
     lines.append(

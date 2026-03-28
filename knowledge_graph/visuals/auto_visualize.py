@@ -174,6 +174,36 @@ def generate_all_visualizations(
         results["errors"].append(f"Executive error: {e}")
         print(f"   ✗ Error: {e}")
 
+    # 6. Standup slide: horizontal knowledge-over-time timeline
+    print("\n6. Creating standup evolution slide (PNG + SVG)...")
+    try:
+        standup_png = output_path / "evolution_standup.png"
+        cmd = [
+            "python3",
+            "knowledge_graph/visuals/generate_evolution_standup.py",
+            "--experiment-dir",
+            str(experiment_path),
+            "--output",
+            str(standup_png),
+            "--dpi",
+            "300",
+            "--svg",
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=Path.cwd())
+        if result.returncode == 0 and standup_png.exists():
+            results["files"]["evolution_standup"] = str(standup_png)
+            print(f"   ✓ {standup_png}")
+            svg_path = standup_png.with_suffix(".svg")
+            if svg_path.exists():
+                results["files"]["evolution_standup_svg"] = str(svg_path)
+                print(f"   ✓ {svg_path}")
+        else:
+            results["errors"].append(f"Standup slide failed: {result.stderr}")
+            print("   ✗ Standup slide failed")
+    except Exception as e:
+        results["errors"].append(f"Standup slide error: {e}")
+        print(f"   ✗ Error: {e}")
+
     # Summary
     print("\n" + "=" * 60)
     print("Visualization Generation Complete")

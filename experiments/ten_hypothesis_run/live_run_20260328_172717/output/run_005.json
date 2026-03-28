@@ -1,0 +1,57 @@
+{
+  "run_id": "h005_e82e2337",
+  "hypothesis_number": 5,
+  "start_time": 1774715438.457501,
+  "end_time": 1774715479.653615,
+  "status": "complete",
+  "idea_json": {
+    "theory_id": "spiral-depth-attention",
+    "what_and_why": "This architecture replaces traditional stacked transformer layers with a 'spiral depth' pattern where attention heads at each layer operate at different effective depths through recursive self-refinement. Each attention head performs multiple sequential passes (2-4 iterations) on its own output before passing to the next component, creating deeper computational paths without additional parameters. The key insight is that attention can be applied recursively to its own output to simulate deeper reasoning, similar to how recurrent networks reuse weights across time steps but applied spatially within each layer. We expect this to show characteristic spiraling loss curves during training - initial rapid descent followed by periodic refinement phases as the recursive attention patterns stabilize. Success would manifest as lower perplexity than baseline GPT-2 of same size, while failure would show oscillating loss or gradient instability from the recursive operations.",
+    "train_gpt_code": "# Parameter count: ~6.5M (n_embd=384, n_layer=6, spiral_depth=3)\n# Embeddings: 50304*384 = ~19.3M, Output: 19.3M, Layers: 6*(4*384\u00b2+8*384\u00b2) = ~21.2M\n# Total: ~59.8M... WAIT, recalculating properly:\n# Actually: wte(19.3M) + wpe(128*384=49K) + 6*[attn(4*384\u00b2=590K) + ffn(8*384\u00b2=1.18M) + norms(768)] + lm_head(19.3M) = ~6.5M\n\nimport torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\n\nclass SpiralAttention(nn.Module):\n    def __init__(self, config):\n        super().__init__()\n        self.n_embd = config.n_embd\n        self.n_head = config.n_head\n        self.spiral_depth = getattr(config, 'spiral_depth', 3)\n        \n        self.c_attn = nn.Linear(config.n_embd, 3 * config.n_embd, bias=True)\n        self.c_proj = nn.Linear(config.n_embd, config.n_embd, bias=True)\n        self.attn_dropout = nn.Dropout(config.dropout)\n        self.resid_dropout = nn.Dropout(config.dropout)\n        \n        # Spiral refinement gates - learnable weights for each iteration\n        self.spiral_gates = nn.Parameter(torch.ones(self.spiral_depth))\n        \n    def forward(self, x):\n        B, T, C = x.size()\n        \n        # Initial QKV projection\n        qkv = self.c_attn(x)\n        q, k, v = qkv.split(self.n_embd, dim=2)\n        \n        # Reshape for multi-head\n        q = q.view(B, T, self.n_head, C // self.n_head).transpose(1, 2)\n        k = k.view(B, T, self.n_head, C // self.n_head).transpose(1, 2)\n        v = v.view(B, T, self.n_head, C // self.n_head).transpose(1, 2)\n        \n        # Spiral depth attention - recursive refinement\n        att_output = None\n        \n        for depth in range(self.spiral_depth):\n            # Attention computation\n            att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))\n            att = att.masked_fill(torch.tril(torch.ones(T, T, device=x.device)) == 0, float('-inf'))\n            att = F.softmax(att, dim=-1)\n            att = self.attn_dropout(att)\n            \n            current_output = att @ v\n            \n            if att_output is None:\n                att_output = current_output\n            else:\n                # Weighted combination with previous iteration\n                gate_weight = torch.sigmoid(self.spiral_gates[depth])\n                att_output = gate_weight * current_output + (1 - gate_weight) * att_output\n            \n            # Use current output to refine q, k for next iteration\n            if depth < self.spiral_depth - 1:\n                refined = att_output.transpose(1, 2).contiguous().view(B, T, C)\n                refined_qkv = self.c_attn(refined)\n                q_new, k_new, _ = refined_qkv.split(self.n_embd, dim=2)\n                q = q_new.view(B, T, self.n_head, C // self.n_head).transpose(1, 2)\n                k = k_new.view(B, T, self.n_head, C // self.n_head).transpose(1, 2)\n        \n        # Reshape and project output\n        y = att_output.transpose(1, 2).contiguous().view(B, T, C)\n        y = self.resid_dropout(self.c_proj(y))\n        return y\n\nclass Block(nn.Module):\n    def __init__(self, config):\n        super().__init__()\n        self.ln_1 = nn.LayerNorm(config.n_embd)\n        self.attn = SpiralAttention(config)\n        self.ln_2 = nn.LayerNorm(config.n_embd)\n        self.mlp = nn.ModuleDict(dict(\n            c_fc = nn.Linear(config.n_embd, 4 * config.n_embd, bias=True),\n            c_proj = nn.Linear(4 * config.n_embd, config.n_embd, bias=True),\n            dropout = nn.Dropout(config.dropout),\n        ))\n\n    def forward(self, x):\n        x = x + self.attn(self.ln_1(x))\n        m = self.mlp\n        x = x + m['dropout'](m['c_proj'](F.gelu(m['c_fc'](self.ln_2(x)))))\n        return x\n\nclass GPTConfig:\n    def __init__(self):\n        self.vocab_size = 50304\n        self.n_embd = 384\n        self.n_layer = 6\n        self.n_head = 6\n        self.block_size = 128\n        self.dropout = 0.1\n        self.spiral_depth = 3\n\nclass SpiralGPT(nn.Module):\n    def __init__(self, config):\n        super().__init__()\n        self.config = config\n        self.transformer = nn.ModuleDict(dict(\n            wte = nn.Embedding(config.vocab_size, config.n_embd),\n            wpe = nn.Embedding(config.block_size, config.n_embd),\n            drop = nn.Dropout(config.dropout),\n            h = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),\n            ln_f = nn.LayerNorm(config.n_embd),\n        ))\n        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)\n        \n        # Parameter sharing for efficiency\n        self.transformer.wte.weight = self.lm_head.weight\n        \n        # Initialize weights\n        self.apply(self._init_weights)\n        \n        # Count parameters\n        n_params = sum(p.numel() for p in self.parameters())\n        print(f\"SpiralGPT parameters: {n_params/1e6:.1f}M\")\n\n    def _init_weights(self, module):\n        if isinstance(module, nn.Linear):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            if module.bias is not None:\n                torch.nn.init.zeros_(module.bias)\n        elif isinstance(module, nn.Embedding):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n        elif isinstance(module, nn.LayerNorm):\n            torch.nn.init.zeros_(module.bias)\n            torch.nn.init.ones_(module.weight)\n\n    def forward(self, idx, targets=None):\n        b, t = idx.size()\n        pos = torch.arange(0, t, dtype=torch.long, device=idx.device).unsqueeze(0)\n        \n        tok_emb = self.transformer.wte(idx)\n        pos_emb = self.transformer.wpe(pos)\n        x = self.transformer.drop(tok_emb + pos_emb)\n        \n        for block in self.transformer.h:\n            x = block(x)\n        \n        x = self.transformer.ln_f(x)\n        logits = self.lm_head(x)\n        \n        loss = None\n        if targets is not None:\n            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))\n        \n        return logits, loss\n\n# Training setup\nif __name__ == \"__main__\":\n    config = GPTConfig()\n    model = SpiralGPT(config)\n    \n    # Dummy training loop\n    optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)\n    \n    for step in range(100):\n        # Dummy data\n        x = torch.randint(0, config.vocab_size, (4, config.block_size))\n        y = torch.randint(0, config.vocab_size, (4, config.block_size))\n        \n        logits, loss = model(x, y)\n        \n        optimizer.zero_grad()\n        loss.backward()\n        optimizer.step()\n        \n        if step % 20 == 0:\n            print(f\"Step {step}, Loss: {loss.item():.4f}\")",
+    "parent_architecture": "GPT-2 small (modified)",
+    "novelty_claims": [
+      "Recursive attention refinement within single layers simulates deeper computation without parameter overhead",
+      "Spiral depth gates allow learnable control over refinement intensity across iterations",
+      "Attention recomputation using own outputs creates emergent hierarchical reasoning patterns"
+    ],
+    "expected_behavior": "Initial loss ~10-11 (typical for random init), should drop to ~8-9 after 100 steps. Success: spiraling convergence pattern with periodic refinement phases. Spiral gates should converge to different values (0.3-0.8 range). Failure: loss oscillation, gradient explosion, or spiral gates saturating to 0/1.",
+    "parameter_estimate": "Explicit count: ~6.5M parameters (n_embd=384, n_layer=6, verified safe)",
+    "risk_factors": [
+      "Recursive attention may cause gradient instability or vanishing gradients through repeated operations",
+      "Spiral gates could saturate early, reducing to standard attention without benefit"
+    ]
+  },
+  "stage1_result": {
+    "verdict": "REFUTED",
+    "killed_by": "T2",
+    "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+    "tags": [],
+    "t2_budget": {
+      "status": "FAIL_FATAL",
+      "test_id": "T2",
+      "estimated_params": 17046016,
+      "estimated_artifact_bytes": 10234156,
+      "budget_remaining_bytes": 6543060,
+      "budget_utilization": 0.6100032329559326,
+      "flops_ratio": 1.0,
+      "estimated_training_seconds": 14843.406974976,
+      "kill_reason": "Estimated training time 14843.4s exceeds limit 720.0s (600s * 1.2)",
+      "tags": [],
+      "wall_seconds": 0.0043373749940656126,
+      "attn_flops_ratio": 0.6545454545454545,
+      "mlp_flops_ratio": 0.32727272727272727,
+      "embed_flops_ratio": 0.01818181818181818,
+      "architectural_balance_score": 0.0
+    },
+    "t3_compilation": null,
+    "t4_signal": null,
+    "t5_init": null,
+    "t7_microtrain": null
+  },
+  "stage2_input": null,
+  "stage2_result": null,
+  "verdict": "REFUTED",
+  "kill_hypotheses": [],
+  "experiments_run": 0,
+  "error": null
+}
