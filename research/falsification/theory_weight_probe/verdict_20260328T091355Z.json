@@ -1,0 +1,18 @@
+{
+  "checkpoint_path": null,
+  "created_at": "20260328T091355Z",
+  "decision": "promote",
+  "outcome": "survived",
+  "reasoning": "auto-generated from executed probe results and optional thresholds",
+  "supporting_results": [
+    {
+      "name": "architecture_profile",
+      "refutes": false
+    },
+    {
+      "name": "quantization_profile",
+      "refutes": false
+    }
+  ],
+  "theory_id": "theory_weight_probe"
+}

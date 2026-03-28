@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+!.env.*.example
+infra/agents/env/.env.hermes
+infra/agents/env/.env.symphony
+infra/agents/var/
+__pycache__/
+*.pyc
+.DS_Store

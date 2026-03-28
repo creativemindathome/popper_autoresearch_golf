@@ -1,0 +1,15 @@
+{
+  "experiments": [
+    {
+      "name": "architecture_profile"
+    },
+    {
+      "name": "quantization_profile",
+      "refutation_threshold": {
+        "metric_path": "quantization_mse.by_group.attention",
+        "operator": "<",
+        "value": 0.0
+      }
+    }
+  ]
+}
