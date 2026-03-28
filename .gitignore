@@ -34,3 +34,13 @@ data/tokenizers/
 knowledge_graph/outbox/**/*.pt
 knowledge_graph/outbox/**/*.bin
 knowledge_graph/work/**/*.log
+
+# Local experiment runs (timestamped outputs; regenerate with run_full_live_experiment.py)
+experiments/ten_hypothesis_run/*.log
+experiments/ten_hypothesis_run/live_run_*/
+experiments/ten_hypothesis_run/speed_run_*/
+experiments/ten_hypothesis_run/run_*/
+experiments/ten_hypothesis_run/live_run_5hyp_analysis/
+
+# Stray pipeline logs at repo root
+/full_pipeline_*.log

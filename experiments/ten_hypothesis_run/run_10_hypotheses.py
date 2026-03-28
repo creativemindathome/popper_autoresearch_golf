@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Generate and falsify 10 hypotheses, tracking graph evolution.
+"""Generate and falsify 10 hypotheses (Stage 1 only via run_falsifier).
 
-This script:
-1. Generates 10 novel architecture ideas using Anthropic Claude
-2. Runs each through Stage 1 falsifier gates (T2-T7)
-3. Tracks knowledge graph evolution with snapshots
-4. Creates visualization data for time-lapse
+Prefer ``run_full_live_experiment.py`` for the current pipeline: novelty reviewer,
+``falsifier`` Stage 1 + Stage 2, and ``live_run_*`` output layout.
+
+This module remains for quick Stage-1-only runs and older scripts; new work should
+call the live experiment runner or ``speed_run_parallel.py`` for throughput tests.
 """
 
 from __future__ import annotations

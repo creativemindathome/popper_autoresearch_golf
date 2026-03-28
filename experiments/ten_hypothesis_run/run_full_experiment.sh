@@ -1,18 +1,19 @@
 #!/bin/bash
-# Run the complete 10-hypothesis experiment with visualization
+# Run the multi-hypothesis experiment (Stage 1 + optional Stage 2), then optional viz.
+#
+# Primary runner: run_full_live_experiment.py (creates live_run_YYYYMMDD_HHMMSS/).
+# Legacy Stage-1-only path: run_10_hypotheses.py (creates run_YYYYMMDD_HHMMSS/).
 
-set -e  # Exit on error
+set -e
 
-echo "=========================================="
-echo "10 HYPOTHESIS EXPERIMENT"
-echo "=========================================="
-echo ""
-
-# Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Load environment
+echo "=========================================="
+echo "MULTI-HYPOTHESIS EXPERIMENT (full live pipeline)"
+echo "=========================================="
+echo ""
+
 if [ -f ../../.env ]; then
     echo "Loading environment from .env..."
     set -a
@@ -20,38 +21,21 @@ if [ -f ../../.env ]; then
     set +a
 fi
 
-# Check API key
 if [ -z "$ANTHROPIC_API_KEY" ]; then
-    echo "✗ ANTHROPIC_API_KEY not set!"
-    echo "Please set it with: export ANTHROPIC_API_KEY='your-key'"
+    echo "✗ ANTHROPIC_API_KEY not set."
+    echo "  export ANTHROPIC_API_KEY='...'  or add it to ../../.env"
     exit 1
 fi
 
 echo "✓ Environment loaded"
-echo "✓ API key configured"
 echo ""
 
-# Create timestamped run directory
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-RUN_DIR="run_${TIMESTAMP}"
+# Default: 10 hypotheses; pass extra args to the Python runner, e.g. --disable-stage2
+python3 run_full_live_experiment.py --num-hypotheses 10 "$@"
 
-echo "Creating run directory: $RUN_DIR"
-mkdir -p "$RUN_DIR"/{logs,visualization,graph_snapshots,output}
-
-# Step 1: Run 10 hypotheses
-echo ""
-echo "=========================================="
-echo "STEP 1: Generating 10 Hypotheses"
-echo "=========================================="
-echo ""
-
-python3 run_10_hypotheses.py 2>&1 | tee "$RUN_DIR/logs/console.log"
-
-# Find the actual run directory created by the script
-LATEST_RUN=$(ls -td run_*/ | head -1 | sed 's|/$||')
-
-if [ ! -d "$LATEST_RUN" ]; then
-    echo "✗ Run failed - no output directory found"
+LATEST_RUN="$(ls -td live_run_*/ 2>/dev/null | head -1 | sed 's|/$||')"
+if [ -z "$LATEST_RUN" ] || [ ! -d "$LATEST_RUN" ]; then
+    echo "✗ No live_run_* directory found after the experiment."
     exit 1
 fi
 
@@ -61,7 +45,7 @@ echo ""
 
 # Step 2: Generate visualization frames
 echo "=========================================="
-echo "STEP 2: Generating Visualization Frames"
+echo "STEP 2: Generating visualization frames (optional)"
 echo "=========================================="
 echo ""
 
@@ -70,60 +54,41 @@ if [ -f "$LATEST_RUN/visualization/visualization_data.json" ]; then
         --viz-data "$LATEST_RUN/visualization/visualization_data.json" \
         --output "$LATEST_RUN/visualization/frames" \
         --max-frames 100
-
     echo ""
     echo "✓ Frames generated"
 else
-    echo "⚠ No visualization data found, skipping frame generation"
+    echo "⚠ No visualization data found; skipping frame generation"
 fi
 
 # Step 3: Assemble video clip
 echo ""
 echo "=========================================="
-echo "STEP 3: Assembling Video Clip"
+echo "STEP 3: Assembling video clip (optional)"
 echo "=========================================="
 echo ""
 
-if [ -d "$LATEST_RUN/visualization/frames" ]; then
+if [ -d "$LATEST_RUN/visualization/frames" ] && [ -n "$(ls -A "$LATEST_RUN/visualization/frames" 2>/dev/null)" ]; then
     python3 visualization/assemble_clip.py \
         --frames "$LATEST_RUN/visualization/frames" \
         --output "$LATEST_RUN/evolution_timelapse.mp4" \
         --method auto
-
     echo ""
-    echo "✓ Video clip created"
+    echo "✓ Video clip created (if ffmpeg/moviepy available)"
 else
-    echo "⚠ No frames found, creating HTML viewer instead"
-    python3 visualization/assemble_clip.py \
-        --frames "$LATEST_RUN/visualization/frames" \
-        --output "$LATEST_RUN/evolution_timelapse.mp4" \
-        --method auto || true
+    echo "⚠ No frames directory; skip video assembly. Use HTML viewer if present."
 fi
 
-# Summary
 echo ""
 echo "=========================================="
 echo "EXPERIMENT COMPLETE"
 echo "=========================================="
 echo ""
-echo "Results in: $LATEST_RUN/"
-echo ""
-echo "Files generated:"
-echo "  • logs/run.log - Detailed execution log"
-echo "  • logs/console.log - Console output"
-echo "  • summary.json - Final statistics"
-echo "  • graph_snapshots/ - Graph state snapshots"
-echo "  • visualization/visualization_data.json - Raw visualization data"
-echo "  • visualization/frames/ - Frame images for time-lapse"
-echo "  • evolution_timelapse.mp4 - Video clip (if ffmpeg available)"
-echo "  • viewer.html - Interactive HTML viewer"
-echo ""
-echo "To view results:"
-echo "  1. Open $LATEST_RUN/viewer.html in a browser"
-echo "  2. Or run: open $LATEST_RUN/evolution_timelapse.mp4"
+echo "Results: $LATEST_RUN/"
+echo "  • logs/run.log — execution log"
+echo "  • summary.json — aggregate stats"
+echo "  • visualization/visualization_data.json — data for frames / viewer"
 echo ""
 
-# Create symlink to latest
 rm -f latest
 ln -s "$LATEST_RUN" latest
-echo "Created symlink: latest -> $LATEST_RUN"
+echo "Symlink: latest -> $LATEST_RUN"

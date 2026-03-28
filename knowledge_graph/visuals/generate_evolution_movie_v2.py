@@ -95,6 +95,11 @@ def _dot_attr_list(attrs: dict[str, str | None]) -> str:
     return ", ".join(parts)
 
 
+def _hypothesis_routing_id(hyp: Dict) -> str:
+    """Text used to map a hypothesis to a seed parent (keywords). Prefer routing_id when set."""
+    return str(hyp.get("routing_id") or hyp.get("id") or "")
+
+
 def _node_label_html(node: dict) -> str:
     """Original label formatting from render_seed_kg_graphviz.py"""
     node_label = _html_escape(str(node.get("label", "")))
@@ -171,10 +176,70 @@ def load_hypotheses_from_run(experiment_dir: Path) -> List[Dict]:
     return sorted(hypotheses, key=lambda x: x["time"])
 
 
+def _direct_parent_of(target_id: str, edges: list) -> str | None:
+    for e in edges:
+        if e.get("target") == target_id:
+            return str(e.get("source"))
+    return None
+
+
+def _default_branch_under_root(
+    root_id: str,
+    node_map: dict,
+    node_ids: set,
+    edges: list,
+) -> str:
+    """Pick a concrete Branch hub under each pillar root (blue nodes in the evolution viz)."""
+    hub = {
+        "node_root_neural_network": "node_nn_transformer",
+        "node_root_data_pipeline": "node_data_sources",
+        "node_root_training_eval": "node_train_optimizer",
+    }
+    hid = hub.get(root_id)
+    if hid and hid in node_ids:
+        return hid
+    for e in edges:
+        if e.get("source") == root_id:
+            cid = e.get("target")
+            if cid in node_ids and (node_map.get(cid) or {}).get("type") == "Branch":
+                return str(cid)
+    return root_id
+
+
+def _resolve_parent_to_branch(
+    candidate_id: str,
+    *,
+    node_map: dict,
+    edges: list,
+    node_ids: set,
+) -> str:
+    """
+    Attach hypotheses to a Branch (blue) node: walk up from Leaf to parent Branch;
+    replace RootBox (yellow) with the pillar's default Branch hub.
+    """
+    if candidate_id not in node_ids:
+        return candidate_id
+    nid: str | None = candidate_id
+    seen: set[str] = set()
+    while nid and nid not in seen:
+        seen.add(nid)
+        meta = node_map.get(nid) or {}
+        typ = str(meta.get("type", ""))
+        if typ == "Branch":
+            return nid
+        if typ == "RootBox":
+            return _default_branch_under_root(nid, node_map, node_ids, edges)
+        par = _direct_parent_of(nid, edges)
+        if not par:
+            break
+        nid = par
+    return candidate_id
+
+
 def find_best_parent_for_hypothesis(hyp: Dict, nodes: list, edges: list) -> str:
     """
     Find the most appropriate parent node in the knowledge graph for a hypothesis.
-    Prioritizes specific child/branch/leaf nodes over root nodes.
+    Prioritizes specific nodes; result is normalized to a Branch (blue) parent when possible.
     """
     hyp_id = (hyp.get("id") or "").lower()
 
@@ -182,8 +247,7 @@ def find_best_parent_for_hypothesis(hyp: Dict, nodes: list, edges: list) -> str:
     node_ids = {n.get("id") for n in nodes if n.get("id")}
     node_map = {n.get("id"): n for n in nodes if n.get("id")}
 
-    # SPECIFIC node mappings - ONLY child/branch/leaf nodes, NO roots
-    # These are the ACTUAL node IDs from seed_parameter_golf_kg.json
+    # SPECIFIC node mappings — IDs must exist in seed_parameter_golf_kg.json
     keyword_to_specific_nodes = {
         # Neural Network - Attention related
         "attention": ["node_transformer_attention", "node_nn_transformer"],
@@ -200,9 +264,10 @@ def find_best_parent_for_hypothesis(hyp: Dict, nodes: list, edges: list) -> str:
         "depth": ["node_transformer_block", "node_nn_transformer"],
         "temporal": ["node_transformer_block", "node_nn_transformer"],
 
-        # Neural Network - Embeddings
+        # Neural Network - Embeddings / position
         "embed": ["node_nn_embeddings", "node_nn_embedding_strategy"],
         "positional": ["node_nn_positional_encoding"],
+        "position": ["node_nn_positional_encoding", "node_nn_transformer", "node_transformer_block"],
 
         # Neural Network - Other
         "norm": ["node_transformer_norm"],
@@ -225,68 +290,123 @@ def find_best_parent_for_hypothesis(hyp: Dict, nodes: list, edges: list) -> str:
         "eval": ["node_train_evaluation"],
         "budget": ["node_train_budget_accounting"],
 
-        # Data Pipeline
-        "token": ["node_tokenization"],
-        "tokenizer": ["node_tokenization"],
+        # Data Pipeline (valid seed IDs)
+        "token": ["node_data_tokenization"],
+        "tokenizer": ["node_data_tokenization"],
         "sequence": ["node_data_sequence_construction"],
         "data": ["node_data_sources"],
         "curriculum": ["node_data_curriculum_mixing"],
         "augment": ["node_data_augmentation"],
         "clean": ["node_data_cleaning"],
-        "dedup": ["node_data_deduplication"],
+        "dedup": ["node_data_dedup"],
     }
 
-    # First: Try to find the most specific matching node
-    best_matches = []
+    candidate: str | None = None
+
+    # First: most specific keyword → seed node (may be Leaf; resolved to Branch below)
+    best_matches: list[str] = []
     for keyword, specific_nodes in keyword_to_specific_nodes.items():
         if keyword in hyp_id:
             best_matches.extend(specific_nodes)
 
-    # Return the first specific node that exists
     for node_id in best_matches:
         if node_id in node_ids:
-            return node_id
+            candidate = node_id
+            break
 
-    # Second: Try pillar-specific categorization without roots
-    pillar_keywords = {
-        "nn": ["neural", "network", "layer", "model", "activation", "norm", "residual", "head"],
-        "train": ["train", "eval", "benchmark", "budget", "memory", "compute"],
-        "data": ["source", "text", "code", "book", "synthetic", "sample", "batch"],
-    }
+    # Second: pillar scores → prefer Branch list for that pillar
+    if candidate is None:
+        pillar_keywords = {
+            "nn": [
+                "neural",
+                "network",
+                "layer",
+                "model",
+                "activation",
+                "norm",
+                "residual",
+                "attention",
+                "transformer",
+                "embedding",
+                "positional",
+                "position",
+                "gpt",
+                "mixer",
+                "block",
+                "mlp",
+                "ffn",
+                "causal",
+                "softmax",
+                "logit",
+                "dropout",
+                "rope",
+                "alibi",
+                "kv",
+                "nano",
+            ],
+            "train": ["train", "eval", "benchmark", "budget", "memory", "compute", "optimizer", "adamw", "sgd"],
+            "data": ["source", "text", "code", "book", "synthetic", "sample", "batch", "corpus", "dataset"],
+        }
 
-    # Count matches per pillar
-    pillar_scores = {pillar: 0 for pillar in pillar_keywords}
-    for pillar, keywords in pillar_keywords.items():
-        for kw in keywords:
-            if kw in hyp_id:
-                pillar_scores[pillar] += 1
+        pillar_scores = {pillar: 0 for pillar in pillar_keywords}
+        for pillar, keywords in pillar_keywords.items():
+            for kw in keywords:
+                if kw in hyp_id:
+                    pillar_scores[pillar] += 1
 
-    # Find the best pillar
-    best_pillar = max(pillar_scores, key=pillar_scores.get)
-    if pillar_scores[best_pillar] > 0:
-        # Find a good branch node for this pillar (not the root)
-        if best_pillar == "nn":
-            branch_options = ["node_nn_transformer", "node_transformer_block",
-                            "node_transformer_attention", "node_transformer_mlp",
-                            "node_nn_embeddings", "node_nn_output_head"]
-        elif best_pillar == "train":
-            branch_options = ["node_train_optimizer", "node_train_loss",
-                            "node_train_precision", "node_train_evaluation"]
-        else:  # data
-            branch_options = ["node_data_sources", "node_data_cleaning",
-                            "node_tokenization", "node_data_sequence_construction"]
+        best_pillar = max(pillar_scores, key=pillar_scores.get)
+        if pillar_scores[best_pillar] > 0:
+            if best_pillar == "nn":
+                branch_options = [
+                    "node_nn_transformer",
+                    "node_transformer_block",
+                    "node_transformer_attention",
+                    "node_transformer_mlp",
+                    "node_nn_embeddings",
+                    "node_nn_positional_encoding",
+                    "node_nn_output_head",
+                ]
+            elif best_pillar == "train":
+                branch_options = [
+                    "node_train_optimizer",
+                    "node_train_loss",
+                    "node_train_precision",
+                    "node_train_evaluation",
+                ]
+            else:
+                branch_options = [
+                    "node_data_sources",
+                    "node_data_cleaning",
+                    "node_data_tokenization",
+                    "node_data_sequence_construction",
+                ]
 
-        for branch_id in branch_options:
-            if branch_id in node_ids:
-                return branch_id
+            for branch_id in branch_options:
+                if branch_id in node_ids:
+                    candidate = branch_id
+                    break
 
-    # Last resort: fall back to root nodes
-    if any(kw in hyp_id for kw in ["optim", "loss", "train", "precision", "grad", "checkpoint", "8bit", "4bit"]):
-        return "node_root_training_eval"
-    elif any(kw in hyp_id for kw in ["data", "token", "sequence", "curriculum", "augment", "clean", "dedup"]):
-        return "node_root_data_pipeline"
-    else:
-        return "node_root_neural_network"
+    # Last resort: pillar roots → resolved to default Branch hubs
+    if candidate is None:
+        if any(
+            kw in hyp_id
+            for kw in ["optim", "loss", "train", "precision", "grad", "checkpoint", "8bit", "4bit"]
+        ):
+            candidate = "node_root_training_eval"
+        elif any(
+            kw in hyp_id
+            for kw in ["data", "token", "sequence", "curriculum", "augment", "clean", "dedup"]
+        ):
+            candidate = "node_root_data_pipeline"
+        else:
+            candidate = "node_root_neural_network"
+
+    return _resolve_parent_to_branch(
+        candidate,
+        node_map=node_map,
+        edges=edges,
+        node_ids=node_ids,
+    )
 
 
 def build_evolution_dot(
@@ -352,8 +472,14 @@ def build_evolution_dot(
         attrs = _node_style(node_type)
 
         # Check if this node has hypotheses targeting it
-        hyp_count = sum(1 for h in hypotheses[:show_up_to_idx]
-                       if find_best_parent_for_hypothesis(h, nodes, edges) == node_id)
+        hyp_count = sum(
+            1
+            for h in hypotheses[:show_up_to_idx]
+            if find_best_parent_for_hypothesis(
+                {"id": _hypothesis_routing_id(h)}, nodes, edges
+            )
+            == node_id
+        )
 
         label = _node_label_html(node)
         tooltip = _html_escape(str(node.get("mechanism_description", "")))
@@ -414,11 +540,11 @@ def build_evolution_dot(
         for i, hyp in enumerate(hypotheses[:show_up_to_idx]):
             hyp_node_id = f"hyp_{i}"
             verdict = hyp.get("verdict") or "unknown"
-            status = verdict.lower()
+            status = str(verdict).lower()
             fill, stroke, style_type = status_colors.get(status, status_colors["unknown"])
 
-            # Get hypothesis display info
-            short_id = (hyp.get("id") or f"H{i}")[:30]
+            # Get hypothesis display info (display_id = short label; routing_id = parent matching)
+            short_id = (hyp.get("display_id") or hyp.get("id") or f"H{i}")[:40]
 
             # Determine if refuted and why
             if status == "refuted":
@@ -435,7 +561,9 @@ def build_evolution_dot(
             )
 
             # Connect to parent - constraint=false allows free placement
-            parent_id = find_best_parent_for_hypothesis(hyp, nodes, edges)
+            parent_id = find_best_parent_for_hypothesis(
+                {"id": _hypothesis_routing_id(hyp)}, nodes, edges
+            )
 
             # Get parent label for edge label
             parent_label = ""

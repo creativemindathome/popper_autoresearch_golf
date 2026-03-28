@@ -88,6 +88,24 @@ def build_ideator_prompts(
 ) -> Tuple[str, str]:
     system = IDEATOR_SYSTEM.strip()
     parent_ref_json = json.dumps(parent_code_ref, ensure_ascii=False)
+    ident = parent_code_ref.get("parent_identity")
+    binding_lines = ""
+    if isinstance(ident, str) and ident.strip():
+        gid = parent_code_ref.get("graph_parent_node_id")
+        gid_line = (
+            f'\nIf graph_parent_node_id is set below ("{gid}"), copy it into parent_implementation.graph_parent_node_id.'
+            if gid
+            else ""
+        )
+        binding_lines = f"""
+Parent binding (mandatory — narrows scope so you edit THIS baseline only):
+{ident.strip()}
+{gid_line}
+Rules:
+- parent_implementation.repo_url and parent_implementation.git_ref MUST match the Parent code reference JSON (same strings).
+- implementation_steps MUST be anchored edits to this parent (locate + delta), not a greenfield rewrite or a different codebase.
+- Do not substitute nanoGPT, generic HF examples, or unrelated repos unless the binding explicitly says so.
+""".rstrip()
     user = f"""\
 {PARAMETER_GOLF_CONTEXT.strip()}
 
@@ -96,6 +114,7 @@ Knowledge graph context (may be empty):
 
 Parent code reference (the code you must minimally modify):
 {parent_ref_json}
+{binding_lines}
 
 Task:
 Generate exactly ONE new research idea to improve Parameter Golf. The idea should not be a trivial hyperparameter tweak.
@@ -109,6 +128,8 @@ Return a JSON object with:
   - repo_url: the repo URL from Parent code reference
   - git_ref: the git ref from Parent code reference (branch or commit)
   - primary_file: must be "train_gpt.py"
+  - graph_parent_node_id: optional; include if present in Parent code reference (binds to an OFFICIAL_RECORD in the knowledge graph)
+  - parent_identity: optional one-line echo of the Parent binding (if any), for traceability
   - run_command: a single command (or env-var + command string) the falsifier can run to test
   - code_search_hints: 3–8 ripgrep-style search strings to locate the relevant section(s) in train_gpt.py
 - implementation_steps: 3–7 concrete steps; each step must include:
@@ -141,6 +162,15 @@ def build_ideator_revision_prompts(
 ) -> Tuple[str, str]:
     system = IDEATOR_REVISION_SYSTEM
     parent_ref_json = json.dumps(parent_code_ref, ensure_ascii=False)
+    ident = parent_code_ref.get("parent_identity")
+    binding_lines = ""
+    if isinstance(ident, str) and ident.strip():
+        binding_lines = f"""
+
+Parent binding (still mandatory on revision):
+{ident.strip()}
+Keep parent_implementation aligned with Parent code reference; do not switch baselines.
+""".rstrip()
     prev_json = json.dumps(previous_idea, ensure_ascii=False)
     review_json = json.dumps(reviewer_feedback, ensure_ascii=False)
     user = f"""\
@@ -151,6 +181,7 @@ Knowledge graph context (may be empty):
 
 Parent code reference (the code you must minimally modify):
 {parent_ref_json}
+{binding_lines}
 
 Previous idea JSON (rejected or needs revision; may be incomplete):
 {prev_json}
@@ -170,6 +201,8 @@ Return a JSON object with the same fields and constraints as the original Ideato
   - repo_url: the repo URL from Parent code reference
   - git_ref: the git ref from Parent code reference (branch or commit)
   - primary_file: must be "train_gpt.py"
+  - graph_parent_node_id: optional; include if present in Parent code reference
+  - parent_identity: optional echo of Parent binding for traceability
   - run_command: a single command (or env-var + command string) the falsifier can run to test
   - code_search_hints: 3–8 ripgrep-style search strings to locate the relevant section(s) in train_gpt.py
 - implementation_steps: 3–7 concrete steps (anchors + explicit changes)

@@ -35,6 +35,7 @@ sys.path.insert(0, str(project_root))
 
 from ideator.anthropic_client import AnthropicClient, get_anthropic_api_key
 from ideator.knowledge import load_knowledge_context, choose_knowledge_dir
+from ideator.parent_context import build_parent_binding_from_path, format_binding_for_prompt
 from ideator.prompts import (
     build_reviewer_prompts,
     reviewer_response_schema,
@@ -137,6 +138,8 @@ class FullLiveExperiment:
         stage0_config: Optional[Stage0Config] = None,
         reviewer_config: Optional[ReviewerConfig] = None,
         stage2_config: Optional[Stage2Config] = None,
+        ideator_parent_train_gpt: Optional[str] = None,
+        ideator_parent_graph_node_id: Optional[str] = None,
     ):
         self.output_dir = output_dir
         self.logs_dir = output_dir / "logs"
@@ -158,6 +161,20 @@ class FullLiveExperiment:
         # Knowledge graph context (loaded once, refreshed between hypotheses)
         self._kg_dir = project_root / "knowledge_graph"
         self._knowledge_context: str = ""
+        self._repo_root = project_root
+        pte = (ideator_parent_train_gpt or os.environ.get("IDEATOR_PARENT_TRAIN_GPT", "")).strip()
+        if pte:
+            self._parent_train_gpt_path = (self._repo_root / pte).resolve()
+        else:
+            self._parent_train_gpt_path = (self._repo_root / "parameter-golf" / "train_gpt.py").resolve()
+        pgn = (ideator_parent_graph_node_id or os.environ.get("IDEATOR_PARENT_GRAPH_NODE_ID", "")).strip() or None
+        self._parent_graph_node_id = pgn
+        self._parent_binding = build_parent_binding_from_path(
+            repo_root=self._repo_root,
+            parent_py=self._parent_train_gpt_path,
+            knowledge_dir=self._kg_dir,
+            explicit_graph_node_id=pgn,
+        )
 
         # Statistics
         self.stats = {
@@ -197,6 +214,13 @@ class FullLiveExperiment:
         self.log("FULL LIVE EXPERIMENT WITH SEPARATE STAGE MODELS")
         self.log("="*70)
         self.log(f"Output directory: {output_dir}")
+        self.log(
+            f"Parent train_gpt binding: {self._parent_binding.get('binding_kind')} "
+            f"({self._parent_train_gpt_path})"
+        )
+        ident = self._parent_binding.get("parent_identity") or ""
+        if ident:
+            self.log(f"  {ident[:200]}{'…' if len(ident) > 200 else ''}")
         self.log(f"Stage 0 (Ideation): {self.stage0_config.model}")
         self.log(f"Reviewer Gate: {'ENABLED' if self.reviewer_config.enabled else 'DISABLED'}")
         if self.reviewer_config.enabled:
@@ -596,6 +620,14 @@ DO NOT put code inside the JSON. DO NOT forget the code block.
 ═══════════════════════════════════════════════════════════════════════
 """
 
+        parent_section = f"""
+═══════════════════════════════════════════════════════════════════════
+PARENT BINDING — your code must be a delta from THIS baseline (not a new project)
+═══════════════════════════════════════════════════════════════════════
+{format_binding_for_prompt(self._parent_binding)}
+═══════════════════════════════════════════════════════════════════════
+"""
+
         system_prompt = f"""You are an expert ML systems engineer specializing in efficient transformer architectures.
 Your task is to generate a novel, bold, but PRACTICAL transformer architecture modification.
 
@@ -630,6 +662,7 @@ CRITICAL ENGINEERING CONSTRAINTS - YOU MUST RESPECT THESE:
    - Prefer: attention modifications, normalization changes, architecture patterns
    - AVOID: "add more layers" (violates budget), "use quantum computing" (untestable)
 
+{parent_section}
 {kg_section}
 {t2_feedback}
 {revision_section}
@@ -645,11 +678,13 @@ SECTION 1 — JSON METADATA (valid JSON, no code inside):
   "title": "Short descriptive title (5-10 words)",
   "novelty_summary": "1-3 sentences describing the novelty. What specific architectural change are you proposing?",
   "parent_implementation": {{
-    "repo_url": "https://github.com/karpathy/nanoGPT",
-    "git_ref": "master",
+    "repo_url": "https://github.com/openai/parameter-golf",
+    "git_ref": "main",
     "primary_file": "train_gpt.py",
-    "run_command": "python train_gpt.py --config=config/finetune_shakespeare_char.py",
-    "code_search_hints": ["CausalSelfAttention", "MLP", "Block", "LayerNorm"]
+    "graph_parent_node_id": "<copy from PARENT BINDING if a graph id is given; else omit>",
+    "parent_identity": "<short echo of PARENT BINDING first line>",
+    "run_command": "RUN_ID=... DATA_PATH=./data/datasets/fineweb10B_sp1024/ TOKENIZER_PATH=./data/tokenizers/fineweb_1024_bpe.model VOCAB_SIZE=1024 torchrun --standalone --nproc_per_node=1 train_gpt.py",
+    "code_search_hints": ["Hyperparameters", "GPT", "CausalSelfAttention", "MLP"]
   }},
   "implementation_steps": [
     {{
@@ -1255,7 +1290,10 @@ DO NOT FORGET THE CODE BLOCK. The idea is USELESS without executable code."""
         approved = sum(1 for n in nodes if n.get("status") == "APPROVED")
         refuted = sum(1 for n in nodes if n.get("status") == "REFUTED")
         passed_s1 = sum(1 for n in nodes if n.get("status") == "STAGE_1_PASSED")
-        triggered_s2 = sum(1 for n in nodes if n.get("falsification", {}).get("stage_reached", 0) >= 2)
+        # falsification may be explicitly null in graph.json; .get("falsification", {}) is None then
+        triggered_s2 = sum(
+            1 for n in nodes if ((n.get("falsification") or {}).get("stage_reached") or 0) >= 2
+        )
         passed_s2 = sum(1 for n in nodes if n.get("status") == "STAGE_2_PASSED")
 
         snapshot = GraphSnapshot(
@@ -1454,6 +1492,20 @@ def main():
     s2_group.add_argument("--stage2-model", type=str, default="claude-sonnet-4-20250514",
                          help="Anthropic model for Stage 2 (default: claude-sonnet-4-20250514)")
 
+    parent_group = parser.add_argument_group("Ideator parent binding (Parameter Golf baseline)")
+    parent_group.add_argument(
+        "--parent-train-gpt",
+        type=str,
+        default=None,
+        help="Repo-relative path to parent train_gpt.py (default: parameter-golf/train_gpt.py or IDEATOR_PARENT_TRAIN_GPT)",
+    )
+    parent_group.add_argument(
+        "--parent-graph-node-id",
+        type=str,
+        default=None,
+        help="Optional graph.json node_id for an OFFICIAL_RECORD (or set IDEATOR_PARENT_GRAPH_NODE_ID)",
+    )
+
     args = parser.parse_args()
 
     # Create output directory
@@ -1491,7 +1543,13 @@ def main():
     print("")
 
     try:
-        experiment = FullLiveExperiment(output_dir, reviewer_config=reviewer_config, stage2_config=stage2_config)
+        experiment = FullLiveExperiment(
+            output_dir,
+            reviewer_config=reviewer_config,
+            stage2_config=stage2_config,
+            ideator_parent_train_gpt=args.parent_train_gpt,
+            ideator_parent_graph_node_id=args.parent_graph_node_id,
+        )
         experiment.run_all(num_hypotheses=args.num_hypotheses)
 
         print("\n" + "="*70)

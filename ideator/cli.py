@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from .gemini import GeminiClient, GeminiError
 from .knowledge import choose_knowledge_dir, load_knowledge_context
 from .openai_client import OpenAIClient, OpenAIError
+from .parent_context import build_parent_binding
 from .parent_code import (
     ParentCode,
     ParentCodeError,
@@ -165,6 +166,11 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         default=os.getenv("PARAM_GOLF_PARENT_FILE_PATH", "train_gpt.py"),
         help="Path to train_gpt.py inside the parent repo (default: train_gpt.py)",
     )
+    p_idea.add_argument(
+        "--parent-graph-node-id",
+        default=os.getenv("IDEATOR_PARENT_GRAPH_NODE_ID"),
+        help="Optional knowledge graph node_id (e.g. pg-official-track_10min_16mb-...) to bind the parent to an OFFICIAL_RECORD",
+    )
     p_idea.add_argument("--dry-run", action="store_true", help="Print prompt JSON and exit")
 
     p_list = subparsers.add_parser("list-models", help="List models available to your API key")
@@ -228,6 +234,7 @@ def cmd_idea(
     parent_repo_url: str,
     parent_git_ref: str,
     parent_file_path: str,
+    parent_graph_node_id: Optional[str],
     dry_run: bool,
 ) -> int:
     kdir = choose_knowledge_dir(Path(knowledge_dir) if knowledge_dir else None, cwd=Path.cwd())
@@ -261,6 +268,19 @@ def cmd_idea(
         "parent_run_id": parent.ref.run_id,
         "parent_sha256": parent.sha256,
     }
+    repo_root = (kdir.parent if kdir else Path.cwd()).resolve()
+    gid = (parent_graph_node_id or "").strip() or None
+    binding = build_parent_binding(
+        repo_root=repo_root,
+        parent=parent,
+        knowledge_dir=kdir,
+        save_root=save_root,
+        parent_file_path=parent_file_path,
+        explicit_graph_node_id=gid,
+    )
+    for k, v in binding.items():
+        if v is not None:
+            parent_code_ref[k] = v
 
     system_prompt, user_prompt = build_ideator_prompts(
         knowledge_context=knowledge_context,
@@ -661,6 +681,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             parent_repo_url=args.parent_repo_url,
             parent_git_ref=args.parent_git_ref,
             parent_file_path=args.parent_file_path,
+            parent_graph_node_id=args.parent_graph_node_id,
             dry_run=args.dry_run,
         )
 
@@ -1108,6 +1129,15 @@ def _finalize_idea_v2(
     parent_impl["repo_url"] = str(parent_code_ref.get("repo_url") or parent_impl.get("repo_url") or "")
     parent_impl["git_ref"] = str(parent_code_ref.get("git_ref") or parent_impl.get("git_ref") or "")
     parent_impl["primary_file"] = "train_gpt.py"
+    gid = parent_code_ref.get("graph_parent_node_id")
+    if gid:
+        parent_impl["graph_parent_node_id"] = str(gid)
+    pid = parent_code_ref.get("parent_identity")
+    if pid:
+        parent_impl["parent_identity"] = str(pid)
+    rel = parent_code_ref.get("parent_train_gpt_relative")
+    if rel:
+        parent_impl["parent_train_gpt_relative"] = str(rel)
     idea_out["parent_implementation"] = parent_impl
 
     run_dir = (save_root / "runs" / run_id)

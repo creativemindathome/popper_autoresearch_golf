@@ -103,6 +103,15 @@ def load_knowledge_context(knowledge_dir: Path, *, max_chars: int = 18_000) -> s
                             summary_parts.append(f"reason='{reason}'")
 
                         structured_lines.append(" ".join(summary_parts))
+                    elif status == "OFFICIAL_RECORD":
+                        mm = node.get("measured_metrics") or {}
+                        bpb = mm.get("val_bpb")
+                        track = (node.get("source") or {}).get("track", "")
+                        bpb_s = f" val_bpb={bpb:.4f}" if isinstance(bpb, (int, float)) else ""
+                        tr = f" [{track}]" if track else ""
+                        structured_lines.append(
+                            f"- {idea_id}: {title} [OFFICIAL_RECORD]{tr}{bpb_s}"
+                        )
                     else:
                         # Simple summary for other statuses
                         structured_lines.append(f"- {idea_id}: {title} [{status}]")

@@ -82,6 +82,19 @@ python -m falsifier.main \
 - `infra/agents/` - Symphony orchestration infrastructure
 - `research/` - Baseline profiles, probe library
 - `docs/prd/` - Detailed specifications
+- `experiments/ten_hypothesis_run/` - Anthropic-driven multi-hypothesis runs (Stage 1 + optional Stage 2) with `live_run_*` artifacts; see `experiments/ten_hypothesis_run/README.md`
+
+## Multi-hypothesis experiments (Anthropic)
+
+For batched hypothesis generation through the falsifier with graph snapshots and visualization data:
+
+```bash
+cd experiments/ten_hypothesis_run
+export ANTHROPIC_API_KEY="..."   # or use ../../.env
+python3 run_full_live_experiment.py --num-hypotheses 10
+```
+
+Optional shell wrapper (then frames + video): `bash run_full_experiment.sh`. Cursor Cloud setup: `experiments/ten_hypothesis_run/CURSOR_CLOUD_SETUP.md`.
 
 ## Component Details
 
@@ -121,6 +134,8 @@ python infra/agents/scripts/check_symphony_readiness.py
 - `docs/prd/FALSIFIER_REVISED_PRD.md` - Falsifier specification
 - `docs/prd/CALIBRATION_LITE.md` - Calibration procedures
 - `docs/prd/EXECUTION_ADMISSION_GATE.md` - Execution validation
+- `docs/COMPLEXITY_AUDIT.md` - Pipeline/schema complexity notes (ideator ↔ falsifier paths)
+- `experiments/ten_hypothesis_run/README.md` - Multi-hypothesis runner (live experiments)
 - `infra/agents/docs/FALSIFIER_V1_PRD.md` - Original falsifier PRD
 
 ## Integration Principles
