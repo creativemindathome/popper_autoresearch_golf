@@ -298,14 +298,42 @@ class AtomicGraphUpdate:
     def _load_graph(self) -> dict:
         """Load graph data with lock held."""
         data = atomic_read_json(self.graph_path, {"nodes": {}, "edges": [], "metadata": {}})
-        # Ensure required structure
-        if "nodes" not in data:
+        if not isinstance(data, dict):
+            data = {"nodes": {}, "edges": [], "metadata": {}}
+
+        # Ensure required structure (support both dict- and list-backed nodes)
+        nodes = data.get("nodes")
+        if not isinstance(nodes, (dict, list)):
             data["nodes"] = {}
-        if "edges" not in data:
+
+        edges = data.get("edges")
+        if not isinstance(edges, list):
             data["edges"] = []
-        if "metadata" not in data:
+
+        metadata = data.get("metadata")
+        if not isinstance(metadata, dict):
             data["metadata"] = {}
+
         return data
+
+    @staticmethod
+    def _find_node_in_list(nodes: list, node_id: str) -> tuple[int, dict] | tuple[None, None]:
+        for idx, node in enumerate(nodes):
+            if not isinstance(node, dict):
+                continue
+            if node.get("id") == node_id or node.get("node_id") == node_id:
+                return idx, node
+        return None, None
+
+    @staticmethod
+    def _node_exists(graph: dict, node_id: str) -> bool:
+        nodes = graph.get("nodes")
+        if isinstance(nodes, dict):
+            return node_id in nodes
+        if isinstance(nodes, list):
+            idx, _ = AtomicGraphUpdate._find_node_in_list(nodes, node_id)
+            return idx is not None
+        return False
 
     def _save_graph(self, data: dict) -> None:
         """Save graph data atomically with lock held."""
@@ -326,15 +354,23 @@ class AtomicGraphUpdate:
         with lock_context(self.lock_path, self.lock_timeout):
             graph = self._load_graph()
 
-            if node_id not in graph["nodes"]:
-                raise KeyError(f"Node '{node_id}' does not exist in graph")
-
-            # Apply updates
-            graph["nodes"][node_id].update(updates)
+            nodes = graph.get("nodes")
+            if isinstance(nodes, dict):
+                if node_id not in nodes:
+                    raise KeyError(f"Node '{node_id}' does not exist in graph")
+                nodes[node_id].update(updates)
+            elif isinstance(nodes, list):
+                idx, node = self._find_node_in_list(nodes, node_id)
+                if node is None:
+                    raise KeyError(f"Node '{node_id}' does not exist in graph")
+                node.update(updates)
+            else:
+                raise KeyError(f"Graph has invalid 'nodes' container (expected dict or list)")
 
             # Update metadata
             graph["metadata"]["last_modified"] = time.time()
             graph["metadata"]["last_modified_by"] = os.getpid()
+            graph["metadata"]["node_count"] = len(nodes) if isinstance(nodes, (dict, list)) else 0
 
             self._save_graph(graph)
             logger.info(f"Updated node '{node_id}' with {len(updates)} fields")
@@ -354,20 +390,34 @@ class AtomicGraphUpdate:
         with lock_context(self.lock_path, self.lock_timeout):
             graph = self._load_graph()
 
-            if node_id in graph["nodes"]:
-                raise ValueError(f"Node '{node_id}' already exists in graph")
-
-            # Create node with metadata
-            graph["nodes"][node_id] = {
-                **node_data,
-                "_created": time.time(),
-                "_created_by": os.getpid()
-            }
+            nodes = graph.get("nodes")
+            if isinstance(nodes, dict):
+                if node_id in nodes:
+                    raise ValueError(f"Node '{node_id}' already exists in graph")
+                nodes[node_id] = {
+                    **node_data,
+                    "_created": time.time(),
+                    "_created_by": os.getpid(),
+                }
+            elif isinstance(nodes, list):
+                idx, _ = self._find_node_in_list(nodes, node_id)
+                if idx is not None:
+                    raise ValueError(f"Node '{node_id}' already exists in graph")
+                nodes.append(
+                    {
+                        "id": node_id,
+                        **node_data,
+                        "_created": time.time(),
+                        "_created_by": os.getpid(),
+                    }
+                )
+            else:
+                raise ValueError("Graph has invalid 'nodes' container (expected dict or list)")
 
             # Update metadata
             graph["metadata"]["last_modified"] = time.time()
             graph["metadata"]["last_modified_by"] = os.getpid()
-            graph["metadata"]["node_count"] = len(graph["nodes"])
+            graph["metadata"]["node_count"] = len(nodes) if isinstance(nodes, (dict, list)) else 0
 
             self._save_graph(graph)
             logger.info(f"Created node '{node_id}' with {len(node_data)} fields")
@@ -388,10 +438,18 @@ class AtomicGraphUpdate:
         with lock_context(self.lock_path, self.lock_timeout):
             graph = self._load_graph()
 
-            if node_id not in graph["nodes"]:
+            nodes = graph.get("nodes")
+            if isinstance(nodes, dict):
+                if node_id not in nodes:
+                    return False
+                del nodes[node_id]
+            elif isinstance(nodes, list):
+                idx, _ = self._find_node_in_list(nodes, node_id)
+                if idx is None:
+                    return False
+                del nodes[idx]
+            else:
                 return False
-
-            del graph["nodes"][node_id]
 
             # Remove edges connected to this node
             graph["edges"] = [
@@ -402,7 +460,7 @@ class AtomicGraphUpdate:
             # Update metadata
             graph["metadata"]["last_modified"] = time.time()
             graph["metadata"]["last_modified_by"] = os.getpid()
-            graph["metadata"]["node_count"] = len(graph["nodes"])
+            graph["metadata"]["node_count"] = len(nodes) if isinstance(nodes, (dict, list)) else 0
             graph["metadata"]["edge_count"] = len(graph["edges"])
 
             self._save_graph(graph)
@@ -427,10 +485,21 @@ class AtomicGraphUpdate:
         with lock_context(self.lock_path, self.lock_timeout):
             graph = self._load_graph()
 
-            if source not in graph["nodes"]:
-                raise KeyError(f"Source node '{source}' does not exist")
-            if target not in graph["nodes"]:
-                raise KeyError(f"Target node '{target}' does not exist")
+            nodes = graph.get("nodes")
+            if isinstance(nodes, dict):
+                if source not in nodes:
+                    raise KeyError(f"Source node '{source}' does not exist")
+                if target not in nodes:
+                    raise KeyError(f"Target node '{target}' does not exist")
+            elif isinstance(nodes, list):
+                src_idx, _ = self._find_node_in_list(nodes, source)
+                tgt_idx, _ = self._find_node_in_list(nodes, target)
+                if src_idx is None:
+                    raise KeyError(f"Source node '{source}' does not exist")
+                if tgt_idx is None:
+                    raise KeyError(f"Target node '{target}' does not exist")
+            else:
+                raise KeyError("Graph has invalid 'nodes' container (expected dict or list)")
 
             edge = {
                 "source": source,

@@ -20,6 +20,27 @@ from falsifier.graph.locking import AtomicGraphUpdate, lock_context, atomic_read
 from falsifier.types import FalsifierOutput, Tag
 
 
+def _node_id_from_obj(node: dict[str, Any]) -> str | None:
+    raw = node.get("id") or node.get("node_id")
+    if not raw:
+        return None
+    return str(raw)
+
+
+def _graph_get_node(graph: dict[str, Any], node_id: str) -> dict[str, Any] | None:
+    nodes = graph.get("nodes")
+    if isinstance(nodes, dict):
+        node = nodes.get(node_id)
+        return node if isinstance(node, dict) else None
+    if isinstance(nodes, list):
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+            if node.get("id") == node_id or node.get("node_id") == node_id:
+                return node
+    return None
+
+
 def create_node_from_ideator_idea(
     idea: dict,
     graph_path: Path,
@@ -51,7 +72,7 @@ def create_node_from_ideator_idea(
         The node_id for the created node
     """
     # Extract fields from ideator output
-    idea_id = idea.get("idea_id", f"idea_{uuid.uuid4().hex[:8]}")
+    idea_id = str(idea.get("idea_id", f"idea_{uuid.uuid4().hex[:8]}"))
     node_id = idea_id
 
     title = idea.get("title", "")
@@ -120,7 +141,10 @@ def create_node_from_ideator_idea(
 
     # Check if node already exists
     graph = atomic.read_graph()
-    if node_id in graph.get("nodes", {}):
+    if isinstance(graph.get("nodes"), list):
+        node_id = f"idea_{idea_id}"
+        node_data["node_id"] = node_id
+    if _graph_get_node(graph, node_id) is not None:
         # Node already exists, return existing node_id
         return node_id
 
@@ -158,7 +182,7 @@ def update_node_status(
 
     # Read current node data
     graph = atomic.read_graph()
-    node = graph.get("nodes", {}).get(node_id)
+    node = _graph_get_node(graph, node_id)
 
     if node is None:
         raise ValueError(f"Node {node_id} not found in graph")
@@ -173,6 +197,8 @@ def update_node_status(
 
     # Get existing history or create new
     status_history = node.get("status_history", [])
+    if not isinstance(status_history, list):
+        status_history = []
     status_history.append(history_entry)
 
     # Update the node
@@ -208,7 +234,7 @@ def update_node_with_falsification_results(
 
     # Read current node data
     graph = atomic.read_graph()
-    node = graph.get("nodes", {}).get(node_id)
+    node = _graph_get_node(graph, node_id)
 
     if node is None:
         raise ValueError(f"Node {node_id} not found in graph")
@@ -334,6 +360,8 @@ def update_node_with_falsification_results(
 
     # Update status history with final status
     status_history = node.get("status_history", [])
+    if not isinstance(status_history, list):
+        status_history = []
     status_history.append({
         "status": output.verdict,
         "timestamp": time.time(),
@@ -394,20 +422,38 @@ def find_node_by_idea_id(graph_path: Path, idea_id: str) -> str | None:
 
     nodes = graph.get("nodes", {})
 
-    # First try exact match on node_id (which equals idea_id for new nodes)
-    if idea_id in nodes:
-        return idea_id
+    # First try exact match on node_id (dict-backed graphs) or canonical ideator node id (list-backed graphs)
+    canonical = f"idea_{idea_id}"
+    if isinstance(nodes, dict):
+        if idea_id in nodes:
+            return idea_id
+        if canonical in nodes:
+            return canonical
+    elif isinstance(nodes, list):
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+            if node.get("id") == canonical:
+                return canonical
 
     # Otherwise search for nodes with matching idea_id field
-    matching_nodes = []
-    for node_id, node in nodes.items():
+    matching_nodes: list[tuple[str, float]] = []
+    if isinstance(nodes, dict):
+        it = nodes.items()
+    elif isinstance(nodes, list):
+        it = [(str(_node_id_from_obj(n) or ""), n) for n in nodes if isinstance(n, dict)]
+    else:
+        it = []
+
+    for node_id, node in it:
+        if not node_id or not isinstance(node, dict):
+            continue
         if node.get("idea_id") == idea_id:
-            # Get timestamp from status history for recency
             history = node.get("status_history", [])
-            if history:
-                last_timestamp = history[-1].get("timestamp", 0)
+            if isinstance(history, list) and history:
+                last_timestamp = float(history[-1].get("timestamp", 0) or 0)
             else:
-                last_timestamp = 0
+                last_timestamp = 0.0
             matching_nodes.append((node_id, last_timestamp))
 
     if not matching_nodes:
@@ -438,7 +484,7 @@ def get_node_status(graph_path: Path, node_id: str) -> str | None:
     except (json.JSONDecodeError, FileNotFoundError):
         return None
 
-    node = graph.get("nodes", {}).get(node_id)
+    node = _graph_get_node(graph, node_id)
     if node is None:
         return None
 
@@ -466,7 +512,11 @@ def find_nodes_by_status(graph_path: Path, status: str) -> list[dict[str, Any]]:
         return []
 
     nodes = graph.get("nodes", {})
-    return [node for node in nodes.values() if node.get("status") == status]
+    if isinstance(nodes, dict):
+        return [node for node in nodes.values() if isinstance(node, dict) and node.get("status") == status]
+    if isinstance(nodes, list):
+        return [node for node in nodes if isinstance(node, dict) and node.get("status") == status]
+    return []
 
 
 def get_node_full(graph_path: Path, node_id: str) -> dict[str, Any] | None:
@@ -489,4 +539,4 @@ def get_node_full(graph_path: Path, node_id: str) -> dict[str, Any] | None:
     except (json.JSONDecodeError, FileNotFoundError):
         return None
 
-    return graph.get("nodes", {}).get(node_id)
+    return _graph_get_node(graph, node_id)
