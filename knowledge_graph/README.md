@@ -28,6 +28,24 @@ Options:
 - `--engine dot|sfdp|neato|twopi` (layout engine)
 - `--mode overview|split-roots|both`
 
+### Force-directed (Gephi-like)
+
+This looks closer to the “network hairball” style (colored clusters / starbursts) and keeps labels in SVG tooltips:
+
+```bash
+python3 knowledge_graph/render_seed_kg_force_graphviz.py --mode both
+```
+
+Outputs to `knowledge_graph/visuals/`:
+
+- Overview: `seed_parameter_golf_kg_force.{png,svg}`
+- Per-root breakdown: `seed_parameter_golf_kg_force_{data_pipeline,neural_network,training_evaluation}.{png,svg}`
+
+Options:
+
+- `--labels none|roots|roots-branches|all` (defaults to `none`)
+- `--engine sfdp|neato|fdp` (recommend: `sfdp`)
+
 ## Outbox
 
 Generated ideas and candidate implementations are saved to `knowledge_graph/outbox/ideator/`:
