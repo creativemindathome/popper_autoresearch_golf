@@ -101,9 +101,18 @@ def run_stage_2(
     killed_by: str | None = None
     kill_reason: str | None = None
     
+    def _run_result_to_dict(result):
+        """Convert RunResult to dict for evaluate_experiment."""
+        if isinstance(result, dict):
+            return result
+        if hasattr(result, '__dict__'):
+            return result.__dict__
+        return {}
+    
     for i, exp in enumerate(experiments):
         run_name = run_plan.experiment_to_run.get(exp.name, "theory_run")
-        run_data = run_results.get(run_name, {})
+        run_result = run_results.get(run_name)
+        run_data = _run_result_to_dict(run_result) if run_result else {}
         
         eval_result = evaluate_experiment(exp, run_data, calibration)
         
@@ -160,13 +169,10 @@ def run_stage_2(
         verdict="REFUTED" if killed_by else "STAGE_2_PASSED",
         killed_by=killed_by,
         kill_reason=kill_reason,
-        t0_novelty=stage1_output.t0_novelty,
-        t1_precedent=stage1_output.t1_precedent,
         t2_budget=stage1_output.t2_budget,
         t3_compilation=stage1_output.t3_compilation,
         t4_signal=stage1_output.t4_signal,
         t5_init=stage1_output.t5_init,
-        t6_checkpoint=stage1_output.t6_checkpoint,
         t7_microtrain=stage1_output.t7_microtrain,
         s2_results=s2_result,
         tags=stage1_output.tags,
@@ -184,13 +190,10 @@ def run_stage_2(
 def _collect_stage1_results(stage1_output: FalsifierOutput) -> dict[str, Any]:
     """Collect Stage 1 results into a dict."""
     return {
-        "T0": stage1_output.t0_novelty,
-        "T1": stage1_output.t1_precedent,
         "T2": stage1_output.t2_budget,
         "T3": stage1_output.t3_compilation,
         "T4": stage1_output.t4_signal,
         "T5": stage1_output.t5_init,
-        "T6": stage1_output.t6_checkpoint,
         "T7": stage1_output.t7_microtrain,
     }
 
@@ -202,13 +205,10 @@ def _stage2_skipped(stage1_output: FalsifierOutput, start_time: float) -> Falsif
         verdict="STAGE_1_PASSED",  # Not killed, but not fully passed either
         killed_by=None,
         kill_reason=None,
-        t0_novelty=stage1_output.t0_novelty,
-        t1_precedent=stage1_output.t1_precedent,
         t2_budget=stage1_output.t2_budget,
         t3_compilation=stage1_output.t3_compilation,
         t4_signal=stage1_output.t4_signal,
         t5_init=stage1_output.t5_init,
-        t6_checkpoint=stage1_output.t6_checkpoint,
         t7_microtrain=stage1_output.t7_microtrain,
         tags=stage1_output.tags,
         feedback=Feedback(
@@ -247,13 +247,10 @@ def _build_refuted_output(
         verdict="REFUTED",
         killed_by="S2_DIVERGE",
         kill_reason=f"Training run diverged: {reason}",
-        t0_novelty=stage1_output.t0_novelty,
-        t1_precedent=stage1_output.t1_precedent,
         t2_budget=stage1_output.t2_budget,
         t3_compilation=stage1_output.t3_compilation,
         t4_signal=stage1_output.t4_signal,
         t5_init=stage1_output.t5_init,
-        t6_checkpoint=stage1_output.t6_checkpoint,
         t7_microtrain=stage1_output.t7_microtrain,
         s2_results=s2,
         tags=stage1_output.tags,

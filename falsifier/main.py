@@ -4,17 +4,27 @@ Falsifier CLI entry point.
 Usage:
     python -m falsifier.main --candidate-json candidate.json --output-json output.json
     python -m falsifier.main --calibrate --train-gpt train_gpt.py
+    python -m falsifier.main --idea-id my_idea --knowledge-dir knowledge_graph --output-json output.json
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
+from .adapters import load_and_adapt_ideator_idea
 from .calibrate import calibrate, load_calibration
+from .graph.lifecycle import (
+    find_node_by_idea_id,
+    update_node_status,
+    update_node_with_falsification_results,
+)
+from .graph.locking import acquire_lock, release_lock
 from .graph.update import update_graph_after_verdict
 from .stage1.orchestrator import run_stage_1
 from .stage2.orchestrator import run_stage_2
@@ -60,6 +70,100 @@ def _load_candidate_json(path: Path) -> FalsifierInput:
     )
 
 
+def load_from_ideator_inbox(
+    idea_id: str,
+    knowledge_dir: Path,
+    graph_path: Path | None = None,
+) -> tuple[FalsifierInput, str | None]:
+    """
+    Load and adapt an ideator idea from the inbox/approved directory.
+
+    Args:
+        idea_id: The ID of the idea to load
+        knowledge_dir: Path to the knowledge_graph directory
+        graph_path: Optional path to the graph JSON file
+
+    Returns:
+        Tuple of (FalsifierInput, node_id) where node_id is the graph node ID
+        if a graph path was provided and the node was found/created.
+
+    Raises:
+        FileNotFoundError: If the idea file doesn't exist in inbox/approved/
+    """
+    idea_path = knowledge_dir / "inbox" / "approved" / f"{idea_id}.json"
+    
+    if not idea_path.exists():
+        raise FileNotFoundError(
+            f"Idea file not found: {idea_path}\n"
+            f"Expected idea at knowledge_graph/inbox/approved/{idea_id}.json"
+        )
+    
+    # Load and adapt using the adapter
+    inp = load_and_adapt_ideator_idea(idea_path, knowledge_dir)
+    
+    node_id = None
+    
+    # If graph path provided, find or create the node
+    if graph_path:
+        node_id = find_node_by_idea_id(graph_path, idea_id)
+        if node_id:
+            # Update node status to IN_FALSIFICATION
+            update_node_status(
+                node_id=node_id,
+                new_status="IN_FALSIFICATION",
+                graph_path=graph_path,
+                actor="falsifier",
+                metadata={
+                    "started_at": time.time(),
+                    "pid": os.getpid(),
+                }
+            )
+    
+    return inp, node_id
+
+
+def _create_work_lock(
+    idea_id: str,
+    node_id: str | None,
+    knowledge_dir: Path,
+) -> Path:
+    """
+    Create a lock file in knowledge_graph/work/in_falsification/.
+
+    Args:
+        idea_id: The idea ID being processed
+        node_id: The graph node ID (if available)
+        knowledge_dir: Path to the knowledge_graph directory
+
+    Returns:
+        Path to the created lock file
+    """
+    lock_dir = knowledge_dir / "work" / "in_falsification"
+    lock_dir.mkdir(parents=True, exist_ok=True)
+    
+    lock_path = lock_dir / f"{idea_id}.lock"
+    
+    lock_data = {
+        "pid": os.getpid(),
+        "timestamp": time.time(),
+        "idea_id": idea_id,
+        "node_id": node_id,
+    }
+    
+    lock_path.write_text(json.dumps(lock_data, indent=2))
+    
+    return lock_path
+
+
+def _remove_work_lock(lock_path: Path) -> None:
+    """Remove the work lock file if it exists."""
+    if lock_path.exists():
+        try:
+            lock_path.unlink()
+        except OSError:
+            pass
+
+
 def main(args: list[str] | None = None) -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Falsifier: Stage 1 + Stage 2 theory prosecution")
@@ -71,12 +175,28 @@ def main(args: list[str] | None = None) -> int:
         help="Run calibration mode instead of falsification",
     )
     
-    # Input/output paths
-    parser.add_argument(
+    # Input sources (mutually exclusive)
+    input_group = parser.add_mutually_exclusive_group()
+    input_group.add_argument(
         "--candidate-json",
         type=Path,
         help="Path to candidate JSON file",
     )
+    input_group.add_argument(
+        "--idea-id",
+        type=str,
+        help="Load idea from knowledge_graph/inbox/approved/{idea_id}.json",
+    )
+    
+    # Knowledge graph directory
+    parser.add_argument(
+        "--knowledge-dir",
+        type=Path,
+        default=Path("knowledge_graph"),
+        help="Path to knowledge_graph directory (default: knowledge_graph)",
+    )
+    
+    # Output paths
     parser.add_argument(
         "--output-json",
         type=Path,
@@ -127,84 +247,140 @@ def main(args: list[str] | None = None) -> int:
         print(f"  Baseline 100-step loss drop: {cal.baseline_100.loss_drop_mean:.4f} ± {cal.baseline_100.loss_drop_std:.4f}")
         return 0
     
-    # ══ Falsification mode ═════════════════════════════════════════════════════
-    if not parsed.candidate_json:
-        print("Error: --candidate-json required for falsification mode (or use --calibrate)")
+    # ══ Falsification mode ═════════════════════════════════════════════════
+    # Validate input source
+    if not parsed.candidate_json and not parsed.idea_id:
+        print("Error: Either --candidate-json or --idea-id required for falsification mode (or use --calibrate)")
         return 1
     
-    # Load candidate
-    print(f"[main] Loading candidate from {parsed.candidate_json}")
-    inp = _load_candidate_json(parsed.candidate_json)
+    # Resolve knowledge_dir to absolute path
+    knowledge_dir = parsed.knowledge_dir.resolve()
     
-    # Load calibration
-    repo_root = Path(inp.train_gpt_path).resolve().parent if inp.train_gpt_path else Path.cwd()
-    inp.calibration = load_calibration(repo_root)
+    # Resolve graph path if not provided but using idea-id
+    graph_path = parsed.graph_path
+    if not graph_path and parsed.idea_id:
+        # Default graph path is knowledge_dir/graph.json
+        graph_path = knowledge_dir / "graph.json"
+    if graph_path:
+        graph_path = graph_path.resolve()
     
-    # Load graph if path provided
-    if parsed.graph_path and parsed.graph_path.exists():
-        from .graph.query import load_graph
-        inp.graph = load_graph(parsed.graph_path)
+    # Load candidate from appropriate source
+    inp: FalsifierInput
+    node_id: str | None = None
+    idea_id: str | None = None
+    lock_path: Path | None = None
     
-    # Validate
-    print(f"[main] Validating candidate {inp.theory_id}...")
-    validation = validate_candidate_package(inp)
-    if not validation.ok:
-        print(f"[main] Validation failed: {'; '.join(validation.reasons)}")
-        output = FalsifierOutput(
-            theory_id=inp.theory_id,
-            verdict="REJECTED",
-            killed_by="VALIDATION",
-            kill_reason="; ".join(validation.reasons),
-            feedback=Feedback(
-                one_line="Validation failed: " + "; ".join(validation.reasons),
-                stage_reached=0,
-            ),
-        )
-        parsed.output_json.write_text(json.dumps(_output_to_dict(output), indent=2))
-        return 1
-    
-    # ══ Stage 1 ═══════════════════════════════════════════════════════════════
-    stage1_output = None
-    if parsed.stage_only != "2":
-        print(f"[main] Running Stage 1...")
-        stage1_output = run_stage_1(inp)
-        
-        print(f"[main] Stage 1: {stage1_output.verdict}")
-        if stage1_output.killed_by:
-            print(f"  Killed by: {stage1_output.killed_by}")
-            print(f"  Reason: {stage1_output.kill_reason}")
+    try:
+        if parsed.idea_id:
+            # Load from ideator inbox
+            idea_id = parsed.idea_id
+            print(f"[main] Loading idea {idea_id} from {knowledge_dir}/inbox/approved/")
+            
+            inp, node_id = load_from_ideator_inbox(
+                idea_id=idea_id,
+                knowledge_dir=knowledge_dir,
+                graph_path=graph_path if graph_path and graph_path.exists() else None,
+            )
+            
+            # Create lock file
+            lock_path = _create_work_lock(idea_id, node_id, knowledge_dir)
+            print(f"[main] Created lock file: {lock_path}")
+            
         else:
-            print(f"  Tags accumulated: {len(stage1_output.tags)}")
+            # Load from candidate JSON
+            print(f"[main] Loading candidate from {parsed.candidate_json}")
+            inp = _load_candidate_json(parsed.candidate_json)
+            idea_id = inp.theory_id
+            
+            # Create lock file even for non-graph mode (for tracking)
+            lock_path = _create_work_lock(idea_id, None, knowledge_dir)
         
-        # Early exit if killed in Stage 1
-        if stage1_output.verdict in ("REJECTED", "REFUTED"):
-            _save_output(stage1_output, parsed.output_json, inp.graph, parsed.graph_path)
-            return 0
-    else:
-        # Load Stage 1 output from somewhere (not implemented, would need path)
-        print("Error: --stage-only=2 requires pre-existing Stage 1 output")
+        # Ensure lock is cleaned up even on error
+        try:
+            # Load calibration
+            repo_root = Path(inp.train_gpt_path).resolve().parent if inp.train_gpt_path else Path.cwd()
+            inp.calibration = load_calibration(repo_root)
+            
+            # Load graph if path provided
+            if graph_path and graph_path.exists():
+                from .graph.query import load_graph
+                inp.graph = load_graph(graph_path)
+            
+            # Validate
+            print(f"[main] Validating candidate {inp.theory_id}...")
+            validation = validate_candidate_package(inp)
+            if not validation.ok:
+                print(f"[main] Validation failed: {'; '.join(validation.reasons)}")
+                output = FalsifierOutput(
+                    theory_id=inp.theory_id,
+                    verdict="REJECTED",
+                    killed_by="VALIDATION",
+                    kill_reason="; ".join(validation.reasons),
+                    feedback=Feedback(
+                        one_line="Validation failed: " + "; ".join(validation.reasons),
+                        stage_reached=0,
+                    ),
+                )
+                _save_output(output, parsed.output_json, inp.graph, graph_path, node_id)
+                return 1
+            
+            # ══ Stage 1 ═══════════════════════════════════════════════════
+            stage1_output = None
+            if parsed.stage_only != "2":
+                print(f"[main] Running Stage 1...")
+                stage1_output = run_stage_1(inp)
+                
+                print(f"[main] Stage 1: {stage1_output.verdict}")
+                if stage1_output.killed_by:
+                    print(f"  Killed by: {stage1_output.killed_by}")
+                    print(f"  Reason: {stage1_output.kill_reason}")
+                else:
+                    print(f"  Tags accumulated: {len(stage1_output.tags)}")
+                
+                # Early exit if killed in Stage 1
+                if stage1_output.verdict in ("REJECTED", "REFUTED"):
+                    _save_output(stage1_output, parsed.output_json, inp.graph, graph_path, node_id)
+                    return 0
+            else:
+                # Load Stage 1 output from somewhere (not implemented, would need path)
+                print("Error: --stage-only=2 requires pre-existing Stage 1 output")
+                return 1
+            
+            # ══ Stage 2 ═══════════════════════════════════════════════════
+            final_output = None
+            if parsed.stage_only != "1":
+                print(f"[main] Running Stage 2...")
+                final_output = run_stage_2(inp, stage1_output)
+                
+                print(f"[main] Final verdict: {final_output.verdict}")
+                if final_output.killed_by:
+                    print(f"  Killed by: {final_output.killed_by}")
+                    print(f"  Reason: {final_output.kill_reason}")
+                else:
+                    print(f"  Stage 2 passed!")
+            else:
+                final_output = stage1_output
+            
+            # Save output and update graph
+            _save_output(final_output, parsed.output_json, inp.graph, graph_path, node_id)
+            
+            print(f"[main] Output saved to {parsed.output_json}")
+            return 0 if final_output.verdict in ("STAGE_1_PASSED", "STAGE_2_PASSED") else 1
+            
+        finally:
+            # Always remove lock file
+            if lock_path:
+                _remove_work_lock(lock_path)
+                print(f"[main] Removed lock file: {lock_path}")
+                
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
         return 1
-    
-    # ══ Stage 2 ═══════════════════════════════════════════════════════════════
-    final_output = None
-    if parsed.stage_only != "1":
-        print(f"[main] Running Stage 2...")
-        final_output = run_stage_2(inp, stage1_output)
-        
-        print(f"[main] Final verdict: {final_output.verdict}")
-        if final_output.killed_by:
-            print(f"  Killed by: {final_output.killed_by}")
-            print(f"  Reason: {final_output.kill_reason}")
-        else:
-            print(f"  Stage 2 passed!")
-    else:
-        final_output = stage1_output
-    
-    # Save output
-    _save_output(final_output, parsed.output_json, inp.graph, parsed.graph_path)
-    
-    print(f"[main] Output saved to {parsed.output_json}")
-    return 0 if final_output.verdict in ("STAGE_1_PASSED", "STAGE_2_PASSED") else 1
+    except Exception as e:
+        print(f"Error during falsification: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
 
 
 def _output_to_dict(out: FalsifierOutput) -> dict[str, Any]:
@@ -231,6 +407,7 @@ def _save_output(
     output_path: Path,
     graph: KnowledgeGraph,
     graph_path: Path | None,
+    node_id: str | None,
 ) -> None:
     """Save output to JSON and update graph."""
     # Save output JSON
@@ -238,22 +415,46 @@ def _save_output(
     
     # Update graph if path provided
     if graph_path:
-        # Need to reload input for graph update
-        from .types import FalsifierInput
-        from dataclasses import dataclass
-        
-        @dataclass
-        class MockInput:
-            theory_id: str
-            config_delta: dict | None
-            parents: list
+        if node_id:
+            # Use the lifecycle module for full node update with falsification results
+            try:
+                update_node_with_falsification_results(node_id, out, graph_path)
+                print(f"[main] Updated graph node {node_id} with falsification results")
+            except Exception as e:
+                print(f"[main] Warning: Could not update node with falsification results: {e}")
+                # Fall back to basic graph update
+                from .types import FalsifierInput
+                from dataclasses import dataclass
+                
+                @dataclass
+                class MockInput:
+                    theory_id: str
+                    config_delta: dict | None
+                    parents: list
+                    
+                mock = MockInput(
+                    theory_id=out.theory_id,
+                    config_delta=None,
+                    parents=[],
+                )
+                update_graph_after_verdict(graph_path, out, mock)
+        else:
+            # No node_id, use basic update
+            from .types import FalsifierInput
+            from dataclasses import dataclass
             
-        mock = MockInput(
-            theory_id=out.theory_id,
-            config_delta=None,
-            parents=[],
-        )
-        update_graph_after_verdict(graph_path, out, mock)
+            @dataclass
+            class MockInput:
+                theory_id: str
+                config_delta: dict | None
+                parents: list
+                
+            mock = MockInput(
+                theory_id=out.theory_id,
+                config_delta=None,
+                parents=[],
+            )
+            update_graph_after_verdict(graph_path, out, mock)
 
 
 if __name__ == "__main__":

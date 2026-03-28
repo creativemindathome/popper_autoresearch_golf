@@ -21,9 +21,16 @@ class TrendResult:
     actual_loss_500: float = 0.0
 
 
+def _get_attr(obj, attr, default=None):
+    """Get attribute from object or dict."""
+    if isinstance(obj, dict):
+        return obj.get(attr, default)
+    return getattr(obj, attr, default)
+
+
 def verify_trends(
-    run: Any,  # RunResult
-    t7: T7Result,
+    run: Any,  # RunResult or dict
+    t7: Any,  # T7Result or dict
     cal: Calibration,
 ) -> TrendResult:
     """Verify that trends from T7 (100-step) extrapolate correctly to 500-step.
@@ -37,11 +44,13 @@ def verify_trends(
     parts: list[str] = []
     broken = False
     
-    # Get 100-step trajectory from T7
-    losses_100 = t7.loss_trajectory[:100] if len(t7.loss_trajectory) >= 100 else t7.loss_trajectory
+    # Get 100-step trajectory from T7 (handle both object and dict)
+    loss_trajectory = _get_attr(t7, 'loss_trajectory', [])
+    losses_100 = loss_trajectory[:100] if len(loss_trajectory) >= 100 else loss_trajectory
     
-    # Get 500-step actual from run
-    actual_500 = run.losses[499] if len(run.losses) >= 500 else run.losses[-1]
+    # Get 500-step actual from run (handle both object and dict)
+    run_losses = _get_attr(run, 'losses', [])
+    actual_500 = run_losses[499] if len(run_losses) >= 500 else (run_losses[-1] if run_losses else 0.0)
     
     # Log-linear extrapolation from 100→500
     if len(losses_100) >= 10:
@@ -73,9 +82,10 @@ def verify_trends(
             parts.append(f"Learning ratio collapsed to {lr_500:.2f} at step 500")
     
     # Gradient stability degradation
-    if len(run.grad_norms) >= 500:
-        early = run.grad_norms[100:200]
-        late = run.grad_norms[400:500]
+    run_grad_norms = _get_attr(run, 'grad_norms', [])
+    if len(run_grad_norms) >= 500:
+        early = run_grad_norms[100:200]
+        late = run_grad_norms[400:500]
         if early and late:
             e_mean = sum(early) / len(early)
             l_mean = sum(late) / len(late)

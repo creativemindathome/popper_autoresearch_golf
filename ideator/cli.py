@@ -552,7 +552,70 @@ def cmd_idea(
 
     for p in saved_paths:
         sys.stderr.write(f"saved: {_relpath_for_display(p)}\n")
+
+    # After successful save, run handoff to falsifier inbox for approved ideas
+    if accepted_review is not None and not no_save:
+        _run_handoff_to_falsifier(save_root=save_root)
+
     return 0
+
+
+def _run_handoff_to_falsifier(*, save_root: Path) -> None:
+    """Run the handoff script to symlink approved ideas to falsifier inbox."""
+    # Find the handoff script relative to repo root
+    repo_root = _find_repo_root()
+    handoff_script = (
+        repo_root / "infra" / "agents" / "scripts" / "handoff_ideator_to_falsifier.py"
+    )
+
+    if not handoff_script.exists():
+        sys.stderr.write(f"handoff: script not found at {handoff_script}\n")
+        return
+
+    # Find knowledge_dir from save_root (save_root is typically knowledge_graph/outbox/ideator)
+    knowledge_dir = save_root.parent.parent  # outbox/ideator -> outbox -> knowledge_graph
+
+    if not knowledge_dir.exists():
+        sys.stderr.write(f"handoff: knowledge directory not found at {knowledge_dir}\n")
+        return
+
+    cmd = [
+        sys.executable,
+        str(handoff_script),
+        "--knowledge-dir",
+        str(knowledge_dir),
+    ]
+
+    try:
+        import subprocess
+
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        if result.returncode == 0:
+            # Only show summary lines
+            for line in result.stdout.strip().split("\n"):
+                if line.startswith("  ") or line.startswith("Summary"):
+                    sys.stderr.write(f"handoff: {line}\n")
+        else:
+            sys.stderr.write(f"handoff: failed with code {result.returncode}\n")
+            if result.stderr:
+                sys.stderr.write(result.stderr)
+    except subprocess.TimeoutExpired:
+        sys.stderr.write("handoff: timed out after 30s\n")
+    except Exception as e:
+        sys.stderr.write(f"handoff: error running script: {e}\n")
+
+
+def _find_repo_root() -> Path:
+    """Find the repository root by looking for .git or knowledge_graph directory."""
+    current = Path(__file__).resolve().parent
+    for _ in range(5):  # Search up to 5 levels
+        if (current / ".git").exists() or (current / "knowledge_graph").exists():
+            return current
+        parent = current.parent
+        if parent == current:
+            break
+        current = parent
+    return Path.cwd()
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:

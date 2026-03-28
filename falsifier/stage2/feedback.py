@@ -34,13 +34,11 @@ def _generate_failure_feedback(
     killed_by = out.killed_by or "unknown"
     kill_reason = out.kill_reason or "No reason provided"
     
-    # Determine stage reached
-    if killed_by.startswith("T0") or killed_by.startswith("T1") or killed_by.startswith("T2"):
+    # Determine stage reached (streamlined: T2→T3→{T4,T5}→T7)
+    if killed_by.startswith("T2"):
         stage_reached = 0
     elif killed_by.startswith("T3") or killed_by.startswith("T4") or killed_by.startswith("T5"):
         stage_reached = 1
-    elif killed_by.startswith("T6"):
-        stage_reached = 2
     elif killed_by.startswith("T7"):
         stage_reached = 3
     elif killed_by.startswith("S2"):
@@ -83,11 +81,7 @@ def _generate_failure_feedback(
     
     # Generic suggestions if none specific
     if not directions:
-        if killed_by.startswith("T0"):
-            directions.append("Propose a more substantial architectural change")
-        elif killed_by.startswith("T1"):
-            directions.append("Explicitly address the failure of similar theories")
-        elif killed_by.startswith("T2"):
+        if killed_by.startswith("T2"):
             directions.append("Reduce parameter count or optimize for speed")
         elif killed_by.startswith("T3"):
             directions.append("Fix compilation errors and ensure gradient connectivity")
@@ -95,8 +89,6 @@ def _generate_failure_feedback(
             directions.append("Check initialization and normalization strategies")
         elif killed_by.startswith("T5"):
             directions.append("Review weight initialization and ensure sufficient diversity")
-        elif killed_by.startswith("T6"):
-            directions.append("Verify claims against checkpoint measurements")
         elif killed_by.startswith("T7"):
             directions.append("Improve learning dynamics and training stability")
         else:
@@ -152,8 +144,6 @@ def _generate_error_feedback(
 def _tag_to_suggestion(tag: Tag) -> str | None:
     """Convert a tag to a suggestion."""
     suggestions = {
-        "T0_low_boldness": "Propose more substantial architectural changes",
-        "T1_near_precedent": "Explicitly address how this differs from similar refuted theories",
         "T2_tight_budget": "Optimize for smaller model size or faster execution",
         "T2_high_flops": "Reduce computational complexity",
         "T3_disconnected_params": "Ensure all model parameters are connected to the computation graph",
@@ -164,12 +154,14 @@ def _tag_to_suggestion(tag: Tag) -> str | None:
         "T5_low_effective_rank": "Ensure sufficient weight matrix rank through initialization",
         "T5_high_condition_number": "Improve conditioning through regularization or initialization",
         "T5_weight_symmetry": "Break symmetry through initialization diversity",
-        "T6_false_premise": "Verify numerical claims against checkpoint measurements",
+        "T5_rank_deficient": "Review weight initialization to ensure full rank matrices",
+        "T5_poor_capacity_utilization": "Improve capacity utilization through better initialization",
         "T7_slow_learning": "Improve learning dynamics through better optimization or architecture",
         "T7_gradient_instability": "Add gradient clipping or adjust learning rate",
         "T7_component_speed_imbalance": "Balance component contributions through gating or scaling",
         "T7_entropy_collapse": "Prevent entropy collapse through attention mechanisms",
         "T7_low_throughput": "Optimize for faster training",
+        "T7_learning_plateau": "Address learning plateau through architecture changes",
     }
     
     return suggestions.get(tag.tag_id)
