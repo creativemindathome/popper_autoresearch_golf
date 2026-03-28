@@ -295,8 +295,8 @@ The HTML viewer shows:
 ### Stage 2 Not Triggering
 
 ```bash
-# Check if ANTHROPIC_API_KEY is set
-echo $ANTHROPIC_API_KEY | head -c 20
+# Check if ANTHROPIC_API_KEY is set (do not print the value)
+test -n "$ANTHROPIC_API_KEY" && echo "ANTHROPIC_API_KEY is set" || echo "ANTHROPIC_API_KEY is empty"
 
 # Check if anthropic package is installed
 python3 -c "import anthropic; print('OK')"

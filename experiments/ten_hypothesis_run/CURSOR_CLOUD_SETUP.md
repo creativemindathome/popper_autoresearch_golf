@@ -74,7 +74,7 @@ The cloud agent needs access to Anthropic API:
 ```bash
 cd /Users/curiousmind/Desktop/null_fellow_hackathon
 cat > .env << 'EOF'
-ANTHROPIC_API_KEY="sk-ant-api03-your-anthropic-key"
+ANTHROPIC_API_KEY="<your-anthropic-api-key>"
 EOF
 ```
 

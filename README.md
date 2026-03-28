@@ -29,10 +29,12 @@ uv sync --extra llm
 
 ### 2. API key
 
-You need an **Anthropic API key** in the environment (or in a `.env` at the repo root that you `source`):
+You need an **Anthropic API key** from your Anthropic account (dashboard → API keys). **Do not paste keys into the repo, issues, or screenshots.**
+
+Put the key in the environment, or in a **local** `.env` at the repo root (copy from [`.env.example`](.env.example); that file is gitignored):
 
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-..."
+export ANTHROPIC_API_KEY="<paste your key here>"
 ```
 
 ### 3. Start the run

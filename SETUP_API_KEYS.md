@@ -21,16 +21,16 @@ Set these in your terminal before running:
 
 ```bash
 # For Ideator (using Anthropic instead of Gemini)
-export ANTHROPIC_API_KEY="sk-ant-api03-your-key-here"
+export ANTHROPIC_API_KEY="<your-anthropic-api-key>"
 
 # For Falsifier Stage 2 (optional - fallback works without)
-export ANTHROPIC_API_KEY="sk-ant-api03-your-key-here"  # Same key, reused
+export ANTHROPIC_API_KEY="<your-anthropic-api-key>"  # Same key, reused
 
 # Alternative: Use OpenAI for reviewer
-export OPENAI_API_KEY="sk-your-openai-key-here"
+export OPENAI_API_KEY="<your-openai-api-key>"
 
 # Original Gemini (if you want to compare)
-export GEMINI_API_KEY="your-gemini-key-here"
+export GEMINI_API_KEY="<your-gemini-api-key>"
 ```
 
 ### Option 2: Cursor Settings
@@ -44,8 +44,8 @@ In Cursor, you can set environment variables that persist:
 ```json
 {
   "env": {
-    "ANTHROPIC_API_KEY": "sk-ant-api03-your-key-here",
-    "OPENAI_API_KEY": "sk-your-openai-key-here"
+    "ANTHROPIC_API_KEY": "<your-anthropic-api-key>",
+    "OPENAI_API_KEY": "<your-openai-api-key>"
   }
 }
 ```
@@ -55,10 +55,10 @@ In Cursor, you can set environment variables that persist:
 Create `.env` in project root:
 
 ```bash
-# .env
-ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
-OPENAI_API_KEY=sk-your-openai-key-here
-GEMINI_API_KEY=your-gemini-key-here
+# .env (never commit this file)
+ANTHROPIC_API_KEY=<your-anthropic-api-key>
+OPENAI_API_KEY=<your-openai-api-key>
+GEMINI_API_KEY=<your-gemini-api-key>
 ```
 
 Then load it:
@@ -72,8 +72,8 @@ Add to `~/.zshrc` or `~/.bashrc`:
 
 ```bash
 # AutoResearch Loop API Keys
-export ANTHROPIC_API_KEY="sk-ant-api03-your-key-here"
-export OPENAI_API_KEY="sk-your-openai-key-here"
+export ANTHROPIC_API_KEY="<your-anthropic-api-key>"
+export OPENAI_API_KEY="<your-openai-api-key>"
 ```
 
 Then reload:
@@ -86,25 +86,11 @@ source ~/.zshrc  # or ~/.bashrc
 Test the keys are working:
 
 ```bash
-# Test Anthropic
-python3 -c "
-import os
-key = os.environ.get('ANTHROPIC_API_KEY')
-if key:
-    print(f'✓ ANTHROPIC_API_KEY set: {key[:20]}...')
-else:
-    print('✗ ANTHROPIC_API_KEY not set')
-"
+# Test Anthropic (does not print the key)
+python3 -c "import os; print('✓ ANTHROPIC_API_KEY set' if os.environ.get('ANTHROPIC_API_KEY') else '✗ ANTHROPIC_API_KEY not set')"
 
-# Test OpenAI
-python3 -c "
-import os
-key = os.environ.get('OPENAI_API_KEY')
-if key:
-    print(f'✓ OPENAI_API_KEY set: {key[:20]}...')
-else:
-    print('✗ OPENAI_API_KEY not set')
-"
+# Test OpenAI (does not print the key)
+python3 -c "import os; print('✓ OPENAI_API_KEY set' if os.environ.get('OPENAI_API_KEY') else '✗ OPENAI_API_KEY not set')"
 ```
 
 ## Usage Examples
@@ -112,7 +98,7 @@ else:
 ### 1. Anthropic for Ideator + Reviewer
 
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-api03-..."
+export ANTHROPIC_API_KEY="<your-anthropic-api-key>"
 
 # Run ideator with Anthropic
 python3 -m ideator idea \
@@ -124,8 +110,8 @@ python3 -m ideator idea \
 ### 2. Anthropic for Ideator, OpenAI for Reviewer
 
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-api03-..."
-export OPENAI_API_KEY="sk-..."
+export ANTHROPIC_API_KEY="<your-anthropic-api-key>"
+export OPENAI_API_KEY="<your-openai-api-key>"
 
 python3 -m ideator idea \
     --parent-train-gpt parameter-golf/train_gpt.py \
@@ -136,7 +122,7 @@ python3 -m ideator idea \
 ### 3. Full Loop with Anthropic
 
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-api03-..."
+export ANTHROPIC_API_KEY="<your-anthropic-api-key>"
 
 # Generate idea
 python3 -m ideator idea \
@@ -173,14 +159,13 @@ When the falsifier runs "in Cursor", it means:
 ### Anthropic
 1. Go to https://console.anthropic.com/
 2. Create account
-3. Generate API key
-4. Copy key starting with `sk-ant-api03-`
+3. Generate an API key and store it only in your environment or a local `.env` (never in git).
 
 ### OpenAI
 1. Go to https://platform.openai.com/
 2. Create account
 3. Go to API Keys
-4. Create new key starting with `sk-`
+4. Create a new secret key and store it only in your environment (never commit it).
 
 ### Gemini (optional)
 1. Go to https://ai.google.dev/
@@ -191,11 +176,10 @@ When the falsifier runs "in Cursor", it means:
 
 ### Key Not Recognized
 ```bash
-# Check if key is set
-echo $ANTHROPIC_API_KEY
+# Check if key is set (avoid echoing the value in shared terminals or logs)
+test -n "$ANTHROPIC_API_KEY" && echo "ANTHROPIC_API_KEY is set" || echo "ANTHROPIC_API_KEY is empty"
 
-# If empty, you need to export it
-export ANTHROPIC_API_KEY="your-key"
+# If empty, export it from your shell profile or .env (see above)
 ```
 
 ### Key Expired

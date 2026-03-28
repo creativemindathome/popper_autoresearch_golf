@@ -33,15 +33,13 @@ if [ -z "$ANTHROPIC_API_KEY" ]; then
     echo "✗ ANTHROPIC_API_KEY not set!"
     echo ""
     echo "To set it:"
-    echo "  export ANTHROPIC_API_KEY='sk-ant-api03-your-key-here'"
+    echo "  export ANTHROPIC_API_KEY='<your-anthropic-api-key>'"
     echo ""
-    echo "Or create .env file:"
-    echo "  echo 'ANTHROPIC_API_KEY=\"sk-ant-api03-your-key\"' > ../../.env"
+    echo "Or create .env from ../../.env.example and edit locally (never commit .env)"
     exit 1
 fi
 
 echo "✓ ANTHROPIC_API_KEY configured"
-echo "  Key prefix: ${ANTHROPIC_API_KEY:0:20}..."
 echo ""
 
 # Create timestamped run directory

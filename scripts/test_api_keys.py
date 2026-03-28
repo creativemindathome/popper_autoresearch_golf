@@ -13,9 +13,9 @@ def test_key(name, prefix=None):
         return False, "Not set"
 
     if prefix and not value.startswith(prefix):
-        return False, f"Invalid format (should start with {prefix})"
+        return False, f"Invalid format (expected prefix {prefix!r})"
 
-    return True, f"{value[:20]}..."
+    return True, "set (value hidden)"
 
 
 def main():
@@ -31,7 +31,7 @@ def main():
 
     # Test each key
     keys_to_test = [
-        ("ANTHROPIC_API_KEY", "sk-ant-api03", "Ideator + Stage 2 Falsifier"),
+        ("ANTHROPIC_API_KEY", "sk-ant", "Ideator + Stage 2 Falsifier"),
         ("OPENAI_API_KEY", "sk-", "Reviewer (alternative to Anthropic)"),
         ("GEMINI_API_KEY", None, "Ideator (if using Gemini instead)"),
     ]
@@ -85,8 +85,8 @@ def main():
         print("✗ Some API keys are missing")
         print()
         print("To set them:")
-        print("  export ANTHROPIC_API_KEY='sk-ant-api03-your-key'")
-        print("  export OPENAI_API_KEY='sk-your-key'")
+        print("  export ANTHROPIC_API_KEY='<paste from Anthropic console>'")
+        print("  export OPENAI_API_KEY='<paste from OpenAI console>'")
         print()
         print("Or create a .env file and run: set -a && source .env && set +a")
         print()

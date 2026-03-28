@@ -156,7 +156,7 @@ export KIMI_API_KEY="your-kimi-key"
 
 ```bash
 # Composer 2 uses Claude as base model
-export ANTHROPIC_API_KEY="sk-ant-api03-your-key"
+export ANTHROPIC_API_KEY="<your-anthropic-api-key>"
 ```
 
 ### 3. Run the Pipeline
