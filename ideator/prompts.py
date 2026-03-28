@@ -18,6 +18,7 @@ You must:
 - Use the provided knowledge graph context to avoid repeating prior ideas (including failed/not-novel attempts).
 - Prefer ideas that explore "out-of-distribution" research directions (compression, information theory, unconventional architectures, training tricks) but are still implementable under the constraints.
 - Produce a single JSON object only (no markdown, no extra commentary).
+- All string fields must be single-line (no literal newline characters). If you need a line break, use the two-character escape sequence "\\n".
 
 Hard constraints:
 - The idea must be implementable by a small team in ~12 hours as an MVP.
@@ -55,21 +56,36 @@ Output JSON only.
 
 
 def ideator_response_schema() -> Dict[str, Any]:
-    # Schema for Gemini "controlled generation". Kept simple to reduce schema mismatch risk.
+    # JSON Schema for Gemini structured output. Keep it simple for reliability.
     return {
-        "type": "OBJECT",
+        "type": "object",
         "properties": {
-            "idea_id": {"type": "STRING"},
-            "title": {"type": "STRING"},
-            "one_liner": {"type": "STRING"},
-            "core_hypothesis": {"type": "STRING"},
-            "novelty": {"type": "STRING"},
-            "components": {"type": "ARRAY", "items": {"type": "STRING"}},
-            "minimal_change": {"type": "STRING"},
-            "full_proposal": {"type": "STRING"},
-            "evaluation_plan": {"type": "ARRAY", "items": {"type": "STRING"}},
-            "expected_outcome": {"type": "STRING"},
-            "main_risks": {"type": "ARRAY", "items": {"type": "STRING"}},
+            "idea_id": {"type": "string"},
+            "title": {"type": "string"},
+            "one_liner": {"type": "string"},
+            "core_hypothesis": {"type": "string"},
+            "novelty": {"type": "string"},
+            "components": {
+                "type": "array",
+                "items": {"type": "string"},
+                "minItems": 3,
+                "maxItems": 8,
+            },
+            "minimal_change": {"type": "string"},
+            "full_proposal": {"type": "string"},
+            "evaluation_plan": {
+                "type": "array",
+                "items": {"type": "string"},
+                "minItems": 3,
+                "maxItems": 6,
+            },
+            "expected_outcome": {"type": "string"},
+            "main_risks": {
+                "type": "array",
+                "items": {"type": "string"},
+                "minItems": 3,
+                "maxItems": 6,
+            },
         },
         "required": [
             "idea_id",
@@ -84,5 +100,5 @@ def ideator_response_schema() -> Dict[str, Any]:
             "expected_outcome",
             "main_risks",
         ],
+        "additionalProperties": False,
     }
-

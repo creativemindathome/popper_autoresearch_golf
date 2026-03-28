@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import copy
 import re
 import urllib.error
 import urllib.parse
@@ -83,7 +84,7 @@ class GeminiClient:
         max_output_tokens: int = 2048,
         seed: Optional[int] = None,
     ) -> Any:
-        payload_camel = {
+        base_payload_camel = {
             "systemInstruction": {"role": "system", "parts": [{"text": system_prompt}]},
             "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
             "generationConfig": {
@@ -94,28 +95,132 @@ class GeminiClient:
             },
         }
         if seed is not None:
-            payload_camel["generationConfig"]["seed"] = int(seed)
-        if response_schema is not None:
-            payload_camel["generationConfig"]["responseSchema"] = response_schema
+            base_payload_camel["generationConfig"]["seed"] = int(seed)
 
-        try:
-            raw = self.generate_content(model=model, payload=payload_camel)
-        except GeminiHTTPError as e:
-            # Fallback for older/newer REST JSON field naming variants.
-            if e.status_code == 400 and _looks_like_unknown_field_error(e.body):
-                payload_snake = _camel_to_snake_payload(payload_camel)
-                raw = self.generate_content(model=model, payload=payload_snake)
-            else:
-                raise
+        raw = self._generate_with_schema_fallbacks(
+            model=model,
+            base_payload_camel=base_payload_camel,
+            response_schema=response_schema,
+        )
 
         text = _extract_text(raw)
         if text is None:
             raise GeminiError(f"Gemini API response missing text: {raw!r}")
 
-        parsed = _extract_json_from_text(text)
-        if parsed is None:
-            raise GeminiError(f"Model did not return valid JSON. Raw text:\n{text}")
-        return parsed
+        parsed = _parse_json_relaxed(text)
+        if parsed is not None:
+            return parsed
+
+        # One repair attempt using the model itself (low temperature).
+        repaired = self._repair_json_with_model(
+            model=model,
+            raw_text=text,
+            response_schema=response_schema,
+        )
+        if repaired is not None:
+            return repaired
+
+        raise GeminiError(f"Model did not return valid JSON. Raw text:\n{text}")
+
+    def _generate_with_schema_fallbacks(
+        self,
+        *,
+        model: str,
+        base_payload_camel: Dict[str, Any],
+        response_schema: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        schema_attempts: List[Dict[str, Any]] = []
+
+        if response_schema is not None:
+            # Newer structured-output field.
+            schema_attempts.append({"_responseJsonSchema": response_schema})
+            # Some clients/APIs expose the same concept without the leading underscore.
+            schema_attempts.append({"responseJsonSchema": response_schema})
+            # Older structured-output field.
+            schema_attempts.append({"responseSchema": _json_schema_to_openapi_schema(response_schema)})
+
+        # Last resort: JSON mime-type only.
+        schema_attempts.append({})
+
+        last_err: Optional[Exception] = None
+        for schema_fields in schema_attempts:
+            payload_camel = copy.deepcopy(base_payload_camel)
+            payload_camel["generationConfig"].update(schema_fields)
+            try:
+                return self.generate_content(model=model, payload=payload_camel)
+            except GeminiHTTPError as e:
+                last_err = e
+                if e.status_code == 400 and _looks_like_unknown_field_error(e.body):
+                    # Try snake_case as a compatibility fallback for this attempt.
+                    try:
+                        payload_snake = _camel_to_snake_payload(payload_camel)
+                        return self.generate_content(model=model, payload=payload_snake)
+                    except GeminiHTTPError as e2:
+                        last_err = e2
+                        if e2.status_code == 400 and _looks_like_unknown_field_error(e2.body):
+                            continue
+                        raise
+                    except GeminiError as e2:
+                        last_err = e2
+                        continue
+                else:
+                    raise
+            except GeminiError as e:
+                last_err = e
+                continue
+
+        if last_err is not None:
+            raise last_err
+        raise GeminiError("Gemini API request failed unexpectedly.")
+
+    def _repair_json_with_model(
+        self,
+        *,
+        model: str,
+        raw_text: str,
+        response_schema: Optional[Dict[str, Any]],
+    ) -> Optional[Any]:
+        raw_text = raw_text.strip()
+        if not raw_text:
+            return None
+
+        system_prompt = (
+            "You are a strict JSON repair tool. Return a single valid JSON object only. "
+            "Do not add commentary. Do not wrap in markdown."
+        )
+        schema_hint = ""
+        if response_schema is not None:
+            schema_hint = json.dumps(response_schema, ensure_ascii=False)
+        user_prompt = (
+            "Fix the following into valid JSON.\n\n"
+            f"Schema (if present): {schema_hint}\n\n"
+            "Text to fix:\n"
+            f"{raw_text[:12000]}\n\n"
+            "Return ONLY the repaired JSON object."
+        )
+
+        payload = {
+            "systemInstruction": {"role": "system", "parts": [{"text": system_prompt}]},
+            "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
+            "generationConfig": {
+                "temperature": 0.1,
+                "topP": 1.0,
+                "maxOutputTokens": 2048,
+                "responseMimeType": "application/json",
+            },
+        }
+        if response_schema is not None:
+            payload["generationConfig"]["_responseJsonSchema"] = response_schema
+
+        try:
+            raw = self.generate_content(model=model, payload=payload)
+        except GeminiError:
+            return None
+
+        text = _extract_text(raw)
+        if not text:
+            return None
+        return _parse_json_relaxed(text)
 
 
 def _extract_text(resp: Dict[str, Any]) -> Optional[str]:
@@ -152,6 +257,72 @@ def _extract_json_from_text(text: str) -> Optional[Any]:
         return None
 
 
+def _parse_json_relaxed(text: str) -> Optional[Any]:
+    text = text.strip()
+    if not text:
+        return None
+
+    # First try: direct parse.
+    try:
+        return json.loads(text)
+    except Exception:
+        pass
+
+    # Second try: escape common control chars that models sometimes emit inside strings.
+    try:
+        fixed = _escape_control_chars_inside_strings(text)
+        return json.loads(fixed)
+    except Exception:
+        pass
+
+    # Third try: extract JSON substring, then parse (with same escaping fallback).
+    extracted = _extract_json_from_text(text)
+    if extracted is not None:
+        return extracted
+
+    match = re.search(r"(\{.*\}|\[.*\])", text, flags=re.DOTALL)
+    if match:
+        candidate = match.group(1)
+        for attempt in (candidate, _escape_control_chars_inside_strings(candidate)):
+            try:
+                return json.loads(attempt)
+            except Exception:
+                continue
+
+    return None
+
+
+def _escape_control_chars_inside_strings(text: str) -> str:
+    out: List[str] = []
+    in_string = False
+    escaped = False
+    for ch in text:
+        if escaped:
+            out.append(ch)
+            escaped = False
+            continue
+        if ch == "\\":
+            out.append(ch)
+            escaped = True
+            continue
+        if ch == '"':
+            out.append(ch)
+            in_string = not in_string
+            continue
+        if in_string:
+            if ch == "\n":
+                out.append("\\n")
+                continue
+            if ch == "\r":
+                out.append("\\r")
+                continue
+            if ch == "\t":
+                out.append("\\t")
+                continue
+        out.append(ch)
+    return "".join(out)
+
+
 def _looks_like_unknown_field_error(body: Optional[str]) -> bool:
     if not body:
         return False
@@ -179,3 +350,42 @@ def _camel_to_snake_key(name: str) -> str:
     s1 = _CAMEL_RE_1.sub(r"\1_\2", name)
     return _CAMEL_RE_2.sub(r"\1_\2", s1).lower()
 
+
+_TYPE_MAP_JSON_TO_OPENAPI = {
+    "object": "OBJECT",
+    "string": "STRING",
+    "array": "ARRAY",
+    "number": "NUMBER",
+    "integer": "INTEGER",
+    "boolean": "BOOLEAN",
+}
+
+
+def _json_schema_to_openapi_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
+    # Minimal conversion for GenerateContent's `responseSchema` (OpenAPI Schema subset).
+    def conv(node: Any) -> Any:
+        if isinstance(node, list):
+            return [conv(x) for x in node]
+        if not isinstance(node, dict):
+            return node
+
+        out: Dict[str, Any] = {}
+        t = node.get("type")
+        if isinstance(t, str):
+            out["type"] = _TYPE_MAP_JSON_TO_OPENAPI.get(t.lower(), t.upper())
+
+        props = node.get("properties")
+        if isinstance(props, dict):
+            out["properties"] = {k: conv(v) for k, v in props.items()}
+
+        items = node.get("items")
+        if isinstance(items, dict):
+            out["items"] = conv(items)
+
+        req = node.get("required")
+        if isinstance(req, list):
+            out["required"] = req
+
+        return out
+
+    return conv(schema)
