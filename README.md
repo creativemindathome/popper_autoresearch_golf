@@ -7,6 +7,7 @@ Repo-local scaffold for a falsifier-first `parameter-golf` workflow with:
 - research evidence under `research/`
 - record packaging under `records/`
 - upstream challenge code imported at repo root (`train_gpt.py`, `train_gpt_mlx.py`, `data/`, `requirements.txt`)
+- `uv` as the preferred dependency and contributor environment manager
 
 ## Repo Layout
 
@@ -22,10 +23,10 @@ Repo-local scaffold for a falsifier-first `parameter-golf` workflow with:
 
 1. Fill `infra/agents/env/.env.symphony` from the example file.
 2. Fill `infra/agents/env/.env.hermes` from the example file.
-3. Create the repo-local environment with `python3 -m venv .venv`.
-4. Install challenge requirements with `.venv/bin/python -m pip install -r requirements.txt`.
-5. Run `infra/agents/scripts/bootstrap_repo.sh`.
-6. Run `python3 infra/agents/scripts/check_symphony_readiness.py`.
+3. Run `uv sync`.
+4. Run `infra/agents/scripts/bootstrap_repo.sh`.
+5. Run `uv run pytest`.
+6. Run `uv run python infra/agents/scripts/check_symphony_readiness.py`.
 7. Launch Symphony with `infra/agents/scripts/run_symphony.sh`.
 
 The actual agent society can evolve later. The execution substrate is fixed here so Codex, Cursor, Symphony, and Linear all have predictable paths and contracts.
@@ -36,6 +37,13 @@ The actual agent society can evolve later. The execution substrate is fixed here
 - `run_baseline_profile.py` performs actual architecture and quantization analysis against the imported PyTorch model surface.
 - `run_falsification_batch.py` executes real probe batches against the same surface and can use threshold-based refutation rules from a JSON experiment spec.
 - Deeper activation probes and no-training ablations are not wired yet; the current probe layer is weight/checkpoint based.
+- A reduced falsifier package now exists under `falsifier/` with typed contracts, a deterministic Stage 1 core (`T0`, `T2`), and tests.
+
+## Project Split
+
+- Buildout/control-plane work runs in the active Symphony project named in `SYMPHONY_LINEAR_PROJECT_SLUG`.
+- Actual falsifier/execution research should live in a separate execution project named by `SYMPHONY_EXECUTION_PROJECT_SLUG`.
+- This keeps repo plumbing and agent/runtime work separate from theory-testing and candidate evaluation work.
 
 ## Local Constraints
 

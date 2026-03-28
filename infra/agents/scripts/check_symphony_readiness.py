@@ -21,7 +21,13 @@ def parse_env(path: Path) -> dict[str, str]:
 def main() -> int:
     repo_root = Path(__file__).resolve().parents[3]
     symphony_env = parse_env(repo_root / "infra" / "agents" / "env" / ".env.symphony")
-    required = ["LINEAR_API_KEY", "SYMPHONY_LINEAR_PROJECT_SLUG", "SOURCE_REPO_URL", "SYMPHONY_CODEX_COMMAND"]
+    required = [
+        "LINEAR_API_KEY",
+        "SYMPHONY_LINEAR_PROJECT_SLUG",
+        "SYMPHONY_EXECUTION_PROJECT_SLUG",
+        "SOURCE_REPO_URL",
+        "SYMPHONY_CODEX_COMMAND",
+    ]
     missing = [key for key in required if not symphony_env.get(key)]
 
     if missing:

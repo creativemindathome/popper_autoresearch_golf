@@ -2,6 +2,10 @@
 
 Validate the local repo plumbing and secret configuration so Symphony can safely operate this repository.
 
+## Status
+
+- done
+
 ## Context
 
 The repo scaffold, env templates, and repo-local launch scripts exist, but execution should not proceed until the required secrets and readiness gates are satisfied.

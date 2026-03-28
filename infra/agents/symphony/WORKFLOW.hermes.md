@@ -2,6 +2,8 @@
 
 Operate this repo as a falsifier-first research loop for the OpenAI Parameter Golf challenge.
 
+The active Symphony project is for repo buildout and orchestration hardening. The actual falsifier execution project is separate and should only receive issues after the deterministic falsifier core and admission artifacts are stable.
+
 ## Execution Rules
 
 - Prefer small, explicit issues with concrete delivery paths.
@@ -12,16 +14,16 @@ Operate this repo as a falsifier-first research loop for the OpenAI Parameter Go
 - Require a declared validation target before implementation starts.
 - Do not complete an issue if its regression checks or declared validation commands are missing or failing.
 - Do not allow Linear state transitions that are not justified by the local handoff file and local repo artifacts.
+- Keep repo buildout issues and execution-research issues in separate Linear projects.
+- Do not send candidate-theory execution into the buildout project.
 
 ## Recommended Issue Types
 
 - environment-bootstrap
-- baseline-profile
-- theory-proposal
-- falsification-batch
-- engineering-change
-- training-eval
-- distillation-update
+- falsifier-core
+- calibration-lite
+- orchestration-contract
+- execution-admission
 
 ## Validation Bias
 
