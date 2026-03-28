@@ -81,6 +81,7 @@ python -m falsifier.main \
   - `graph.json` - Unified graph (all nodes + edges)
 - `infra/agents/` - Symphony orchestration infrastructure
 - `research/` - Baseline profiles, probe library
+- `records/` - Optional Parameter Golf submission trees (`track_10min_16mb/`, `track_non_record_16mb/`); keep local copies out of git if you prefer a smaller clone (see per-track READMEs)
 - `docs/prd/` - Detailed specifications
 - `experiments/ten_hypothesis_run/` - Anthropic-driven multi-hypothesis runs (Stage 1 + optional Stage 2) with `live_run_*` artifacts; see `experiments/ten_hypothesis_run/README.md`
 
