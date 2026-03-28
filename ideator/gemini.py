@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import copy
 import re
+import socket
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -28,9 +30,18 @@ class GeminiHTTPError(GeminiError):
 
 
 class GeminiClient:
-    def __init__(self, *, api_key: str, base_url: str = "https://generativelanguage.googleapis.com") -> None:
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        base_url: str = "https://generativelanguage.googleapis.com",
+        timeout_s: float = 180.0,
+        max_retries: int = 2,
+    ) -> None:
         self._api_key = api_key
         self._base_url = base_url.rstrip("/")
+        self._timeout_s = float(timeout_s)
+        self._max_retries = max(0, int(max_retries))
 
     def _url(self, path: str, *, api_version: str = "v1beta") -> str:
         qs = urllib.parse.urlencode({"key": self._api_key})
@@ -45,22 +56,43 @@ class GeminiClient:
             body_bytes = json.dumps(payload).encode("utf-8")
 
         req = urllib.request.Request(url, method=method, headers=headers, data=body_bytes)
-        try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                return json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            raw = e.read().decode("utf-8", errors="replace")
-            msg = raw
+        attempts = self._max_retries + 1
+        for attempt in range(attempts):
             try:
-                parsed = json.loads(raw)
-                msg = parsed.get("error", {}).get("message") or msg
-            except Exception:
-                pass
-            raise GeminiHTTPError(status_code=int(e.code), message=msg, body=raw) from e
-        except urllib.error.URLError as e:
-            raise GeminiError(f"Gemini API network error: {e}") from e
-        except json.JSONDecodeError as e:
-            raise GeminiError(f"Gemini API returned non-JSON response: {e}") from e
+                with urllib.request.urlopen(req, timeout=self._timeout_s) as resp:
+                    return json.loads(resp.read().decode("utf-8"))
+            except urllib.error.HTTPError as e:
+                raw = e.read().decode("utf-8", errors="replace")
+                msg = raw
+                try:
+                    parsed = json.loads(raw)
+                    msg = parsed.get("error", {}).get("message") or msg
+                except Exception:
+                    pass
+                raise GeminiHTTPError(status_code=int(e.code), message=msg, body=raw) from e
+            except urllib.error.URLError as e:
+                reason = getattr(e, "reason", None)
+                is_timeout = isinstance(reason, socket.timeout) or "timed out" in str(reason).lower()
+                if is_timeout and attempt + 1 < attempts:
+                    time.sleep(0.8 * (2**attempt))
+                    continue
+                if is_timeout:
+                    raise GeminiError(
+                        f"Gemini API request timed out after {self._timeout_s:.0f}s. "
+                        "Try setting GEMINI_TIMEOUT_S=300 or lowering --max-output-tokens."
+                    ) from e
+                raise GeminiError(f"Gemini API network error: {e}") from e
+            except (TimeoutError, socket.timeout) as e:
+                if attempt + 1 < attempts:
+                    time.sleep(0.8 * (2**attempt))
+                    continue
+                raise GeminiError(
+                    f"Gemini API request timed out after {self._timeout_s:.0f}s. "
+                    "Try setting GEMINI_TIMEOUT_S=300 or lowering --max-output-tokens."
+                ) from e
+            except json.JSONDecodeError as e:
+                raise GeminiError(f"Gemini API returned non-JSON response: {e}") from e
+        raise GeminiError("Gemini API request failed unexpectedly.")
 
     def list_models(self) -> List[Dict[str, Any]]:
         url = self._url("models")

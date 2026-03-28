@@ -46,6 +46,26 @@ def _env_openai_api_key() -> Optional[str]:
     return None
 
 
+def _env_gemini_timeout_s() -> float:
+    value = os.getenv("GEMINI_TIMEOUT_S", "").strip()
+    if not value:
+        return 180.0
+    try:
+        return float(value)
+    except Exception:
+        return 180.0
+
+
+def _env_gemini_max_retries() -> int:
+    value = os.getenv("GEMINI_MAX_RETRIES", "").strip()
+    if not value:
+        return 2
+    try:
+        return int(value)
+    except Exception:
+        return 2
+
+
 def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="ideator", add_help=True)
 
@@ -148,7 +168,11 @@ def _print_json(obj: Any) -> None:
 
 
 def cmd_list_models(api_key: str) -> int:
-    client = GeminiClient(api_key=api_key)
+    client = GeminiClient(
+        api_key=api_key,
+        timeout_s=_env_gemini_timeout_s(),
+        max_retries=_env_gemini_max_retries(),
+    )
     models = client.list_models()
     for m in models:
         name = m.get("name", "")
@@ -250,7 +274,11 @@ def cmd_idea(
             return 2
         reviewer_client = OpenAIClient(api_key=reviewer_api_key, base_url=reviewer_base_url)
 
-    ideator_client = GeminiClient(api_key=api_key)
+    ideator_client = GeminiClient(
+        api_key=api_key,
+        timeout_s=_env_gemini_timeout_s(),
+        max_retries=_env_gemini_max_retries(),
+    )
 
     accepted_idea_raw: Optional[Dict[str, Any]] = None
     accepted_review: Optional[Dict[str, Any]] = None
