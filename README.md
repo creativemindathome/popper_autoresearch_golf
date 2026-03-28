@@ -33,4 +33,4 @@ python3 -m ideator list-models
 python3 -m ideator
 ```
 
-Outputs a single JSON object to stdout.
+Outputs a single JSON object to stdout and saves it to `knowledge_graph/outbox/ideator/latest.json`.

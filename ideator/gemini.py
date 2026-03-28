@@ -209,11 +209,13 @@ class GeminiClient:
                 "responseMimeType": "application/json",
             },
         }
-        if response_schema is not None:
-            payload["generationConfig"]["_responseJsonSchema"] = response_schema
 
         try:
-            raw = self.generate_content(model=model, payload=payload)
+            raw = self._generate_with_schema_fallbacks(
+                model=model,
+                base_payload_camel=payload,
+                response_schema=response_schema,
+            )
         except GeminiError:
             return None
 

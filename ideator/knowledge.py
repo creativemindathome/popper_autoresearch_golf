@@ -64,6 +64,10 @@ def _iter_knowledge_files(root: Path) -> List[Path]:
             continue
         if p.name.lower() in ("readme.md", "readme.txt"):
             continue
+        if "visuals" in {part.lower() for part in p.parts}:
+            continue
+        if p.suffix.lower() not in (".json", ".jsonl", ".md", ".txt"):
+            continue
         if p.suffix.lower() in (".png", ".jpg", ".jpeg", ".gif", ".pdf", ".zip", ".bin"):
             continue
         files.append(p)

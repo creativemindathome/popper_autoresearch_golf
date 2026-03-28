@@ -10,3 +10,9 @@ MVP supported inputs:
 
 The Ideator will include a compact summary when it can parse JSON; otherwise it will pass raw snippets into the prompt.
 
+## Outbox
+
+Generated ideas are saved to `knowledge_graph/outbox/ideator/`:
+
+- `latest.json` (most recent idea)
+- `YYYYMMDDTHHMMSSZ_<idea_id>.json` (timestamped history)
