@@ -1,5 +1,7 @@
 # Null Fellow Hackathon
 
+Integration note: [Verifier and Reviewer Integration](/Users/curiousmind/Desktop/null_fellow_hackathon/infra/agents/docs/VERIFIER_REVIEWER_INTEGRATION.md)
+
 Repo-local scaffold for a falsifier-first `parameter-golf` workflow with:
 
 - upstream-compatible training/eval integration
