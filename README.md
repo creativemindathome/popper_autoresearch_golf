@@ -17,7 +17,7 @@ Nothing here replaces real experiments at scale; it **front-loads cheap failures
 
 ## Run the multi-hypothesis experiment (Anthropic)
 
-The path most people want for a **batch run** is: **Claude proposes several hypotheses**, each one is **checked by the falsifier**, and artifacts land in a timestamped folder under `experiments/ten_hypothesis_run/`. That lives in **`experiments/ten_hypothesis_run/`** — this section is the short version; more detail is in [`experiments/ten_hypothesis_run/README.md`](experiments/ten_hypothesis_run/README.md).
+We added an **end-to-end batch runner** under [`experiments/ten_hypothesis_run/`](experiments/ten_hypothesis_run/README.md): one command drives **Claude** to produce several training-code hypotheses in a row, runs each through the **novelty reviewer** (optional), then the **falsifier** (fast automated checks first, then optional adversarial Stage 2), and **writes everything down**—logs, per-run JSON, `summary.json`, updates to the knowledge graph when enabled, plus data you can turn into timelines or short clips. Each full run lands in its own **`live_run_YYYYMMDD_HHMMSS/`** folder so you can compare attempts without overwriting past work. The steps below are the minimal recipe; flags, layout, and visualization are documented in that directory’s README.
 
 ### 1. Install (from the repo root)
 
