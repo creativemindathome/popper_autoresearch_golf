@@ -29,6 +29,7 @@ Optional:
 export GEMINI_MODEL="gemini-2.5-flash"
 export OPENAI_REVIEWER_MODEL="gpt-4o-mini"
 export IDEATOR_MAX_REVIEW_ROUNDS="4"
+export IDEATOR_REVIEWER_MIN_SCORE="6"
 export GEMINI_TIMEOUT_S="300"
 ```
 

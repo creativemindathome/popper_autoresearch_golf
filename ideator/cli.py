@@ -68,6 +68,16 @@ def _env_gemini_max_retries() -> int:
         return 2
 
 
+def _env_reviewer_min_score() -> int:
+    value = os.getenv("IDEATOR_REVIEWER_MIN_SCORE", "").strip()
+    if not value:
+        return 6
+    try:
+        return int(value)
+    except Exception:
+        return 6
+
+
 def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="ideator", add_help=True)
 
@@ -113,6 +123,12 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     )
     p_idea.add_argument("--reviewer-temperature", type=float, default=0.0)
     p_idea.add_argument("--reviewer-max-tokens", type=int, default=700)
+    p_idea.add_argument(
+        "--reviewer-min-score",
+        type=int,
+        default=_env_reviewer_min_score(),
+        help="Auto-pass if novelty_score >= this value (default: 6; override via IDEATOR_REVIEWER_MIN_SCORE)",
+    )
     p_idea.add_argument(
         "--max-review-rounds",
         type=int,
@@ -204,6 +220,7 @@ def cmd_idea(
     reviewer_base_url: str,
     reviewer_temperature: float,
     reviewer_max_tokens: int,
+    reviewer_min_score: int,
     max_review_rounds: int,
     no_reviewer: bool,
     parent_run: Optional[str],
@@ -370,11 +387,26 @@ def cmd_idea(
             )
 
         decision = str(review.get("decision") or "").strip().lower()
-        score = review.get("novelty_score")
+        score_raw = review.get("novelty_score")
+        score_int: Optional[int] = None
+        try:
+            score_int = int(score_raw)
+        except Exception:
+            score_int = None
+        score_disp = score_int if score_int is not None else score_raw
+
+        reviewer_decision = decision or "revise"
+        effective_decision = reviewer_decision
+        note = ""
+        if effective_decision != "pass" and score_int is not None and score_int >= int(reviewer_min_score):
+            effective_decision = "pass"
+            note = f" (auto-pass: score>={int(reviewer_min_score)}, reviewer_decision={reviewer_decision})"
+            review = dict(review)
+            review["decision"] = "pass"
         sys.stderr.write(
-            f"review round {round_idx + 1}/{rounds}: decision={decision or 'revise'} novelty_score={score}\n"
+            f"review round {round_idx + 1}/{rounds}: decision={effective_decision} novelty_score={score_disp}{note}\n"
         )
-        if decision == "pass":
+        if effective_decision == "pass":
             accepted_idea_raw = idea_raw
             accepted_review = review
             break
@@ -522,6 +554,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             reviewer_base_url=args.reviewer_base_url,
             reviewer_temperature=args.reviewer_temperature,
             reviewer_max_tokens=args.reviewer_max_tokens,
+            reviewer_min_score=args.reviewer_min_score,
             max_review_rounds=args.max_review_rounds,
             no_reviewer=args.no_reviewer,
             parent_run=args.parent_run,
