@@ -1,0 +1,8 @@
+{
+  "theory_id": "theory_smoke",
+  "created_at": "20260328T090729Z",
+  "outcome": "inconclusive",
+  "decision": "rewrite",
+  "reasoning": "stub verdict; replace with real experiment synthesis and measurement results",
+  "supporting_results": []
+}
