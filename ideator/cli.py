@@ -11,7 +11,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from .gemini import GeminiClient, GeminiError
+from .anthropic_client import AnthropicClient, AnthropicError, get_anthropic_api_key
+from .gemini import GeminiClient, GeminiError, GeminiHTTPError
 from .knowledge import choose_knowledge_dir, load_knowledge_context
 from .openai_client import OpenAIClient, OpenAIError
 from .parent_code import (
@@ -46,6 +47,15 @@ def _env_openai_api_key() -> Optional[str]:
         if value:
             return value
     return None
+
+
+def _env_anthropic_api_key() -> Optional[str]:
+    return get_anthropic_api_key()
+
+
+def _env_fallback_anthropic_model() -> str:
+    model = os.getenv("IDEATOR_FALLBACK_ANTHROPIC_MODEL", "claude-3-5-haiku-latest").strip()
+    return model or "claude-3-5-haiku-latest"
 
 
 def _env_gemini_timeout_s() -> float:
@@ -141,6 +151,24 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         help="Disable the novelty reviewer loop (not recommended)",
     )
     p_idea.add_argument(
+        "--fallback-anthropic-api-key",
+        default=None,
+        help="Anthropic API key to use as fallback if Gemini errors (or set ANTHROPIC_API_KEY)",
+    )
+    p_idea.add_argument(
+        "--fallback-anthropic-model",
+        default=_env_fallback_anthropic_model(),
+        help=(
+            "Claude model name for Gemini fallback (default: claude-3-5-haiku-latest; "
+            "override via IDEATOR_FALLBACK_ANTHROPIC_MODEL)"
+        ),
+    )
+    p_idea.add_argument(
+        "--no-fallback",
+        action="store_true",
+        help="Disable Anthropic fallback when Gemini errors (e.g., rate limits)",
+    )
+    p_idea.add_argument(
         "--parent-run",
         default=None,
         help="Run id to use as parent (defaults to latest generated train_gpt if present)",
@@ -223,6 +251,9 @@ def cmd_idea(
     reviewer_min_score: int,
     max_review_rounds: int,
     no_reviewer: bool,
+    fallback_anthropic_api_key: Optional[str],
+    fallback_anthropic_model: str,
+    no_fallback: bool,
     parent_run: Optional[str],
     parent_train_gpt: Optional[str],
     parent_repo_url: str,
@@ -298,6 +329,82 @@ def cmd_idea(
         max_retries=_env_gemini_max_retries(),
     )
 
+    fallback_anthropic_model = (fallback_anthropic_model or "").strip() or _env_fallback_anthropic_model()
+
+    fallback_client: Optional[AnthropicClient] = None
+    if not no_fallback:
+        anthropic_key = fallback_anthropic_api_key or _env_anthropic_api_key()
+        if anthropic_key:
+            fallback_client = AnthropicClient(api_key=anthropic_key)
+
+    active_provider = "gemini"
+    idea_model_used = model
+    patch_model_used = model
+
+    def _is_transient_gemini_error(err: GeminiError) -> bool:
+        if isinstance(err, GeminiHTTPError):
+            return int(err.status_code) in {408, 429, 500, 502, 503, 504}
+        msg = str(err).lower()
+        return ("rate limit" in msg) or ("quota" in msg) or ("timed out" in msg) or ("network error" in msg)
+
+    def _llm_generate_json(
+        *,
+        context: str,
+        system_prompt: str,
+        user_prompt: str,
+        response_schema: Optional[Dict[str, Any]],
+        temperature: float,
+        top_p: float,
+        max_output_tokens: int,
+        seed: Optional[int],
+    ) -> Tuple[Any, str]:
+        nonlocal active_provider
+        if active_provider == "anthropic":
+            if fallback_client is None:
+                raise AnthropicError("Anthropic fallback requested but no ANTHROPIC_API_KEY is set.")
+            obj = fallback_client.generate_json(
+                model=fallback_anthropic_model,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                response_schema=response_schema,
+                temperature=temperature,
+                max_tokens=min(int(max_output_tokens), 8192),
+            )
+            return obj, fallback_anthropic_model
+
+        try:
+            obj = ideator_client.generate_json(
+                model=model,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                response_schema=response_schema,
+                temperature=temperature,
+                top_p=top_p,
+                max_output_tokens=max_output_tokens,
+                seed=seed,
+            )
+            return obj, model
+        except GeminiError as e:
+            if fallback_client is None or not _is_transient_gemini_error(e):
+                raise
+
+            sys.stderr.write(
+                f"{context}: Gemini error; falling back to Anthropic ({fallback_anthropic_model}).\n"
+            )
+            active_provider = "anthropic"
+            try:
+                obj = fallback_client.generate_json(
+                    model=fallback_anthropic_model,
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    response_schema=response_schema,
+                    temperature=temperature,
+                    max_tokens=min(int(max_output_tokens), 8192),
+                )
+                return obj, fallback_anthropic_model
+            except AnthropicError as e2:
+                raise AnthropicError(f"Gemini failed and Anthropic fallback failed: {e2}") from e2
+
     accepted_idea_raw: Optional[Dict[str, Any]] = None
     accepted_review: Optional[Dict[str, Any]] = None
 
@@ -323,15 +430,16 @@ def cmd_idea(
 
         idea_raw: Any = None
         ideator_attempts = 3
-        last_ideator_err: Optional[GeminiError] = None
+        last_ideator_err: Optional[Exception] = None
+        last_call_model: Optional[str] = None
         for attempt_idx in range(ideator_attempts):
             if attempt_idx:
                 sys.stderr.write(f"ideator: retry {attempt_idx + 1}/{ideator_attempts}\n")
             try:
                 retry_temperature = temperature if attempt_idx == 0 else min(temperature, 0.8)
                 retry_max_tokens = max_output_tokens if attempt_idx == 0 else min(int(max_output_tokens), 4096)
-                idea_raw = ideator_client.generate_json(
-                    model=model,
+                idea_raw, last_call_model = _llm_generate_json(
+                    context="ideator",
                     system_prompt=ideator_system,
                     user_prompt=ideator_user
                     + (
@@ -348,7 +456,7 @@ def cmd_idea(
                 )
                 last_ideator_err = None
                 break
-            except GeminiError as e:
+            except (GeminiError, AnthropicError) as e:
                 last_ideator_err = e
                 msg = str(e)
                 recoverable = "Model did not return valid JSON" in msg
@@ -357,7 +465,12 @@ def cmd_idea(
                 if recoverable and reviewer_enabled and round_idx > 0:
                     break
                 sys.stderr.write(msg.rstrip() + "\n")
-                sys.stderr.write("Tip: run `python3 -m ideator list-models` to verify model availability.\n")
+                if isinstance(e, GeminiError):
+                    sys.stderr.write("Tip: run `python3 -m ideator list-models` to verify model availability.\n")
+                    if _is_transient_gemini_error(e) and fallback_client is None and not no_fallback:
+                        sys.stderr.write("Tip: set ANTHROPIC_API_KEY to enable automatic Claude fallback.\n")
+                else:
+                    sys.stderr.write("Tip: verify ANTHROPIC_API_KEY and model access.\n")
                 return 2
         if last_ideator_err is not None:
             msg = str(last_ideator_err)
@@ -367,8 +480,15 @@ def cmd_idea(
                 )
                 continue
             sys.stderr.write(msg.rstrip() + "\n")
-            sys.stderr.write("Tip: run `python3 -m ideator list-models` to verify model availability.\n")
+            if isinstance(last_ideator_err, GeminiError):
+                sys.stderr.write("Tip: run `python3 -m ideator list-models` to verify model availability.\n")
+                if _is_transient_gemini_error(last_ideator_err) and fallback_client is None and not no_fallback:
+                    sys.stderr.write("Tip: set ANTHROPIC_API_KEY to enable automatic Claude fallback.\n")
+            else:
+                sys.stderr.write("Tip: verify ANTHROPIC_API_KEY and model access.\n")
             return 2
+        if last_call_model:
+            idea_model_used = last_call_model
 
         if not isinstance(idea_raw, dict):
             if not reviewer_enabled:
@@ -482,8 +602,8 @@ def cmd_idea(
                 "Regenerate a correct minimal unified diff that applies cleanly to the provided Parent train_gpt.py."
             )
         try:
-            patch_obj = ideator_client.generate_json(
-                model=model,
+            patch_obj, patch_model_used = _llm_generate_json(
+                context="patch",
                 system_prompt=patch_system,
                 user_prompt=patch_user,
                 response_schema=patch_response_schema(),
@@ -492,7 +612,7 @@ def cmd_idea(
                 max_output_tokens=int(max_output_tokens),
                 seed=seed,
             )
-        except GeminiError as e:
+        except (GeminiError, AnthropicError) as e:
             patch_generation_err = str(e).strip()
             continue
 
@@ -529,7 +649,7 @@ def cmd_idea(
     idea_final = _finalize_idea_v2(
         idea=idea,
         run_id=run_id,
-        model=model,
+        model=idea_model_used,
         parent=parent,
         parent_code_ref=parent_code_ref,
         save_root=save_root,
@@ -542,6 +662,7 @@ def cmd_idea(
     if isinstance(idea_final_meta, dict):
         idea_final_meta = dict(idea_final_meta)
         idea_final_meta["patch_applied"] = bool(patch_applied)
+        idea_final_meta["patch_model"] = patch_model_used
         if not patch_applied and last_patch_apply_err:
             idea_final_meta["patch_apply_error"] = str(last_patch_apply_err).strip()
         if not patch_applied and patch_generation_err:
@@ -675,6 +796,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             reviewer_min_score=args.reviewer_min_score,
             max_review_rounds=args.max_review_rounds,
             no_reviewer=args.no_reviewer,
+            fallback_anthropic_api_key=args.fallback_anthropic_api_key,
+            fallback_anthropic_model=args.fallback_anthropic_model,
+            no_fallback=args.no_fallback,
             parent_run=args.parent_run,
             parent_train_gpt=args.parent_train_gpt,
             parent_repo_url=args.parent_repo_url,

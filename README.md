@@ -16,6 +16,10 @@ export GEMINI_API_KEY="..."
 # OpenAI API key (for novelty reviewer)
 export OPENAI_API_KEY="..."
 
+# Optional: Claude fallback for ideator if Gemini rate-limits/errors
+export ANTHROPIC_API_KEY="sk-ant-..."
+export IDEATOR_FALLBACK_ANTHROPIC_MODEL="claude-3-5-haiku-latest"
+
 # Optional configuration
 export GEMINI_MODEL="gemini-2.5-flash"
 export OPENAI_REVIEWER_MODEL="gpt-4o-mini"

@@ -6,7 +6,7 @@ When you say "Cursor for the falsifier", here's what that actually means:
 
 | Component | What It Is | Needs API Key? |
 |-----------|------------|----------------|
-| **Ideator** | LLM service (Gemini) | ✅ Yes - `GEMINI_API_KEY` |
+| **Ideator** | LLM service (Gemini + optional Claude fallback) | ✅ Yes - `GEMINI_API_KEY` (optional fallback: `ANTHROPIC_API_KEY`) |
 | **Falsifier** | Your local Python code running in Cursor | ❌ No - just runs on your CPU |
 | **Falsifier Stage 2** | Optional LLM for kill hypotheses | ✅ Optional - `ANTHROPIC_API_KEY` |
 | **Reviewer** | LLM that approves ideas | ✅ Yes - `OPENAI_API_KEY` |
@@ -26,8 +26,9 @@ export GEMINI_API_KEY="your-gemini-key-here"
 # Required: Reviewer (OpenAI)
 export OPENAI_API_KEY="sk-your-openai-key-here"
 
-# Optional: Falsifier Stage 2 LLM (Claude) — fallback works without
+# Optional: Claude (used for Ideator fallback + Falsifier Stage 2) — fallback works without
 export ANTHROPIC_API_KEY="sk-ant-your-key-here"
+export IDEATOR_FALLBACK_ANTHROPIC_MODEL="claude-3-5-haiku-latest"
 ```
 
 ### Option 2: Cursor Settings
@@ -42,7 +43,8 @@ In Cursor, you can set environment variables that persist:
 {
   "env": {
     "GEMINI_API_KEY": "your-gemini-key-here",
-    "OPENAI_API_KEY": "sk-your-openai-key-here"
+    "OPENAI_API_KEY": "sk-your-openai-key-here",
+    "ANTHROPIC_API_KEY": "sk-ant-your-key-here"
   }
 }
 ```
@@ -142,6 +144,7 @@ python3 -m falsifier.main \
 | Component | Environment Variable | Purpose | Required? |
 |-----------|---------------------|---------|-----------|
 | **Ideator** | `GEMINI_API_KEY` | Generate architecture ideas | ✅ Required |
+| **Ideator fallback** | `ANTHROPIC_API_KEY` | Fallback idea generation if Gemini errors | ⚠️ Optional (auto fallback) |
 | **Reviewer** | `OPENAI_API_KEY` | Evaluate idea novelty | ✅ Required |
 | **Falsifier Stage 1** | None | Runs locally in Cursor | ❌ No key needed |
 | **Falsifier Stage 2** | `ANTHROPIC_API_KEY` | Generate kill hypotheses | ⚠️ Optional (has fallback) |
