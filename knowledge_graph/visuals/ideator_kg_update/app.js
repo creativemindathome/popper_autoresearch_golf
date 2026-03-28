@@ -79,6 +79,29 @@
     return Array.isArray(v) ? v : [];
   }
 
+  function isTimelineObject(obj) {
+    if (!obj || typeof obj !== "object") return false;
+    const sv = obj.schema_version;
+    if (typeof sv !== "string") return false;
+    if (!sv.startsWith("knowledge_graph.ideator_visual_timeline.")) return false;
+    const seed = obj.seed;
+    if (!seed || typeof seed !== "object") return false;
+    if (!Array.isArray(seed.nodes) || !Array.isArray(seed.edges)) return false;
+    if (!Array.isArray(obj.steps)) return false;
+    return true;
+  }
+
+  function readFileAsText(file) {
+    if (!file) return Promise.reject(new Error("No file selected"));
+    if (typeof file.text === "function") return file.text();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(reader.error || new Error("FileReader error"));
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.readAsText(file);
+    });
+  }
+
   function isSeedType(t) {
     return t === "RootBox" || t === "Branch" || t === "Leaf";
   }
@@ -704,16 +727,33 @@
     UI.btnPause.addEventListener("click", () => pause());
     UI.speed.addEventListener("input", () => setSpeed(Number(UI.speed.value || 1)));
 
-    UI.btnLoad.addEventListener("click", () => UI.fileInput.click());
+    UI.btnLoad.addEventListener("click", () => {
+      UI.fileInput.value = "";
+      UI.fileInput.click();
+    });
     UI.fileInput.addEventListener("change", async () => {
       const file = UI.fileInput.files && UI.fileInput.files[0];
       if (!file) return;
-      const text = await file.text();
+      UI.stepNotes.textContent = `Loading ${file.name}…`;
       try {
+        const text = await readFileAsText(file);
         const obj = JSON.parse(text);
+        if (!isTimelineObject(obj)) {
+          const sv = obj && typeof obj === "object" ? obj.schema_version : null;
+          UI.stepNotes.textContent =
+            `That JSON doesn't look like a timeline.\n\n` +
+            `Expected schema_version like:\n` +
+            `  knowledge_graph.ideator_visual_timeline.v1\n\n` +
+            `Got:\n` +
+            `  ${sv ? String(sv) : "(missing schema_version)"}`;
+          return;
+        }
         load(obj);
+        UI.stepNotes.textContent =
+          `Loaded ${file.name}.\n` +
+          `seed_nodes=${obj.seed.nodes.length}, seed_edges=${obj.seed.edges.length}, steps=${obj.steps.length}`;
       } catch (e) {
-        UI.stepNotes.textContent = `Failed to parse JSON: ${String(e)}`;
+        UI.stepNotes.textContent = `Failed to load JSON: ${String(e)}`;
       }
     });
 
