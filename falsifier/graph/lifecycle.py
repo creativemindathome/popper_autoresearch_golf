@@ -275,11 +275,17 @@ def update_node_with_falsification_results(
         if tag.category:
             change_types.add(tag.category)
 
+    # Determine stage reached
+    stage_reached = 1  # At least Stage 1 was attempted
+    if output.s2_results:
+        stage_reached = 2  # Stage 2 was run
+
     # Build falsification section
     falsification = {
         "outcome": output.verdict,
         "killed_by": output.killed_by,
         "kill_reason": output.kill_reason,
+        "stage_reached": stage_reached,
         "test_results": {
             "t2_budget": _serialize_test_result(output.t2_budget),
             "t3_compilation": _serialize_test_result(output.t3_compilation),

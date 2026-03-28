@@ -18,6 +18,7 @@ Stage 2 Configuration:
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import sys
@@ -46,12 +47,19 @@ from falsifier.types import FalsifierInput, Calibration, FalsifierOutput, Tag
 
 # Import knowledge graph lifecycle for syncing results
 from falsifier.graph.lifecycle import (
-    create_node_from_ideator_idea,
     update_node_status,
     update_node_with_falsification_results,
     find_node_by_idea_id,
 )
 from falsifier.graph.locking import AtomicGraphUpdate
+from falsifier.graph.experiment_sync import (
+    create_node_from_experiment_idea,
+    init_node_for_falsification,
+    sync_experiment_results,
+    get_or_create_node,
+    build_falsifier_output_from_results,
+)
+from falsifier.types import Feedback
 
 
 @dataclass
@@ -93,10 +101,12 @@ class HypothesisRun:
     status: str = "pending"
     idea_json: Optional[Dict] = None
     reviewer_feedback: Optional[Dict] = None
-    stage1_result: Optional[Dict] = None
+    stage1_result: Optional[Dict] = None  # Serialized dict for JSON output
+    stage1_output: Optional[FalsifierOutput] = None  # Dataclass for pipeline use
     falsifier_feedback: Optional[Dict] = None
     stage2_input: Optional[Dict] = None
-    stage2_result: Optional[Dict] = None
+    stage2_result: Optional[Dict] = None  # Serialized dict for JSON output
+    stage2_output: Optional[FalsifierOutput] = None  # Dataclass for pipeline use
     verdict: Optional[str] = None
     kill_hypotheses: List[Dict] = None
     experiments_run: int = 0
@@ -239,52 +249,33 @@ class FullLiveExperiment:
             self._knowledge_context = ""
         return self._knowledge_context
 
-    @staticmethod
-    def _translate_idea_for_reviewer(idea: Dict) -> Dict:
-        """Translate the experiment's idea schema to the v2 schema the reviewer expects.
-
-        The reviewer prompt references fields like novelty_summary,
-        implementation_steps, falsifier_smoke_tests, expected_metric_change.
-        The experiment ideator produces theory_id, what_and_why, train_gpt_code,
-        novelty_claims, expected_behavior, parameter_estimate, risk_factors.
-        """
-        return {
-            "schema_version": "ideator.idea.v2",
-            "idea_id": idea.get("theory_id", ""),
-            "title": idea.get("theory_id", "").replace("-", " ").title(),
-            "novelty_summary": idea.get("what_and_why", ""),
-            "novelty_claims": idea.get("novelty_claims", []),
-            "parent_implementation": {
-                "repo_url": "https://github.com/openai/parameter-golf",
-                "git_ref": "main",
-                "primary_file": "train_gpt.py",
-                "run_command": "torchrun --standalone --nproc_per_node=1 train_gpt.py",
-                "code_search_hints": [],
-            },
-            "implementation_steps": [{
-                "step_id": "full-replacement",
-                "file": "train_gpt.py",
-                "locate": "entire file",
-                "change": f"Replace with generated code ({len(idea.get('train_gpt_code', '').splitlines())} lines)",
-                "done_when": "Script runs, params < 10M, loss decreases",
-            }],
-            "falsifier_smoke_tests": idea.get("risk_factors", []),
-            "expected_metric_change": idea.get("expected_behavior", ""),
-            "parameter_estimate": idea.get("parameter_estimate", ""),
-        }
-
     def review_idea(self, idea: Dict, round_idx: int) -> Dict:
         """Run the novelty reviewer gate on a generated idea.
+
+        The idea is already in ideator.idea.v2 format, so we can pass it directly
+        to the reviewer without translation.
 
         Returns a review dict with: decision, novelty_score, primary_reasons,
         revision_instructions, must_fix_fields, similar_to_knowledge.
         """
         self.log_stage("REVIEWER GATE", f"Round {round_idx + 1}/{self.reviewer_config.max_rounds}")
 
-        translated = self._translate_idea_for_reviewer(idea)
+        # CRITICAL: Check for code presence FIRST - auto-reject if missing
+        train_gpt_source = idea.get("train_gpt_code", "")
+        if not train_gpt_source or len(train_gpt_source) < 100:
+            self.log("  ✗ CRITICAL: No train_gpt_code found - auto-rejecting", "ERROR")
+            return {
+                "decision": "revise",
+                "novelty_score": 0,
+                "primary_reasons": ["CRITICAL: Missing train_gpt_code implementation"],
+                "revision_instructions": "You MUST include a complete train_gpt.py implementation in your output. Use the TWO SECTION format: (1) JSON metadata in ```json block, (2) Python code in ```python block with ###TRAIN_GPT_CODE_START### and ###TRAIN_GPT_CODE_END### markers.",
+                "must_fix_fields": ["train_gpt_code"],
+                "similar_to_knowledge": [],
+            }
+
         review_system, review_user = build_reviewer_prompts(
             knowledge_context=self._knowledge_context,
-            idea=translated,
+            idea=idea,
         )
 
         try:
@@ -375,51 +366,61 @@ class FullLiveExperiment:
 
     def _get_t2_feedback_from_graph(self) -> str:
         """Read actual T2 parameter counts from working knowledge graph.
-        
+
         This provides feedback to the ideator about actual vs estimated parameters.
+        Compatible with both old schema (T2) and new canonical schema (t2_budget).
         """
         try:
             kg_dir = project_root / "knowledge_graph"
             graph_path = kg_dir / "graph.json"
-            
+
             if not graph_path.exists():
                 return ""
-            
+
             with open(graph_path) as f:
                 graph = json.load(f)
-            
+
             nodes = graph.get("nodes", {})
             if not nodes:
                 return ""
-            
+
+            def get_t2_estimate(falsification: dict) -> int:
+                """Extract estimated_params from falsification, handling both schemas."""
+                test_results = falsification.get("test_results", {})
+                # Try new canonical schema first (t2_budget)
+                t2_result = test_results.get("t2_budget") or {}
+                estimated = t2_result.get("estimated_params", 0)
+                if estimated:
+                    return estimated
+                # Fall back to old schema (T2)
+                t2_result = test_results.get("T2") or {}
+                return t2_result.get("estimated_params", 0)
+
             feedback_lines = ["\n═══════════════════════════════════════════════════════════════════════"]
             feedback_lines.append("HISTORICAL T2 BUDGET RESULTS (LEARN FROM THESE):")
             feedback_lines.append("═══════════════════════════════════════════════════════════════════════")
-            
+
             # Find nodes that were killed by T2
             t2_kills = []
             for node_id, node in nodes.items():
                 if not isinstance(node, dict):
                     continue
-                
+
                 status = node.get("status", "")
                 falsification = node.get("falsification", {})
                 killed_by = falsification.get("killed_by", "")
-                
+
                 if status == "REFUTED" and killed_by == "T2":
-                    test_results = falsification.get("test_results", {})
-                    t2_result = test_results.get("T2", {}) or {}
-                    
-                    estimated = t2_result.get("estimated_params", 0)
+                    estimated = get_t2_estimate(falsification)
                     kill_reason = falsification.get("kill_reason", "")
-                    
+
                     if estimated > 0:
                         t2_kills.append({
                             "node_id": node_id,
                             "estimated": estimated,
                             "reason": kill_reason
                         })
-            
+
             if t2_kills:
                 feedback_lines.append(f"\n⚠️  Previous {len(t2_kills)} hypotheses KILLED by T2 Budget:")
                 for kill in t2_kills[-5:]:  # Show last 5
@@ -429,35 +430,106 @@ class FullLiveExperiment:
                 feedback_lines.append("\n📝 LESSON: The LLM consistently underestimates parameters by ~20-30%!")
                 feedback_lines.append("   When you think you have 8M, T2 measures 11M.")
                 feedback_lines.append("   Target 6-7M in your estimate to safely stay under 10M.")
-            
+
             # Find successful passes for reference
             passes = []
             for node_id, node in nodes.items():
                 if not isinstance(node, dict):
                     continue
-                
+
                 status = node.get("status", "")
                 if status == "STAGE_1_PASSED":
                     falsification = node.get("falsification", {})
-                    test_results = falsification.get("test_results", {})
-                    t2_result = test_results.get("T2", {}) or {}
-                    estimated = t2_result.get("estimated_params", 0)
+                    estimated = get_t2_estimate(falsification)
                     if estimated > 0:
                         passes.append({
                             "node_id": node_id,
                             "estimated": estimated
                         })
-            
+
             if passes:
                 feedback_lines.append(f"\n✅ {len(passes)} hypotheses PASSED T2 with these counts:")
                 for p in passes[-3:]:
                     feedback_lines.append(f"   - {p['node_id']}: {p['estimated']:,} params")
-            
+
             feedback_lines.append("═══════════════════════════════════════════════════════════════════════\n")
             return "\n".join(feedback_lines)
-            
+
         except Exception as e:
             return f"\n[Could not load T2 feedback: {e}]\n"
+
+    def _parse_idea_response(self, response: str, hypothesis_num: int) -> Optional[Dict]:
+        """Parse split-section response with JSON metadata and separate code block.
+        
+        Expects:
+        1. A JSON code block with metadata (no train_gpt_code field)
+        2. A Python code block with the train_gpt.py content
+        
+        Returns idea dict with both parts combined.
+        """
+        import re
+        
+        # Strategy 1: Extract JSON from markdown code block
+        json_match = re.search(r'```json\s*\n([\s\S]*?)\n```', response, re.DOTALL)
+        if not json_match:
+            # Try without json label
+            json_match = re.search(r'```\s*\n(\{[\s\S]*?\})\n```', response, re.DOTALL)
+        
+        if not json_match:
+            self.log(f"  Could not find JSON code block in response", "ERROR")
+            # Fallback: try to find JSON between braces
+            start = response.find('{')
+            end = response.rfind('}')
+            if start == -1 or end == -1:
+                self.log(f"  No JSON object found", "ERROR")
+                return None
+            json_str = response[start:end+1]
+        else:
+            json_str = json_match.group(1).strip()
+        
+        # Parse JSON
+        try:
+            idea = json.loads(json_str)
+        except json.JSONDecodeError as e:
+            self.log(f"  JSON parse failed: {e}", "ERROR")
+            # Try cleaning
+            try:
+                cleaned = json_str.replace('"', '"').replace('"', '"')
+                idea = json.loads(cleaned)
+            except json.JSONDecodeError:
+                self.log(f"  JSON cleaning also failed", "ERROR")
+                return None
+        
+        # Strategy 2: Extract Python code block
+        # Look for code between Python markers or TRAIN_GPT_CODE markers
+        code_patterns = [
+            r'```python\s*\n###TRAIN_GPT_CODE_START###\s*\n([\s\S]*?)\n###TRAIN_GPT_CODE_END###\s*\n```',
+            r'###TRAIN_GPT_CODE_START###\s*\n([\s\S]*?)\n###TRAIN_GPT_CODE_END###',
+            r'```python\s*\n([\s\S]*?)\n```',
+        ]
+        
+        train_code = ""
+        for pattern in code_patterns:
+            code_match = re.search(pattern, response, re.DOTALL)
+            if code_match:
+                train_code = code_match.group(1).strip()
+                break
+        
+        if not train_code:
+            self.log(f"  Warning: No train_gpt_code block found in response", "WARNING")
+        else:
+            # Add code to idea dict
+            idea["train_gpt_code"] = train_code
+            self.log(f"  Extracted {len(train_code)} chars of train_gpt_code")
+        
+        return idea
+
+    def _train_gpt_source(self, idea: Dict) -> str:
+        """Prefer ``train_gpt_code_base64`` (valid JSON); else ``train_gpt_code`` string."""
+        b64 = idea.get("train_gpt_code_base64")
+        if b64:
+            return base64.b64decode(str(b64).strip().encode("ascii")).decode("utf-8")
+        return str(idea.get("train_gpt_code") or "")
 
     def generate_idea(
         self,
@@ -496,7 +568,11 @@ KNOWLEDGE GRAPH CONTEXT (what has been tried, what failed, what passed):
         # If revising, include the reviewer's criticism
         revision_section = ""
         if is_revision:
-            prev_json = json.dumps(previous_idea, indent=2, default=str)
+            # Strip train_gpt_code from previous_idea to avoid overwhelming the model
+            # The model only needs metadata to understand what to revise
+            prev_idea_metadata = {k: v for k, v in previous_idea.items() 
+                                  if k not in ('train_gpt_code', 'train_gpt_code_base64')}
+            prev_json = json.dumps(prev_idea_metadata, indent=2, default=str)
             rev_json = json.dumps(reviewer_feedback, indent=2, default=str)
             revision_section = f"""
 ═══════════════════════════════════════════════════════════════════════
@@ -505,11 +581,18 @@ Address the reviewer's criticisms by changing the CORE MECHANISM, not
 just rewording. Marginal tweaks will be rejected again.
 ═══════════════════════════════════════════════════════════════════════
 
-Previous idea (rejected):
+Previous idea METADATA (rejected):
 {prev_json}
 
 Reviewer feedback:
 {rev_json}
+
+⚠️ OUTPUT FORMAT (MUST FOLLOW EXACTLY):
+You MUST output TWO SEPARATE SECTIONS:
+1. First: JSON metadata in ```json...``` block (no code inside)
+2. Second: Python code in ```python...``` block with ###TRAIN_GPT_CODE_START### and ###TRAIN_GPT_CODE_END### markers
+
+DO NOT put code inside the JSON. DO NOT forget the code block.
 ═══════════════════════════════════════════════════════════════════════
 """
 
@@ -552,17 +635,68 @@ CRITICAL ENGINEERING CONSTRAINTS - YOU MUST RESPECT THESE:
 {revision_section}
 ═══════════════════════════════════════════════════════════════════════
 
-OUTPUT FORMAT - Return ONLY valid JSON:
+OUTPUT FORMAT - Return TWO SEPARATE SECTIONS:
+
+SECTION 1 — JSON METADATA (valid JSON, no code inside):
+```json
 {{
-  "theory_id": "unique-lowercase-hyphenated-name",
-  "what_and_why": "2-3 paragraphs. Para 1: What change (BE SPECIFIC). Para 2: Why it works (cite mechanisms). Para 3: Expected falsification signatures.",
-  "train_gpt_code": "Complete runnable Python code. MUST use PyTorch. CRITICAL: Count parameters and verify <10M. Include explicit parameter count comment at top.",
-  "parent_architecture": "GPT-2 small (modified)",
-  "novelty_claims": ["Specific claim 1", "Specific claim 2", "Specific claim 3"],
-  "expected_behavior": "Training curve expectations: initial loss? After 100 steps? Success vs failure metrics?",
-  "parameter_estimate": "Explicit count: ~X.M parameters (verified <10M). Break down: embeddings=X, layers=Y, etc.",
-  "risk_factors": ["What could go wrong", "How to detect failure early"]
+  "schema_version": "ideator.idea.v2",
+  "idea_id": "unique-lowercase-hyphenated-name",
+  "title": "Short descriptive title (5-10 words)",
+  "novelty_summary": "1-3 sentences describing the novelty. What specific architectural change are you proposing?",
+  "parent_implementation": {{
+    "repo_url": "https://github.com/karpathy/nanoGPT",
+    "git_ref": "master",
+    "primary_file": "train_gpt.py",
+    "run_command": "python train_gpt.py --config=config/finetune_shakespeare_char.py",
+    "code_search_hints": ["CausalSelfAttention", "MLP", "Block", "LayerNorm"]
+  }},
+  "implementation_steps": [
+    {{
+      "step_id": "1",
+      "file": "train_gpt.py",
+      "locate": "Find the CausalSelfAttention class definition",
+      "change": "Modify attention mechanism to add YOUR_CHANGE. Old: X, New: Y",
+      "done_when": "Code compiles and attention output shape matches input"
+    }},
+    {{
+      "step_id": "2",
+      "file": "train_gpt.py",
+      "locate": "Find the MLP class",
+      "change": "Adjust MLP hidden dimension. Old: 4*n_embd, New: YOUR_VALUE",
+      "done_when": "Parameter count stays under 10M"
+    }},
+    {{
+      "step_id": "3",
+      "file": "train_gpt.py",
+      "locate": "Model initialization",
+      "change": "Add variance scaling initialization if needed",
+      "done_when": "Initial loss < 15 on first forward pass"
+    }}
+  ],
+  "falsifier_smoke_tests": [
+    "Model instantiates with n_embd=384, n_layer=6, n_head=6 without errors",
+    "Forward pass on batch size 4, sequence 128 produces logits of shape (4, 128, vocab_size)",
+    "Parameter count prints as ~6.5M at model initialization",
+    "First training step loss is between 8-15 (not NaN, not inf)",
+    "After 10 steps, loss has decreased from step 1 (learning is happening)"
+  ],
+  "expected_metric_change": "Expected 100-step validation bpb improvement: baseline 4.2 -> proposed 3.8 (10% better). Falsification if: no improvement over baseline, or loss > 6.0 at step 100."
 }}
+```
+
+SECTION 2 — CODE BLOCK (after the JSON, in its own markdown block):
+```python
+###TRAIN_GPT_CODE_START###
+# Complete train_gpt.py file goes here
+# Must include: imports, Model class with YOUR modifications, training loop
+# Must print parameter count
+# Config: n_embd=384, n_layer=6, n_head=6, vocab_size=50304, block_size=128
+# VERIFY total params < 10M
+###TRAIN_GPT_CODE_END###
+```
+
+IMPORTANT: The JSON must be valid and complete BEFORE the code block starts. Do NOT put the Python code inside the JSON.
 
 ═══════════════════════════════════════════════════════════════════════
 
@@ -616,123 +750,151 @@ Generate something novel but RESPECT THE 10M HARD LIMIT."""
         if is_revision:
             user_prompt += " This is a REVISION — address ALL reviewer criticisms substantively."
 
-        try:
+        # Retry loop for code extraction
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            # Build attempt-specific prompt
+            if attempt == 0:
+                attempt_prompt = user_prompt
+            else:
+                # Stronger reminder about code requirement
+                attempt_prompt = user_prompt + """
+
+⚠️ CRITICAL: Your previous response was missing the Python code block.
+
+YOU MUST use this EXACT format:
+
+```json
+{
+  "schema_version": "ideator.idea.v2",
+  "idea_id": "your-idea-name",
+  "title": "Your Title",
+  "novelty_summary": "...",
+  "parent_implementation": {...},
+  "implementation_steps": [...],
+  "falsifier_smoke_tests": [...],
+  "expected_metric_change": "..."
+}
+```
+
+```python
+###TRAIN_GPT_CODE_START###
+import torch
+import torch.nn as nn
+... (complete train_gpt.py with your modifications)
+###TRAIN_GPT_CODE_END###
+```
+
+DO NOT FORGET THE CODE BLOCK. The idea is USELESS without executable code."""
+                self.log(f"  Retry {attempt}/{max_retries}: Code missing, regenerating with stronger prompt...")
+
             self.log(f"Calling Anthropic API ({self.stage0_config.model})...")
             response = self.client.generate_idea(
                 system_prompt=system_prompt,
-                user_prompt=user_prompt,
-                temperature=self.stage0_config.temperature,
+                user_prompt=attempt_prompt,
+                temperature=min(self.stage0_config.temperature + (attempt * 0.05), 0.95),  # Cap at 0.95
                 max_tokens=self.stage0_config.max_tokens,
                 model=self.stage0_config.model,
             )
 
-            # Parse JSON response
-            import re
-            try:
-                idea = json.loads(response)
-            except json.JSONDecodeError:
-                # Try to extract JSON from markdown
-                json_match = re.search(r'```(?:json)?\n(.*?)\n```', response, re.DOTALL)
-                if json_match:
-                    idea = json.loads(json_match.group(1))
-                else:
-                    # Try to find JSON object directly
-                    json_match = re.search(r'\{[\s\S]*\}', response)
-                    if json_match:
-                        idea = json.loads(json_match.group(0))
-                    else:
-                        raise
-            
-            # Ensure idea is a dict
-            if not isinstance(idea, dict):
-                raise ValueError(f"Parsed idea is not a dict, got {type(idea)}: {str(idea)[:100]}")
+            # Parse split-section response (JSON metadata + separate code block)
+            idea = self._parse_idea_response(response, hypothesis_num)
+            if idea is None:
+                if attempt < max_retries:
+                    self.log(f"  Retry {attempt + 1}/{max_retries}: Parse failed, trying again...")
+                    continue
+                raise ValueError("Failed to parse response - both JSON and code extraction failed")
 
-            theory_id = idea.get("theory_id", f"h{hypothesis_num:03d}")
-            param_estimate = idea.get("parameter_estimate", "unknown")
-            train_code = idea.get("train_gpt_code", "")
-            novelty_claims = idea.get("novelty_claims", [])
-            # Ensure novelty_claims is a list
-            if isinstance(novelty_claims, str):
-                novelty_claims = [novelty_claims] if novelty_claims else []
-            elif not isinstance(novelty_claims, list):
-                novelty_claims = []
-            
-            # Log generation results
-            self.log(f"✓ Generated hypothesis #{hypothesis_num}: {theory_id}")
-            self.log(f"  Parameter estimate: {param_estimate}")
-            self.log(f"  Novelty: {len(novelty_claims)} claims")
-            code_lines = len(train_code.split("\n")) if train_code else 0
-            self.log(f"  Code: ~{code_lines} lines")
-            
-            # Warn if parameter estimate is missing or exceeds budget
-            if param_estimate == "unknown":
-                self.log("  ⚠️ WARNING: No parameter_estimate provided - T2 Budget check will likely fail")
+            # Check if code was extracted
+            train_code = self._train_gpt_source(idea)
+            if train_code and len(train_code.strip()) > 100:
+                # Success - we have code, break out of retry loop
+                break
             else:
-                # Check for parameter budget - look for patterns like "8.2M", "10M", etc
-                import re
-                numbers = re.findall(r'(\d+\.?\d*)\s*[Mm]', str(param_estimate))
-                for num in numbers:
-                    try:
-                        val = float(num)
-                        if val > 10.5:  # Allow slight buffer for estimation error
-                            self.log(f"  ⚠️️ WARNING: Parameter estimate {val}M exceeds 10M budget - will likely be KILLED by T2")
-                        elif val <= 10:
-                            self.log(f"  ✓ Parameter estimate {val}M is within 10M budget")
-                    except ValueError:
-                        pass
+                # Missing code - retry if we have attempts left
+                if attempt < max_retries:
+                    self.log(f"  No code extracted ({len(train_code) if train_code else 0} chars), retrying...")
+                    continue
+                else:
+                    self.log(f"  Failed to get code after {max_retries + 1} attempts", "ERROR")
+                    # FALLBACK: If this is a revision and we have no code, use previous code
+                    if is_revision and previous_idea:
+                        prev_code = previous_idea.get("train_gpt_code", "")
+                        if prev_code and len(prev_code) > 100:
+                            self.log(f"  FALLBACK: Using code from previous iteration ({len(prev_code)} chars)", "WARN")
+                            idea["train_gpt_code"] = prev_code
+                    break
+
+        # Post-retry processing
+        tid = (idea.get("idea_id") or idea.get("theory_id") or "").strip() or f"h{hypothesis_num:03d}"
+        idea["idea_id"] = idea["theory_id"] = tid
+
+        title = idea.get("title", tid)
+        train_code = self._train_gpt_source(idea)
+        implementation_steps = idea.get("implementation_steps", [])
+        smoke_tests = idea.get("falsifier_smoke_tests", [])
+        
+        # Log generation results
+        self.log(f"✓ Generated hypothesis #{hypothesis_num}: {tid}")
+        self.log(f"  Title: {title}")
+        self.log(f"  Implementation steps: {len(implementation_steps)}")
+        self.log(f"  Smoke tests: {len(smoke_tests)}")
+        code_lines = len(train_code.split("\n")) if train_code else 0
+        self.log(f"  Code: ~{code_lines} lines")
+        
+        # Pre-check: Look for common budget violations in code
+        if train_code:
+            import re
+            # Check for n_embd values that would exceed budget
+            n_embd_matches = re.findall(r'n_embd\s*=\s*(\d+)', train_code)
+            for match in n_embd_matches:
+                try:
+                    val = int(match)
+                    if val > 512:
+                        self.log(f"  ⚠️ WARNING: n_embd={val} may exceed 10M budget (recommend 384-512)")
+                except (ValueError, TypeError):
+                    pass
             
-            # Pre-check: Look for common budget violations in code
-            if train_code:
-                import re
-                # Check for n_embd values that would exceed budget
-                n_embd_matches = re.findall(r'n_embd\s*=\s*(\d+)', train_code)
-                for match in n_embd_matches:
-                    try:
-                        val = int(match)
-                        if val > 512:
-                            self.log(f"  ⚠️ WARNING: n_embd={val} may exceed 10M budget (recommend 384-512)")
-                    except (ValueError, TypeError):
-                        pass
-                
-                # Check for n_layer values
-                n_layer_matches = re.findall(r'n_layer\s*=\s*(\d+)', train_code)
-                for match in n_layer_matches:
-                    try:
-                        val = int(match)
-                        if val > 8:
-                            self.log(f"  ⚠️ WARNING: n_layer={val} may exceed 10M budget (recommend 4-8)")
-                    except (ValueError, TypeError):
-                        pass
+            # Check for n_layer values
+            n_layer_matches = re.findall(r'n_layer\s*=\s*(\d+)', train_code)
+            for match in n_layer_matches:
+                try:
+                    val = int(match)
+                    if val > 8:
+                        self.log(f"  ⚠️ WARNING: n_layer={val} may exceed 10M budget (recommend 4-8)")
+                except (ValueError, TypeError):
+                    pass
 
-            self.stats["total_generated"] += 1
-            self.log(f"  DEBUG: About to return idea (type: {type(idea)})")
-            return idea
+        self.stats["total_generated"] += 1
+        self.log(f"  DEBUG: About to return idea (type: {type(idea)})")
+        return idea
 
-        except Exception as e:
-            import traceback
-            self.log(f"✗ Failed to generate hypothesis #{hypothesis_num}: {e}", "ERROR")
-            self.log(f"  Traceback: {traceback.format_exc()}", "ERROR")
-            raise
+    def run_stage1(self, idea: Dict, run: HypothesisRun) -> FalsifierOutput:
+        """Run Stage 1 falsifier gates (T2-T7).
+        
+        Returns FalsifierOutput dataclass directly to avoid serialization round-trip.
+        """
+        # Map CLI ideator fields (idea_id) to falsifier fields (theory_id)
+        idea_id = idea.get("idea_id", run.run_id)
+        novelty_summary = idea.get("novelty_summary", idea.get("title", "No description provided"))
+        
+        self.log_stage("STAGE 1: FALSIFIER GATES (T2-T7)", f"Theory: {idea_id}")
 
-    def run_stage1(self, idea: Dict, run: HypothesisRun) -> Dict:
-        """Run Stage 1 falsifier gates (T2-T7)."""
-        self.log_stage("STAGE 1: FALSIFIER GATES (T2-T7)", f"Theory: {idea.get('theory_id', run.run_id)}")
-
-        # Extract and save train_gpt code
-        train_code = idea.get("train_gpt_code", "")
-        if not train_code:
-            raise ValueError("No train_gpt_code in idea")
+        # Extract and save train_gpt code (plain or base64)
+        train_code = self._train_gpt_source(idea)
+        if not train_code.strip():
+            raise ValueError("No train_gpt_code / train_gpt_code_base64 in idea")
 
         temp_code_file = self.output_dir / "output" / f"{run.run_id}_train_gpt.py"
         temp_code_file.parent.mkdir(parents=True, exist_ok=True)
         with open(temp_code_file, "w") as f:
             f.write(train_code)
 
-        # Create falsifier input
+        # Create falsifier input (map idea_id -> theory_id for falsifier compatibility)
         inp = FalsifierInput(
             train_gpt_path=str(temp_code_file),
-            theory_id=idea.get("theory_id", run.run_id),
-            what_and_why=idea.get("what_and_why", "No description provided"),
+            theory_id=idea_id,
+            what_and_why=novelty_summary,
             sota_train_gpt=str(project_root / "parameter-golf" / "train_gpt.py"),
             val_data_path=str(project_root / "data" / "fineweb" / "sample.jsonl"),
         )
@@ -778,66 +940,26 @@ Generate something novel but RESPECT THE 10M HARD LIMIT."""
         if output.tags:
             self.log(f"  Tags: {[t.tag_id for t in output.tags]}")
 
-        return result
+        # Return the FalsifierOutput dataclass directly (not serialized)
+        return output
 
-    @staticmethod
-    def _reconstruct_falsifier_output(stage1_result: Dict, idea: Dict, run: HypothesisRun) -> FalsifierOutput:
-        """Reconstruct a proper FalsifierOutput from the serialized stage1_result dicts.
-
-        run_stage1() serialises everything via asdict(), so we need to
-        re-hydrate the typed dataclasses so downstream consumers (Stage 2,
-        feedback) get real objects, not None.
+    def run_stage2(self, idea: Dict, stage1_output: FalsifierOutput, run: HypothesisRun) -> Optional[FalsifierOutput]:
+        """Run Stage 2 adversarial falsifier with Anthropic Sonnet.
+        
+        Args:
+            idea: The idea dict (CLI ideator format)
+            stage1_output: FalsifierOutput dataclass from Stage 1 (direct, not reconstructed)
+            run: The HypothesisRun tracking this hypothesis
+            
+        Returns:
+            FalsifierOutput dataclass with Stage 2 results, or None if Stage 2 not run
         """
-        from falsifier.types import T2Result, T3Result, T4Result, T5Result, T7Result, Tag
-
-        def _rebuild(cls, data):
-            if not data or not isinstance(data, dict):
-                return None
-            try:
-                valid = {}
-                import dataclasses
-                field_names = {f.name for f in dataclasses.fields(cls)}
-                for k, v in data.items():
-                    if k in field_names:
-                        valid[k] = v
-                return cls(**valid)
-            except Exception:
-                return None
-
-        tags = []
-        for t in (stage1_result.get("tags") or []):
-            if isinstance(t, dict) and "tag_id" in t:
-                try:
-                    tags.append(Tag(
-                        tag_id=t["tag_id"],
-                        test_id=t.get("test_id", ""),
-                        category=t.get("category", ""),
-                        description=t.get("description", t.get("detail", "")),
-                    ))
-                except Exception:
-                    pass
-
-        return FalsifierOutput(
-            theory_id=idea.get("theory_id", run.run_id),
-            verdict=stage1_result.get("verdict", "UNKNOWN"),
-            killed_by=stage1_result.get("killed_by"),
-            kill_reason=stage1_result.get("kill_reason"),
-            t2_budget=_rebuild(T2Result, stage1_result.get("t2_budget")),
-            t3_compilation=_rebuild(T3Result, stage1_result.get("t3_compilation")),
-            t4_signal=_rebuild(T4Result, stage1_result.get("t4_signal")),
-            t5_init=_rebuild(T5Result, stage1_result.get("t5_init")),
-            t7_microtrain=_rebuild(T7Result, stage1_result.get("t7_microtrain")),
-            tags=tags,
-        )
-
-    def run_stage2(self, idea: Dict, stage1_result: Dict, run: HypothesisRun) -> Optional[Dict]:
-        """Run Stage 2 adversarial falsifier with Anthropic Sonnet."""
         if not self.stage2_config.enabled:
             self.log("Stage 2 disabled, skipping")
             return None
 
         # Only run Stage 2 if Stage 1 passed
-        if stage1_result.get("verdict") != "STAGE_1_PASSED":
+        if stage1_output.verdict != "STAGE_1_PASSED":
             self.log("Stage 1 did not pass, skipping Stage 2")
             return None
 
@@ -845,14 +967,16 @@ Generate something novel but RESPECT THE 10M HARD LIMIT."""
 
         self.stats["stage2_triggered"] += 1
 
-        # Prepare Stage 1 output for Stage 2 — reconstruct typed results
-        stage1_output = self._reconstruct_falsifier_output(stage1_result, idea, run)
+        # stage1_output is now passed directly as dataclass - no reconstruction needed
 
-        # Create input for Stage 2 (include full context)
+        # Create input for Stage 2 (map CLI ideator fields to falsifier input)
+        idea_id = idea.get("idea_id", run.run_id)
+        novelty_summary = idea.get("novelty_summary", idea.get("title", ""))
+        
         inp = FalsifierInput(
             train_gpt_path=str(self.output_dir / "output" / f"{run.run_id}_train_gpt.py"),
-            theory_id=idea.get("theory_id", run.run_id),
-            what_and_why=idea.get("what_and_why", ""),
+            theory_id=idea_id,
+            what_and_why=novelty_summary,
             sota_train_gpt=str(project_root / "parameter-golf" / "train_gpt.py"),
             val_data_path=str(project_root / "data" / "fineweb" / "sample.jsonl"),
         )
@@ -866,13 +990,6 @@ Generate something novel but RESPECT THE 10M HARD LIMIT."""
             s2r = s2_output.s2_results
             hypotheses_tested = len(s2r.hypothesis_results) if s2r and s2r.hypothesis_results else 0
 
-            result = {
-                "verdict": s2_output.verdict,
-                "killed_by": s2_output.killed_by,
-                "kill_reason": s2_output.kill_reason,
-                "hypotheses_tested": hypotheses_tested,
-            }
-
             if s2_output.verdict in ("REFUTED", "REJECTED"):
                 self.log(f"✗ Stage 2 KILLED by {s2_output.killed_by}: {s2_output.kill_reason}")
                 self.stats["stage2_killed"] += 1
@@ -880,12 +997,18 @@ Generate something novel but RESPECT THE 10M HARD LIMIT."""
                 self.log(f"✓ Stage 2 PASSED: Theory survived adversarial evaluation")
                 self.stats["stage2_passed"] += 1
 
-            return result
+            # Return the full FalsifierOutput dataclass (not a dict)
+            return s2_output
 
         except Exception as e:
             self.log(f"⚠ Stage 2 error: {e}", "WARN")
             self.log("  Falling back to Stage 1 verdict only")
-            return {"error": str(e), "verdict": "STAGE_2_ERROR"}
+            # Return a minimal FalsifierOutput with error
+            return FalsifierOutput(
+                theory_id=idea.get("idea_id", run.run_id),
+                verdict="STAGE_2_ERROR",
+                kill_reason=str(e),
+            )
 
     def run_single_hypothesis(self, hypothesis_num: int) -> HypothesisRun:
         """Run one hypothesis through the complete pipeline.
@@ -961,6 +1084,11 @@ Generate something novel but RESPECT THE 10M HARD LIMIT."""
             # (better to falsify it than to discard entirely)
             if accepted_idea is None:
                 if idea is not None and isinstance(idea, dict):
+                    # CRITICAL: Verify code exists before proceeding
+                    idea_code = idea.get("train_gpt_code", "")
+                    if not idea_code or len(idea_code) < 100:
+                        self.log(f"  ✗ CRITICAL: Last idea has no code after {rounds} rounds - hypothesis FAILED", "ERROR")
+                        raise ValueError(f"No valid code generated after {max_rounds} reviewer rounds")
                     self.log(f"  Reviewer did not approve after {rounds} rounds — proceeding with last idea")
                     self.stats["reviewer_rejected"] += 1
                     accepted_idea = idea
@@ -971,20 +1099,54 @@ Generate something novel but RESPECT THE 10M HARD LIMIT."""
             run.reviewer_feedback = accepted_review
             self.capture_graph_snapshot()
 
+            # ── Step 2.5: Initialize or resolve node in knowledge graph ───────
+            # This ensures the node exists before falsification and marks IN_FALSIFICATION
+            # aligning with the CLI's load_from_ideator_inbox behavior
+            kg_dir = project_root / "knowledge_graph"
+            graph_path = kg_dir / "graph.json"
+            idea_id = accepted_idea.get("idea_id", run.run_id)
+
+            try:
+                # Get or create node (ensures it exists)
+                node_id = get_or_create_node(
+                    theory_id=idea_id,
+                    idea=accepted_idea,
+                    graph_path=graph_path,
+                    model=self.stage0_config.model,
+                )
+                # Mark as in falsification
+                init_node_for_falsification(
+                    node_id=node_id,
+                    graph_path=graph_path,
+                    actor="experiment",
+                )
+                self.log(f"  [Graph] Node initialized for falsification: {node_id}")
+            except Exception as e:
+                # Log but don't fail - sync at end will handle it
+                self.log(f"  [Graph] Warning: Could not init node before falsification: {e}", "WARNING")
+
             # ── Step 3: Stage 1 falsifier gates ────────────────────────────
             run.status = "stage1"
-            stage1_result = self.run_stage1(accepted_idea, run)
-            run.stage1_result = stage1_result
+            # run_stage1 now returns FalsifierOutput dataclass directly (no serialization)
+            stage1_output = self.run_stage1(accepted_idea, run)
+            run.stage1_output = stage1_output  # Store dataclass for pipeline use
+            # Also store serialized version for JSON output
+            from dataclasses import asdict
+            run.stage1_result = asdict(stage1_output)
             self.capture_graph_snapshot()
 
             # ── Step 4: Generate structured feedback ───────────────────────
             run.status = "feedback"
-            s1_output = self._reconstruct_falsifier_output(stage1_result, accepted_idea, run)
+            # Use the dataclass directly - no need to reconstruct
+            s1_output = stage1_output
             temp_code_file = self.output_dir / "output" / f"{run.run_id}_train_gpt.py"
+            idea_id = accepted_idea.get("idea_id", run.run_id)
+            novelty_summary = accepted_idea.get("novelty_summary", accepted_idea.get("title", ""))
+            
             s1_inp = FalsifierInput(
                 train_gpt_path=str(temp_code_file),
-                theory_id=accepted_idea.get("theory_id", run.run_id),
-                what_and_why=accepted_idea.get("what_and_why", ""),
+                theory_id=idea_id,
+                what_and_why=novelty_summary,
                 sota_train_gpt=str(project_root / "parameter-golf" / "train_gpt.py"),
                 val_data_path=str(project_root / "data" / "fineweb" / "sample.jsonl"),
             )
@@ -992,14 +1154,20 @@ Generate something novel but RESPECT THE 10M HARD LIMIT."""
             run.falsifier_feedback = feedback_dict
 
             # ── Step 5: Stage 2 adversarial falsifier ──────────────────────
-            if stage1_result.get("verdict") == "STAGE_1_PASSED":
+            # Use dataclass attribute access instead of dict .get()
+            if stage1_output.verdict == "STAGE_1_PASSED":
                 run.status = "stage2"
-                stage2_result = self.run_stage2(accepted_idea, stage1_result, run)
-                run.stage2_result = stage2_result
-                run.verdict = stage2_result.get("verdict", "STAGE_2_ERROR") if stage2_result else "STAGE_1_PASSED"
+                # Pass the dataclass directly to run_stage2
+                stage2_output = self.run_stage2(accepted_idea, stage1_output, run)
+                run.stage2_output = stage2_output  # Store dataclass for pipeline use
+                # Also store serialized version for JSON output
+                if stage2_output:
+                    from dataclasses import asdict
+                    run.stage2_result = asdict(stage2_output)
+                run.verdict = stage2_output.verdict if stage2_output else "STAGE_1_PASSED"
                 self.capture_graph_snapshot()
             else:
-                run.verdict = stage1_result.get("verdict", "UNKNOWN")
+                run.verdict = stage1_output.verdict
 
             run.status = "complete"
 
@@ -1026,9 +1194,11 @@ Generate something novel but RESPECT THE 10M HARD LIMIT."""
         return run
 
     def _sync_to_working_graph(self, run: HypothesisRun, idea: Dict) -> None:
-        """Sync falsification results to the working knowledge graph.
+        """Sync falsification results to the working knowledge graph using canonical lifecycle.
 
-        This ensures the ideator knows what has been tried and what failed.
+        This uses the same update_node_with_falsification_results helper as the CLI,
+        ensuring consistent schema between experiment and manual runs.
+
         The working graph is at knowledge_graph/graph.json (separate from seed graph).
         """
         try:
@@ -1036,71 +1206,22 @@ Generate something novel but RESPECT THE 10M HARD LIMIT."""
             kg_dir = project_root / "knowledge_graph"
             graph_path = kg_dir / "graph.json"
 
-            # Ensure knowledge graph directory exists
-            kg_dir.mkdir(parents=True, exist_ok=True)
+            idea_id = idea.get("idea_id", run.run_id)
 
-            theory_id = idea.get("theory_id", run.run_id)
+            # Use the canonical sync helper from experiment_sync module
+            sync_experiment_results(
+                theory_id=idea_id,
+                idea=idea,
+                stage1_result=run.stage1_result,
+                stage2_result=run.stage2_result,
+                graph_path=graph_path,
+                start_time=run.start_time,
+                end_time=run.end_time,
+                falsifier_feedback=run.falsifier_feedback,
+                model=self.stage0_config.model,
+            )
 
-            # Build node data directly
-            node_data = {
-                "node_id": theory_id,
-                "idea_id": theory_id,
-                "title": idea.get("theory_id", "Untitled"),
-                "theory_type": "architectural",
-                "status": run.verdict or "UNKNOWN",
-                "status_history": [
-                    {
-                        "status": "GENERATED",
-                        "timestamp": datetime.fromtimestamp(run.start_time).isoformat(),
-                        "actor": "anthropic-ideator",
-                    },
-                    {
-                        "status": run.verdict or "COMPLETE",
-                        "timestamp": datetime.fromtimestamp(run.end_time or time.time()).isoformat(),
-                        "actor": "falsifier",
-                    },
-                ],
-                "what_and_why": idea.get("what_and_why", ""),
-                "source": {
-                    "type": "anthropic-ideator",
-                    "generated_at": datetime.fromtimestamp(run.start_time).isoformat(),
-                    "model": self.stage0_config.model,
-                },
-                "falsification": {
-                    "outcome": "FAILED" if run.verdict in ("REFUTED", "REJECTED") else "PASSED" if run.verdict == "STAGE_2_PASSED" else "ITERATE",
-                    "stage_reached": 2 if run.stage2_result else 1,
-                    "killed_by": run.stage1_result.get("killed_by") if run.stage1_result else None,
-                    "kill_reason": run.stage1_result.get("kill_reason") if run.stage1_result else None,
-                    "timing": {
-                        "started_at": datetime.fromtimestamp(run.start_time).isoformat(),
-                        "completed_at": datetime.fromtimestamp(run.end_time or time.time()).isoformat(),
-                        "wall_seconds": (run.end_time or time.time()) - run.start_time,
-                    },
-                    "test_results": {
-                        "T2": run.stage1_result.get("t2_budget") if run.stage1_result else None,
-                        "T3": run.stage1_result.get("t3_compilation") if run.stage1_result else None,
-                        "T4": run.stage1_result.get("t4_signal") if run.stage1_result else None,
-                        "T5": run.stage1_result.get("t5_init") if run.stage1_result else None,
-                        "T7": run.stage1_result.get("t7_microtrain") if run.stage1_result else None,
-                    },
-                    "feedback": run.falsifier_feedback,
-                },
-            }
-
-            # Use AtomicGraphUpdate to safely update the working graph
-            from falsifier.graph.locking import AtomicGraphUpdate
-            updater = AtomicGraphUpdate(graph_path)
-
-            # Check if node already exists
-            graph = updater.read_graph()
-            if theory_id in graph.get("nodes", {}):
-                # Update existing node
-                updater.update_node(theory_id, node_data)
-                self.log(f"  [Graph Sync] Updated existing node: {theory_id}")
-            else:
-                # Create new node
-                updater.create_node(theory_id, node_data)
-                self.log(f"  [Graph Sync] Created new node: {theory_id}")
+            self.log(f"  [Graph Sync] Synced results for node: {idea_id}")
 
         except Exception as e:
             # Log but don't fail the experiment if graph sync fails
@@ -1260,7 +1381,7 @@ Generate something novel but RESPECT THE 10M HARD LIMIT."""
                     "time": run.start_time - self.start_time,
                     "hypothesis": run.hypothesis_number,
                     "event": "start",
-                    "theory_id": run.idea_json.get("theory_id", run.run_id),
+                    "idea_id": run.idea_json.get("idea_id", run.run_id),
                 })
             if run.end_time:
                 timeline.append({

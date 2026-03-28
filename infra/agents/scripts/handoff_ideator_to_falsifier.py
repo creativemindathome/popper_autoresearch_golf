@@ -191,7 +191,8 @@ def load_graph(graph_path: Path) -> Dict[str, Any]:
         data = _load_json(graph_path)
         if data is not None:
             return data
-    return {"nodes": [], "edges": []}
+    # Falsifier lifecycle uses nodes as a dict keyed by node_id; align defaults.
+    return {"nodes": {}, "edges": []}
 
 
 def save_graph(graph_path: Path, graph: Dict[str, Any]) -> None:
@@ -200,19 +201,35 @@ def save_graph(graph_path: Path, graph: Dict[str, Any]) -> None:
 
 
 def find_or_create_node(graph: Dict[str, Any], node_id: str) -> Dict[str, Any]:
-    """Find an existing node or create a new one."""
-    nodes = graph.get("nodes", [])
-    if not isinstance(nodes, list):
-        nodes = []
-        graph["nodes"] = nodes
+    """Find an existing node or create a new one.
 
-    for node in nodes:
-        if isinstance(node, dict) and node.get("id") == node_id:
-            return node
+    Supports dict-shaped ``nodes`` (falsifier / ``lifecycle`` schema) and legacy
+    list-shaped ``nodes``. Never replaces a dict ``nodes`` object with a list —
+    doing so would wipe the working graph when this script runs.
+    """
+    raw = graph.get("nodes")
 
-    # Create new node
-    new_node: Dict[str, Any] = {"id": node_id}
-    nodes.append(new_node)
+    if isinstance(raw, dict):
+        existing = raw.get(node_id)
+        if isinstance(existing, dict):
+            return existing
+        new_node: Dict[str, Any] = {"node_id": node_id}
+        raw[node_id] = new_node
+        return new_node
+
+    if isinstance(raw, list):
+        for node in raw:
+            if isinstance(node, dict) and node.get("id") == node_id:
+                return node
+        new_node = {"id": node_id}
+        raw.append(new_node)
+        return new_node
+
+    # Missing or unexpected type: start a canonical dict (preserve other graph keys).
+    nodes_dict: Dict[str, Any] = {}
+    graph["nodes"] = nodes_dict
+    new_node = {"node_id": node_id}
+    nodes_dict[node_id] = new_node
     return new_node
 
 

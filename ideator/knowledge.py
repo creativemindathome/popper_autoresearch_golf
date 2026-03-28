@@ -86,6 +86,8 @@ def load_knowledge_context(knowledge_dir: Path, *, max_chars: int = 18_000) -> s
                         # Include metrics if available
                         metrics = falsification.get("metrics", {})
                         bpb = metrics.get("bits_per_byte")
+                        if bpb is None:
+                            bpb = metrics.get("measured_bpb")
                         loss = metrics.get("loss_at_100")
 
                         summary_parts = [f"- {idea_id}: {title} [{status}]"]
